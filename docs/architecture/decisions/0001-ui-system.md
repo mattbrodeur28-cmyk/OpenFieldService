@@ -3,7 +3,8 @@
 Date: 2026-11-14
 
 Status: Accepted direction; staged adoption. NumberFlow is the first runtime slice.
-React-component compatibility and broad screen migration remain planned work.
+Dialog/Tabs compatibility is accepted in [ADR-0002](0002-radix-preact-pilot.md);
+broader React-component compatibility and screen migration remain planned work.
 
 ## Context
 
@@ -94,5 +95,5 @@ behavior or Preact/React component compatibility.
 5. UI-005: profile/settings and integrations dialogs, then navigation/channel/Builder.
 6. UI-006: Dispatcher, CRM, contracts and accounting screens reuse the same system.
 
-Track completion and evidence in Features.md. The unfinished workspace changes
-remain separate from this dependency/component adoption slice until verified.
+Track completion and evidence in Features.md. M1 core delivery is recorded in the
+workspace release; the next bounded adoption slice is recorded in ADR-0002.

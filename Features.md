@@ -169,6 +169,12 @@ prove one complete business workflow in light/dark, keyboard and mobile layouts.
 Confirm a single rendering-runtime strategy, consistent styling and accurate
 pending/success/failure feedback. Installing packages is not evidence of migration.
 
+UI progress: Dialog/Tabs compatibility and the first shared Dialog, Button and
+Input/TextField wrappers are implemented. Profile/settings and integrations adopt
+them. [ADR-0002](docs/architecture/decisions/0002-radix-preact-pilot.md) and the
+[UI release record](docs/releases/2026-11-14-ui-primitives.md) capture scope and
+browser evidence. UI-003/004/005 and UX-006 remain open for their broader criteria.
+
 ### Team channels
 
 - [x] **COLLAB-001 — Channel design:** modern header, avatars, grouped messages,

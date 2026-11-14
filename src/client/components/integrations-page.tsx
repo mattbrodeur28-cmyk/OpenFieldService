@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { Dialog, DialogTitle } from "./ui/dialog";
+import { Button } from "./ui/button";
+import { useEffect, useState } from "preact/hooks";
 import { Search, X, Plug, ArrowUpRight } from "lucide-preact";
 import { integrationCatalog, type Integration } from "../integrations-catalog";
 import { integrationLogos } from "../integration-logos";
@@ -50,7 +52,6 @@ export function IntegrationsPage({
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All services");
   const [selected, setSelected] = useState<Integration | null>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
   const canManage = isAdministrator(user);
   const [connectors, setConnectors] = useState<Connector[]>([]);
   async function loadConnections() {
@@ -76,11 +77,7 @@ export function IntegrationsPage({
           .includes(word),
       ),
   );
-  useEffect(() => {
-    if (selected) dialog.current?.showModal();
-  }, [selected]);
   function close() {
-    dialog.current?.close();
     setSelected(null);
     void refresh();
   }
@@ -193,82 +190,66 @@ export function IntegrationsPage({
           </button>
         </div>
       )}
-      <dialog
-        ref={dialog}
-        class="integration-dialog"
-        aria-labelledby="integration-dialog-title"
-        onCancel={() => {
-          setSelected(null);
-          void refresh();
-        }}
-        onClick={(e) => {
-          if (e.target === dialog.current) {
-            const bounds = dialog.current!.getBoundingClientRect();
-            if (
-              e.clientX < bounds.left ||
-              e.clientX > bounds.right ||
-              e.clientY < bounds.top ||
-              e.clientY > bounds.bottom
-            )
-              close();
-          }
-        }}
-      >
-        {selected && (
-          <>
-            <div class="integration-dialog-heading">
-              <Logo item={selected} />
-              <div>
-                <h2 id="integration-dialog-title">{selected.name}</h2>
-                <p>{selected.categories.join(" · ")}</p>
+      {selected && (
+        <Dialog class="integration-dialog" close={close}>
+          {selected && (
+            <>
+              <div class="integration-dialog-heading">
+                <Logo item={selected} />
+                <div>
+                  <DialogTitle>{selected.name}</DialogTitle>
+                  <p>{selected.categories.join(" · ")}</p>
+                </div>
+                <Button
+                  size="icon"
+                  onClick={close}
+                  aria-label="Close integration details"
+                >
+                  <X size={20} />
+                </Button>
               </div>
-              <button
-                class="btn-icon"
-                onClick={close}
-                aria-label="Close integration details"
-                autoFocus
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <p class="integration-dialog-description">{selected.description}</p>
-            {ai.has(selected.id) ? (
-              <>
-                <p class="integration-notice">
-                  {providers.some(
-                    (provider) =>
-                      provider.id === selected.id && provider.configured,
-                  )
-                    ? "Settings are configured. Send a message in Chat to verify the connection."
-                    : "This connector is available. Configure your server address or API account below."}
-                </p>
-                {canManage ? (
-                  <ProviderSettings providerId={selected.id} />
-                ) : (
-                  <p>Your administrator manages this connection.</p>
-                )}
-                <a class="btn" href="/chat">
-                  Open Chat <ArrowUpRight size={14} />
-                </a>
-              </>
-            ) : selected.connector ? (
-              <ConnectorPanel
-                provider={selected.connector}
-                refresh={() => void loadConnections()}
-              />
-            ) : (
-              <div class="integration-notice">
-                <strong>Connector not yet implemented</strong>
-                <p>
-                  This service is in your catalog. Connecting accounts and using
-                  its data from Chat or apps requires a dedicated connector. No
-                  account has been connected and no data is being synchronized.
-                </p>
-              </div>
-            )}
-          </>
-        )}
-      </dialog>
+              <p class="integration-dialog-description">
+                {selected.description}
+              </p>
+              {ai.has(selected.id) ? (
+                <>
+                  <p class="integration-notice">
+                    {providers.some(
+                      (provider) =>
+                        provider.id === selected.id && provider.configured,
+                    )
+                      ? "Settings are configured. Send a message in Chat to verify the connection."
+                      : "This connector is available. Configure your server address or API account below."}
+                  </p>
+                  {canManage ? (
+                    <ProviderSettings providerId={selected.id} />
+                  ) : (
+                    <p>Your administrator manages this connection.</p>
+                  )}
+                  <a class="btn" href="/chat">
+                    Open Chat <ArrowUpRight size={14} />
+                  </a>
+                </>
+              ) : selected.connector ? (
+                <ConnectorPanel
+                  provider={selected.connector}
+                  refresh={() => void loadConnections()}
+                />
+              ) : (
+                <div class="integration-notice">
+                  <strong>Connector not yet implemented</strong>
+                  <p>
+                    This service is in your catalog. Connecting accounts and
+                    using its data from Chat or apps requires a dedicated
+                    connector. No account has been connected and no data is
+                    being synchronized.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </Dialog>
+      )}
     </div>
   );
 }

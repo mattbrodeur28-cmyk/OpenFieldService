@@ -41,19 +41,41 @@ workflow. Use DialogTitle inside each Dialog; complex dialog forms intentionally
 do not describe the entire contents as one aria-describedby paragraph. The
 standalone browser runtime is required; this wrapper is not an SSR API.
 
-## Planned shared component inventory
+## Extended shared inventory
 
-Dialog, Tabs, Button and input/field wrappers are implemented. Next qualify
-DropdownMenu and Select/Combobox, then establish Textarea, Checkbox/Switch, Card,
-Badge, Avatar, Sheet, Popover, Tooltip, Toast, Skeleton and DataTable wrappers.
-Standardize loading/empty/error/permission states and light/dark themes. Migrate one
-vertical workflow at a time and retain its existing functional acceptance tests.
+| Wrapper | Contract / usage |
+| --- | --- |
+| Select | Radix 2.4.1, MIT; controlled value/options, body portal, label and scroll controls; Builder, Team filters and Dispatcher |
+| ActionMenu | Radix DropdownMenu 2.2.1, MIT; asChild Button trigger, body portal and item callbacks; Team actions |
+| Tooltip | Radix Tooltip 1.4.1, MIT; asChild trigger and body portal; Dispatcher refresh |
+| Sheet | Shared Dialog with a side-panel presentation; Dispatcher assignment/resource forms |
+| Card / Badge / Avatar | Local token-styled surfaces; navigation, Team and Dispatcher |
+| Textarea / Checkbox | Native labeled form controls; Team composer / Dispatcher override |
+| Notice / LoadingState / Skeleton / EmptyState | Status/error, pending and empty presentation; preserve actual server feedback |
+| Table | Native semantic table inside a labeled scroll region; Dispatcher appointment list |
 
-Choose Radix-backed shadcn components consistently when that compatibility path is
-proven. Beautiful UI, RareUI, Magic UI and 21st.dev are reviewed sources for specific
-components and interaction patterns, not permission to install every catalog or
-combine several complete themes. Record each adopted component's upstream URL,
-revision/license, local changes, added dependencies and validation evidence.
+The three added Radix packages use their official MIT primitives:
+https://www.radix-ui.com/primitives/docs/components/select,
+https://www.radix-ui.com/primitives/docs/components/dropdown-menu and
+https://www.radix-ui.com/primitives/docs/components/tooltip. Exact versions and
+integrity hashes are locked. Local wrappers and surfaces were authored in this
+repository; no registry component source or premium template was copied.
+
+Keep the single Preact runtime and existing CSS token strategy from ADR-0002;
+Tailwind initialization is deliberately deferred to avoid introducing a second
+reset/theme. New primitive families require their own browser qualification.
+
+Beautiful UI (https://www.beautifului.dev/), RareUI (https://rareui.in/),
+Magic UI (https://magicui.design/) and 21st.dev (https://21st.dev/) were reviewed
+as references for chat/composition, restrained interaction and individual component
+patterns. This release installs none of their libraries or templates. Their source
+licenses/dependencies require review if a specific component is later adopted.
+Animated decorative effects do not add value to a frequently used dispatch board;
+its immediate drag/stretch feedback uses ordinary pointer-driven rendering.
+
+[Current release evidence](../releases/2026-11-14-dispatcher.md) distinguishes tested
+browser interactions from pending physical touch/accessibility qualification.
+CRM/contracts/projects/accounting will reuse these wrappers as those modules ship.
 
 ## Review checklist
 

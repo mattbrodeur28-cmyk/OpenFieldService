@@ -231,5 +231,5 @@ export function createAuth({ filename, env = process.env }) {
     if (!input || typeof input.content !== 'string' || !input.content.trim() || input.content.length > 8000) return c.json({ error: 'Enter a message of up to 8,000 characters.' }, 400);
     const id = randomUUID(); db.prepare('INSERT INTO team_messages(id,team_id,user_id,content) VALUES(?,?,?,?)').run(id, team.id, c.get('user').id, input.content); return c.json({ id }, 201);
   });
-  return { app, guard, close: () => db.close() };
+  return { app, guard, currentUser: c => testMode ? c.get('user') : userFor(c), close: () => db.close() };
 }

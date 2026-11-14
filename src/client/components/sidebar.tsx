@@ -1,3 +1,4 @@
+import { Avatar } from './ui/surfaces';
 import { useEffect, useState } from "preact/hooks";
 import { ProfilePopup, type ProfileSection } from "./profile-popup";
 import { useApp } from "../context";
@@ -7,6 +8,7 @@ import type { View } from "../types";
 
 const navItems: { view: View; path: string; label: string; icon: typeof LayoutDashboard }[] = [
   { view: "dashboard", path: "/", label: "Dashboard", icon: LayoutDashboard },
+  { view: "dispatcher", path: "/dispatcher", label: "Dispatcher", icon: CalendarClock },
   { view: "schedule", path: "/schedule", label: "Schedule", icon: CalendarDays },
   { view: "jobs", path: "/jobs", label: "Jobs", icon: Briefcase },
   { view: "customers", path: "/customers", label: "Customers", icon: Users },
@@ -28,7 +30,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
 
   const active = (view: View) => currentView === view || (currentView === "assets" && view === "customers");
   const colors: Partial<Record<View, string>> = {
-    schedule: "pink", jobs: "purple", customers: "blue", technicians: "pink",
+    dispatcher: "blue", schedule: "pink", jobs: "purple", customers: "blue", technicians: "pink",
     invoices: "purple", materials: "cyan", services: "purple",
   };
   const navItem = (item: typeof navItems[number]) => {
@@ -78,7 +80,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
         {canManage && navItem({ view: "website", path: "/website", label: "Website", icon: Globe })}
       </nav>
       <div class="workspace-sidebar-footer">
-        <button class="sidebar-item workspace-account-button" title={user.name} aria-haspopup="dialog" onClick={() => setProfileSection("profile")}><span class="workspace-team-avatar" aria-hidden="true">{user.name.slice(0, 1).toUpperCase()}</span><span class="workspace-nav-label">{user.name}<small>{user.role}</small></span></button>
+        <button class="sidebar-item workspace-account-button" title={user.name} aria-haspopup="dialog" onClick={() => setProfileSection("profile")}><Avatar name={user.name} /><span class="workspace-nav-label">{user.name}<small>{user.role}</small></span></button>
       </div>
       {profileSection && <ProfilePopup initialSection={profileSection} close={closeProfile} />}
     </aside>

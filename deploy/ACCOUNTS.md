@@ -43,6 +43,22 @@ new AI conversations are private to their creator. Legacy proposals remain visib
 to administrators. Chat/provider status APIs now require a user session; a bearer
 WORKSPACE_TOKEN no longer grants normal API access.
 
+## Dispatcher upgrades
+
+The Dispatcher release adds module tables/triggers without resetting existing
+business records. Before using it, set `DISPATCH_TIMEZONE` privately in
+`/etc/openfieldservice.env`, for example `DISPATCH_TIMEZONE=America/New_York`.
+Use the company's actual IANA timezone. The default is UTC; changing this setting
+does not convert existing schedule values. Preserve `PUBLIC_URL` and all encryption
+and provider keys. Keep a private backup of the environment file as well as both
+SQLite databases before upgrading. The full [Dispatcher rules](../docs/api/dispatcher.md)
+and [release evidence](../docs/releases/2026-11-14-dispatcher.md) describe migration,
+concurrency, limits and rollback. After restart, inspect the journal if healthz fails:
+
+```sh
+journalctl -u openfieldservice -n 80 --no-pager
+```
+
 ## Create the first owner
 
 Refresh the app. The initial owner screen requires the **existing WORKSPACE_TOKEN**

@@ -8,8 +8,9 @@ export interface AccountUser { id: string; name: string; email: string; role: Us
 export interface Team { id: string; name: string; description: string; member_count: number }
 export async function accountRequest<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(path, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'OpenFieldService' }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const data = await response.json();
   if (response.status === 401) window.dispatchEvent(new Event('ofs:auth-required'));
+  let data;
+  try { data = await response.json(); } catch { throw new Error(`The server returned an unexpected response (HTTP ${response.status}). Reload the page; if it continues, check that the application and proxy are running the same release.`); }
   if (!response.ok) throw new Error(data.error || 'The request failed.');
   return data;
 }

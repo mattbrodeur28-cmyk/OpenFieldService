@@ -1,3 +1,4 @@
+import { createDispatcher } from "./dispatch/service.mjs";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
@@ -19,9 +20,11 @@ const storage = openStorage(process.env.DATABASE_PATH ?? resolve(root, "data/ope
 const integrations = createIntegrations({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
 const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite"), storage, root, integrationRead: integrations.read });
 const auth = createAuth({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
+const dispatcher = createDispatcher({ storage, currentUser: auth.currentUser });
 const app = new Hono();
 app.use("/api/*", auth.guard);
 app.route("/api/auth", auth.app);
+app.route("/api/dispatch", dispatcher.app);
 app.get("/api/public/company", (c) => workspace.publicCompany(c));
 app.route("/api/workspace", workspace.app);
 app.route("/api/integrations", integrations.app);
@@ -46,6 +49,7 @@ let stopping = false;
 function stop() {
   if (stopping) return;
   stopping = true;
+  dispatcher.close();
   const deadline = setTimeout(() => process.exit(1), 10000);
   deadline.unref();
   server.close(() => { auth.close(); integrations.close(); workspace.close(); storage.close(); clearTimeout(deadline); });

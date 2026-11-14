@@ -40,7 +40,7 @@ test("standalone server preserves equipment workflows, restart data and live bac
   }
   t.after(async () => { await stop(); rmSync(directory, { recursive: true, force: true }); });
   async function api(method, path, body, expected = 200) {
-    const response = await fetch(base + path, { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+    const response = await fetch(base + path, { method, headers: { "Content-Type": "application/json", "X-Requested-With": "OpenFieldService" }, body: body === undefined ? undefined : JSON.stringify(body) });
     const text = await response.text();
     assert.equal(response.status, expected, text);
     return JSON.parse(text);
@@ -55,6 +55,18 @@ test("standalone server preserves equipment workflows, restart data and live bac
   await api("POST", `/api/jobs/${jobs[0].id}/notes`, { content: "Controls checkout" }, 201);
   const invoice = await api("POST", `/api/jobs/${jobs[0].id}/invoice`, undefined, 201);
   assert.ok(invoice.invoice_id);
+  const technician = await api("POST", "/api/technicians", {name:"Dispatcher tech"}, 201);
+  const original = (await api("GET", `/api/jobs/${jobs[0].id}`)).job;
+  await api("PUT", `/api/dispatch/assignments/${jobs[0].id}`, {technicianId:technician.id,date:"2026-11-14",time:"09:00",duration:60,expectedVersion:original.schedule_version});
+  const scheduled=(await api("GET", `/api/jobs/${jobs[0].id}`)).job;
+  assert.equal(scheduled.dispatch_managed,1);
+  await api("PUT", `/api/jobs/${jobs[0].id}`, {scheduled_time:"10:00"},409);
+  await api("PUT", `/api/jobs/${jobs[0].id}`, {scheduled_time:"25:00",expected_version:scheduled.schedule_version},400);
+  await api("PUT", `/api/jobs/${jobs[0].id}`, {scheduled_time:"10:00",expected_version:scheduled.schedule_version});
+  await api("PUT", `/api/jobs/${jobs[0].id}`, {scheduled_time:"11:00",expected_version:scheduled.schedule_version},409);
+  await api("PUT", `/api/dispatch/assignments/${jobs[1].id}`, {technicianId:technician.id,date:"2026-11-14",time:"10:30",duration:60,expectedVersion:0},409);
+  assert.equal((await api("GET", "/api/dispatch/board?date=2026-11-14")).jobs[0].scheduled_time,"10:00");
+
   for (const path of ["/", `/assets/${asset.id}`, `/jobs/${jobs[0].id}`, "/schedule"]) {
     const response = await fetch(base + path);
     assert.equal(response.status, 200);

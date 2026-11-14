@@ -10,6 +10,10 @@ milestone sequence, acceptance criteria and definition of done.
 - [Shared UI primitives release evidence](releases/2026-11-14-ui-primitives.md)
 - [UI component and interaction implementation guide](development/ui-system.md)
 
+- [Dispatcher architecture decision](architecture/decisions/0003-dispatcher-module.md)
+- [Dispatcher API and operating rules](api/dispatcher.md)
+- [Dispatcher and workspace UI release evidence](releases/2026-11-14-dispatcher.md)
+
 ## Current guides
 
 - [Overview and local workflow](../README.md)

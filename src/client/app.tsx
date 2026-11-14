@@ -1,3 +1,4 @@
+import { Dispatcher } from "./components/dispatcher";
 
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { AppContext } from "./context";
@@ -59,6 +60,7 @@ export function App() {
   }, [view, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderMain = () => {
+    if (view === "dispatcher") return <Dispatcher />;
     if (view === "team" && id) return <TeamChannel key={id} id={id} />;
     if (["users", "environment", "settings", "integrations"].includes(view)) return <Dashboard />;
     if (["team", "website"].includes(view)) return <AccountPages key={view + id} view={view} id={id} />;

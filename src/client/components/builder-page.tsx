@@ -1,3 +1,6 @@
+import { Select } from "./ui/select";
+import { Button } from "./ui/button";
+import { Notice } from "./ui/surfaces";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import {
   Plus,
@@ -220,7 +223,13 @@ export function BuilderPage() {
       setSelectedFiles(draft.files.map((file) => file.path));
       setPrompt("");
       setReviewed(false);
-      try { await loadHistory(); } catch { setError("Draft saved. Recent drafts could not refresh; reopen the builder to retry."); }
+      try {
+        await loadHistory();
+      } catch {
+        setError(
+          "Draft saved. Recent drafts could not refresh; reopen the builder to retry.",
+        );
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -261,16 +270,16 @@ export function BuilderPage() {
   return (
     <div class="builder-layout">
       <aside class="builder-history" aria-label="Builder conversations">
-        <button
+        <Button
           class="btn"
           disabled={busy || loading}
           onClick={newConversation}
         >
           <Plus size={15} /> New conversation
-        </button>
+        </Button>
         <h2>Recent drafts</h2>
         {conversations.map((item) => (
-          <button
+          <Button
             class={`builder-history-item ${proposal?.id === item.id ? "active" : ""}`}
             disabled={busy}
             onClick={() => void openDraft(item.id)}
@@ -285,7 +294,7 @@ export function BuilderPage() {
                 ).toLocaleDateString()}
               </small>
             </span>
-          </button>
+          </Button>
         ))}
         {!loading && !history.length && (
           <p class="workspace-help">
@@ -299,34 +308,29 @@ export function BuilderPage() {
             <strong>Build with a conversation</strong>
             <p>Describe it. Review it. Refine it.</p>
           </div>
-          <label>
-            AI connection
-            <select
-              aria-label="Builder AI connection"
-              value={provider}
-              disabled={busy || loading}
-              onChange={(e) => setProvider(e.currentTarget.value)}
-            >
-              <option value="" disabled>
-                Choose a connection
-              </option>
-              {providers.map((item) => (
-                <option value={item.id} disabled={!item.configured}>
-                  {item.label}
-                  {item.model ? ` · ${item.model}` : " · Not configured"}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select
+            label="AI connection"
+            value={provider}
+            disabled={busy || loading}
+            onValueChange={setProvider}
+            placeholder="Choose a connection"
+            options={providers.map((item) => ({
+              value: item.id,
+              label:
+                item.label +
+                (item.model ? ` · ${item.model}` : " · Not configured"),
+              disabled: !item.configured,
+            }))}
+          />
         </div>
         <p class="builder-scope">
           Edits existing frontend files. Backend, database and account-security
           changes require code development outside this builder.
         </p>
         {error && (
-          <div class="workspace-error" role="alert">
+          <Notice tone="danger" close={() => setError("")}>
             {error}
-          </div>
+          </Notice>
         )}
         {!loading && !configured && (
           <p class="integration-notice">
@@ -345,13 +349,13 @@ export function BuilderPage() {
               </p>
               <div class="builder-starters">
                 {starterPrompts.map((item) => (
-                  <button
+                  <Button
                     class="btn"
                     disabled={busy}
                     onClick={() => setPrompt(item.text)}
                   >
                     {item.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -470,8 +474,9 @@ export function BuilderPage() {
               {prompt.length}/8,000 · Selected source code goes to this AI
               provider.
             </span>
-            <button
-              class="btn btn-primary"
+            <Button
+              type="submit"
+              variant="primary"
               disabled={
                 busy ||
                 loading ||
@@ -482,7 +487,7 @@ export function BuilderPage() {
             >
               <Send size={15} />
               {proposal ? "Revise draft" : "Prepare draft"}
-            </button>
+            </Button>
           </div>
         </form>
       </section>
@@ -527,7 +532,7 @@ export function BuilderPage() {
                 />{" "}
                 I reviewed the generated code changes.
               </label>
-              <button
+              <Button
                 class="btn"
                 disabled={
                   busy ||
@@ -538,7 +543,7 @@ export function BuilderPage() {
                 onClick={download}
               >
                 <Download size={15} /> Download reviewed proposal
-              </button>
+              </Button>
               <p class="workspace-help">
                 Validate and deploy on the LXC as your non-root deployment user:
               </p>

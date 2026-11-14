@@ -357,6 +357,7 @@ app.openapi(getJob, async (c) => {
     [id]
   );
   if (!job) return c.json({ error: "Job not found" }, 404);
+  const scheduling = c.env.STORAGE?.schedulingState?.(id);
   const notes = await query<z.infer<typeof JobNoteSchema>>(
     "SELECT * FROM job_notes WHERE job_id = ? ORDER BY created_at DESC", [id]
   );
@@ -368,7 +369,7 @@ app.openapi(getJob, async (c) => {
      FROM job_materials jm LEFT JOIN materials m ON jm.material_id = m.id
      WHERE jm.job_id = ? ORDER BY jm.rowid ASC`, [id]
   );
-  return c.json({ job: { ...job, job_notes: notes, checklist, job_materials: jobMaterials } }, 200);
+  return c.json({ job: { ...job, ...(scheduling ? { schedule_version: scheduling.version, dispatch_managed: scheduling.managed } : {}), job_notes: notes, checklist, job_materials: jobMaterials } }, 200);
 });
 
 const createJob = createRoute({
@@ -492,6 +493,7 @@ const updateJob = createRoute({
         address: z.string().optional(),
         notes: z.string().optional(),
         completion_notes: z.string().optional(),
+        expected_version: z.number().int().nonnegative().optional(),
         is_recurring: z.number().int().optional(),
         recurrence_interval: z.string().optional(),
       }) } },
@@ -500,6 +502,7 @@ const updateJob = createRoute({
   responses: {
     400: { description: "Invalid equipment relationship", content: { "application/json": { schema: ErrorSchema } } },
     200: { description: "Updated", content: { "application/json": { schema: OkSchema } } },
+    409: { description: "Scheduling conflict or stale version", content: { "application/json": { schema: ErrorSchema } } },
     404: { description: "Not found", content: { "application/json": { schema: ErrorSchema } } },
   },
 });
@@ -515,9 +518,14 @@ app.openapi(updateJob, async (c) => {
     return c.json({ error: "Equipment must belong to the job customer" }, 400);
   }
 
+  const scheduling = c.env.STORAGE?.schedulingState?.(id);
+  const scheduleChange = ['technician_id', 'scheduled_date', 'scheduled_time', 'duration', 'status'].some(key => key in data);
+  if (scheduling && ((scheduling.managed && scheduleChange && data.expected_version === undefined) || (data.expected_version !== undefined && data.expected_version !== scheduling.version))) return c.json({ error: "The job changed or needs a schedule version. Reload and review before saving." }, 409);
+  if (scheduling?.managed && scheduleChange && !c.env.STORAGE?.validateSchedule?.({...existing,...data})) return c.json({ error: "Choose a valid, unambiguous schedule within one day." }, 400);
   const fields: string[] = [];
   const vals: unknown[] = [];
   for (const [k, v] of Object.entries(data)) {
+    if (k === 'expected_version') continue;
     if (v !== undefined) {
       fields.push(`${k} = ?`);
       vals.push(v);
@@ -525,7 +533,8 @@ app.openapi(updateJob, async (c) => {
   }
   if (fields.length > 0) {
     fields.push("updated_at = datetime('now')");
-    await run(`UPDATE jobs SET ${fields.join(", ")} WHERE id = ?`, [...vals, id]);
+    const result = await run(`UPDATE jobs SET ${fields.join(", ")} WHERE id = ?${scheduling ? ' AND EXISTS(SELECT 1 FROM _dispatch_job_state WHERE job_id=jobs.id AND version=?)' : ''}`, [...vals, id, ...(scheduling ? [data.expected_version ?? scheduling.version] : [])]);
+    if (!result.changes) return c.json({ error: "The job changed. Reload before saving." }, 409);
   }
   return c.json({ ok: true }, 200);
 });

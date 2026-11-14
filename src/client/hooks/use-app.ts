@@ -176,7 +176,7 @@ export function useAppState(isAgent: boolean, navigate: (to: string) => void): A
   }, [jobsPag, jobsSearch, jobsStatusFilter, scheduleStart, scheduleEnd, fetchJobs, fetchStats, fetchSchedule]);
 
   const updateJob = useCallback(async (id: string, data: Partial<Job>) => {
-    await api("PUT", `/api/jobs/${id}`, data);
+    await api("PUT", `/api/jobs/${id}`, { ...data, ...(selectedJob?.id === id && selectedJob.schedule_version !== undefined ? { expected_version: selectedJob.schedule_version } : {}) });
     await fetchJobs(jobsPag, jobsSearch, jobsStatusFilter);
     if (selectedJob && selectedJob.id === id) {
       const res = await api<{ job: Job }>("GET", `/api/jobs/${id}`);

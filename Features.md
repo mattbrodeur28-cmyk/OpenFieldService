@@ -71,8 +71,8 @@ Kubernetes qualification are planned work.
 | M0 | Product inventory, documentation and delivery standards | Implemented | Existing foundation |
 | M1 | Navigation, profile/settings, HR, channels and conversational Builder | In progress | M0 |
 | M2 | Maintainable backend boundaries and operational foundations | Planned | M0; complete M1 first |
-| M3 | Salesforce-style Dispatcher app | Planned | M2 concurrency and scheduling foundation |
-| M4 | Commercial CRM/customer workspace | Planned | M2; existing customers/sites |
+| M3 | Salesforce-style Dispatcher app | Core implemented; accessibility qualification remains | M2 concurrency and scheduling foundation |
+| M4 | Commercial CRM, Sales pipeline and quote-to-job conversion | Planned | M2; existing customers/sites |
 | M5 | Contracts, maintenance agreements and renewals | Planned | M4 customer/contact model; M3 scheduling |
 | M6 | QuickBooks-backed accounting | Planned | M2 reliable integration jobs/audit; M4 mappings |
 | M7 | Controls records, commissioning and handover | Planned | M4; existing equipment foundation |
@@ -147,16 +147,17 @@ The requested component sources and adoption rules are recorded in
 - [x] **UI-002 — NumberFlow:** local framework-independent adapter for selected
   operational counters, static first values, accessible text, reduced motion and
   bounded transitions; financial review/editing values stay static.
-- [ ] **UI-003 — Compatibility:** test shadcn/Radix and Tailwind integration with the
-  actual Preact toolchain, including types, refs, portals, focus and nested dialogs.
-  Make a documented rendering-framework decision before broader adoption.
-- [ ] **UI-004 — Shared primitives:** maintain reusable buttons, fields, menus,
+- [x] **UI-003 — Compatibility:** qualify selected Radix wrappers with the actual
+  Preact toolchain, including types, refs, portals, focus and nested dialogs.
+  Document the rendering-framework and styling decision: one Preact runtime,
+  shared CSS tokens; Tailwind/reset adoption is deferred in ADR-0002.
+- [x] **UI-004 — Shared primitives:** maintain reusable buttons, fields, menus,
   dialogs/sheets, tabs, tables, tooltips, notifications and loading/empty/error states.
-- [ ] **UI-005 — Workspace adoption:** migrate profile/settings, integrations,
+- [x] **UI-005 — Workspace adoption:** migrate profile/settings, integrations,
   navigation, team channels and Builder to the shared system incrementally.
 - [ ] **UI-006 — Business adoption:** Dispatcher, CRM, contracts, projects and
   accounting reuse the same primitives, accessibility rules and information hierarchy.
-- [ ] **UI-007 — Curated sources:** review Beautiful UI for AI/chat patterns, RareUI
+- [x] **UI-007 — Curated sources:** review Beautiful UI for AI/chat patterns, RareUI
   for selected interactions, Magic UI for restrained effects, and 21st.dev for
   individual components. Verify each source/license/dependency and adapt to shared
   tokens; avoid multiple competing themes or redundant libraries.
@@ -169,11 +170,14 @@ prove one complete business workflow in light/dark, keyboard and mobile layouts.
 Confirm a single rendering-runtime strategy, consistent styling and accurate
 pending/success/failure feedback. Installing packages is not evidence of migration.
 
-UI progress: Dialog/Tabs compatibility and the first shared Dialog, Button and
-Input/TextField wrappers are implemented. Profile/settings and integrations adopt
-them. [ADR-0002](docs/architecture/decisions/0002-radix-preact-pilot.md) and the
-[UI release record](docs/releases/2026-11-14-ui-primitives.md) capture scope and
-browser evidence. UI-003/004/005 and UX-006 remain open for their broader criteria.
+UI progress: shared Dialog/Tabs/Select/DropdownMenu/Tooltip and local form,
+surface/status/table wrappers are implemented. Navigation, account/settings,
+integrations, Team and Builder adopt the system. Tailwind is explicitly deferred;
+Preact remains the only browser runtime. Dispatcher adopts the same components;
+future business modules remain UI-006 work. UI-008/UX-006 and DISPATCH-009 retain
+physical touch, screen-reader and broader responsive/theme qualification work.
+See [the current release evidence](docs/releases/2026-11-14-dispatcher.md) and
+[UI guide](docs/development/ui-system.md) for sources, decisions and exact scope.
 
 ### Team channels
 
@@ -246,25 +250,30 @@ externalized or explicitly documented as single-instance.
 ## M3 — Dispatcher app
 
 Reference: the supplied Salesforce Field Service Gantt screenshot.
+Core implementation and desktop pointer/keyboard verification are complete. The
+remaining accessibility qualification is explicit below, alongside later features.
+[API and operating rules](docs/api/dispatcher.md) define the job/appointment model,
+timezone, availability, concurrency and metrics. M2's broader platform work remains.
 
-- [ ] **DISPATCH-001 — Daily Gantt:** one row per technician, hourly header, duration-
+
+- [x] **DISPATCH-001 — Daily Gantt:** one row per technician, hourly header, duration-
   sized appointments, date navigation, Today, zoom, horizontal scrolling and explicit
   schedule timezone/current-time marker.
-- [ ] **DISPATCH-002 — Work pipeline:** Open/Active filters, search, customer,
+- [x] **DISPATCH-002 — Work pipeline:** Open/Active filters, search, customer,
   location/equipment, priority, duration and assignment state. Map these labels to
   existing statuses before adding states. Distinguish jobs from appointments.
-- [ ] **DISPATCH-003 — Drag assignment:** drop an open job onto a technician/time,
+- [x] **DISPATCH-003 — Drag assignment:** drop an open job onto a technician/time,
   snap to configured intervals, save assignment/date/time, and revert a failed drop.
-- [ ] **DISPATCH-004 — Reschedule:** drag appointments across times/resources and
+- [x] **DISPATCH-004 — Reschedule:** drag appointments across times/resources and
   adjust duration, with keyboard/form equivalents and completed/cancelled protections.
-- [ ] **DISPATCH-005 — Conflicts:** enforce overlaps and stale-version checks on the
+- [x] **DISPATCH-005 — Conflicts:** enforce overlaps and stale-version checks on the
   server, transactionally. Define availability/travel rules and authorized overrides
   with reasons/audit; browser-only collision checks are insufficient.
-- [ ] **DISPATCH-006 — Resources:** technician/team/territory/skill filters, active
+- [x] **DISPATCH-006 — Resources:** technician/team/territory/skill filters, active
   state and real availability. Do not fabricate breaks, utilization or travel times.
-- [ ] **DISPATCH-007 — Metrics:** actual scheduled hours, unassigned counts, overlap
+- [x] **DISPATCH-007 — Metrics:** actual scheduled hours, unassigned counts, overlap
   warnings and workload with documented calculations.
-- [ ] **DISPATCH-008 — Concurrent dispatch:** live change delivery/reconnect and tests
+- [x] **DISPATCH-008 — Concurrent dispatch:** live change delivery/reconnect and tests
   for competing assignments by two dispatchers.
 - [ ] **DISPATCH-009 — Accessibility:** real pointer drag, touch, keyboard assignment,
   reduced motion and a narrow-screen alternate view.
@@ -296,6 +305,55 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
 sites, accept a quote into work and retain its history through reload and migration.
 Commercial/construction conversion into projects and residential three-option
 estimates extend this model in M11/M12.
+
+### Sales app — Kanban, quotes and conversion
+
+Requested scope: a dedicated Sales app linked to CRM and Dispatcher. Planned after
+current UI/M3 work; existing customer/job screens are not evidence of this workflow.
+
+- [ ] **SALES-001 — Opportunities:** title, prospect/customer, contacts, site/equipment,
+  owner, source, expected value, expected close date, probability, next action and
+  activity timeline. Support residential and commercial work without duplicate CRM.
+- [ ] **SALES-002 — Pipelines/stages:** administrator-configured pipelines and ordered
+  stages (for example New, Qualified, Site visit, Estimating, Proposal sent,
+  Negotiation, Won, Lost). Define required information and allowed transitions;
+  stage names are configurable rather than new hardcoded job statuses.
+- [ ] **SALES-003 — Kanban:** drag opportunities across stages, owner/value/date/search
+  filters, stage totals and list alternative. Persist moves, reject stale versions,
+  explain failed transitions and offer keyboard/form equivalents.
+- [ ] **SALES-004 — Sales activities:** calls, meetings, site surveys, tasks, follow-up
+  dates and reminders; link supported communications explicitly and preserve authors.
+- [ ] **SALES-005 — Quote generation:** build quotes from opportunities using service,
+  labor and material catalog items, quantities, tax, discounts, scope, exclusions,
+  alternates, validity, customer/site details and reusable business templates.
+- [ ] **SALES-006 — Quote revisions:** immutable offered versions with revision numbers,
+  internal draft vs customer-visible scope, price changes, approvals, PDF/export,
+  delivered/accepted/declined/expired status and retained acceptance evidence.
+- [ ] **SALES-007 — Options and approvals:** present multiple priced options where
+  useful; enforce discount/margin approval limits and record deliberate exceptions.
+  AI may draft scope but must not invent pricing or claim customer acceptance.
+- [ ] **SALES-008 — Quote to active job:** authorized conversion of an accepted quote
+  creates one linked job (or an explicit phased-project handoff later), snapshots
+  accepted scope/pricing, carries customer/site/equipment, and places unassigned work
+  into Dispatcher. Keep opportunity, quote and job links visible in both directions.
+- [ ] **SALES-009 — Conversion safeguards:** idempotency, transaction boundary, unique
+  conversion references, stale-version checks and permission tests. Repeating a
+  request must return the existing job rather than duplicate billable work. Mark
+  Won/Converted only after the job is durably created; handle cancellation explicitly.
+- [ ] **SALES-010 — Loss and nurture:** required won/lost reasons, competitors where
+  known, reopen history, follow-up/nurture tasks and retained prior quote versions.
+- [ ] **SALES-011 — Forecast/reporting:** stage amounts, weighted/unweighted forecast,
+  quote acceptance rate, time in stage, activity and conversion metrics with clear
+  date/currency/probability definitions. Do not count quotes as recognized revenue.
+- [ ] **SALES-012 — Permissions and audit:** owner/team visibility rules, protected
+  pricing/approval actions, auditable stage/quote/conversion changes and documented
+  APIs, migrations, backup/recovery and end-to-end acceptance evidence.
+
+**Acceptance:** create a prospect/opportunity, move it on Kanban with pointer and
+keyboard, generate/revise/accept a quote, convert it once into a linked active job,
+assign that job in Dispatcher and read it back after reload. Concurrent conversion
+must create one job. Reject unauthorized stage/pricing actions and stale writes.
+Accepted quote changes require a new revision/change order, not silent overwrites.
 
 ## M5 — Contracts and maintenance agreements
 

@@ -1,10 +1,12 @@
-export type View = "calendar" | "team" | "users" | "website" | "environment" | "chat" | "knowledge" | "integrations" | "builder" | "settings" | "assets" | "dashboard" | "schedule" | "jobs" | "customers" | "technicians" | "services" | "invoices" | "materials";
+export type View = "dispatcher" | "calendar" | "team" | "users" | "website" | "environment" | "chat" | "knowledge" | "integrations" | "builder" | "settings" | "assets" | "dashboard" | "schedule" | "jobs" | "customers" | "technicians" | "services" | "invoices" | "materials";
 
 export type JobStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled";
 export type Priority = "low" | "normal" | "high" | "urgent";
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
 
 export interface Job {
+  schedule_version?: number;
+  dispatch_managed?: number;
   id: string;
   identifier: string;
   customer_id: string;

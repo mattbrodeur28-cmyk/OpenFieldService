@@ -7,6 +7,20 @@ export function createApp<E extends Env & { Bindings: DBEnv }>(options: { title:
   const app = new OpenAPIHono<E>({ defaultHook: (result, c) => {
     if (!result.success) return c.json({ error: result.error.issues.map(issue => issue.message).join('; ') }, 400);
   } });
+  app.onError((error, c) => {
+    const conflicts: Record<string, string> = {
+      DISPATCH_OVERLAP: 'This technician already has overlapping work.',
+      DISPATCH_AVAILABILITY: 'This assignment is outside declared availability.',
+      DISPATCH_CLOSED: 'Completed or cancelled jobs cannot be rescheduled.',
+      DISPATCH_INACTIVE: 'Choose an active technician.',
+      DISPATCH_INVALID: 'Choose a valid interval within one calendar day.',
+    };
+    const conflict = Object.entries(conflicts).find(([code]) => error.message.includes(code));
+    if (conflict) return c.json({ error: conflict[1] }, 409);
+    if ('getResponse' in error && typeof error.getResponse === 'function') return error.getResponse();
+    console.error('Service request failed:', error.name);
+    return c.json({ error: 'The service operation could not be completed.' }, 500);
+  });
   app.use('*', async (c, next) => { initDB(c.env); await next(); });
   app.doc('/api/openapi.json', { openapi: '3.0.0', info: options });
   app.get('/llms.txt', c => c.text(`${options.title}\n${options.description}\nAPI schema: /api/openapi.json\n`));

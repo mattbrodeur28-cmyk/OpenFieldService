@@ -26,7 +26,7 @@ authenticated reverse proxy for shared access. This key protects the workspace
 API, not the inherited customer/job APIs; those still need network/proxy access
 controls. This is a single trusted-admin workspace, not multi-user roles.
 
-Add either or both provider configurations in that file:
+Add any of these provider configurations in that file:
 
 ```ini
 # Ollama on a machine reachable from the LXC. Use an installed model's exact name.
@@ -36,7 +36,14 @@ OLLAMA_MODEL=YOUR_INSTALLED_MODEL
 # Hosted OpenAI connection. Use a model available to your API project.
 OPENAI_API_KEY=YOUR_API_KEY
 OPENAI_MODEL=YOUR_MODEL
+
+# Hosted DeepSeek connection. Use the model name available to your API account.
+DEEPSEEK_API_KEY=YOUR_DEEPSEEK_API_KEY
+DEEPSEEK_MODEL=deepseek-flash
 ```
+
+DeepSeek uses its [Chat Completions API](https://api-docs.deepseek.com/api/create-chat-completion/).
+The example model is configurable; use the exact supported model name for your account.
 
 Ollama can run on another machine; running a model inside this 2 GB app container
 is not assumed. The address/model are intentionally not guessed. Hosted API use
@@ -57,7 +64,7 @@ the real provider works. No real provider call was performed by automated tests.
 
 ## Chat and knowledge
 
-New chats select Ollama or OpenAI. A conversation keeps that provider. Chat history
+New chats select Ollama, OpenAI or DeepSeek. A conversation keeps that provider. Chat history
 is stored locally, and recent messages are included in follow-up requests. Add
 procedures and handover notes under Knowledge (text only in this slice). The
 assistant receives up to ten recently updated documents. Archiving retains the

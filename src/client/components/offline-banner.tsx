@@ -3,9 +3,9 @@ import { useConnectivity } from "../hooks/use-connectivity";
 import { clearSavedFieldData, enableOfflineStorage } from "../offline";
 
 export function OfflineBanner() {
-  const { isOffline, usingSavedData, hasSavedData, offlineStorageEnabled } = useConnectivity();
+  const { isOffline, usingSavedData, hasSavedData, offlineStorageEnabled, offlineStorageUnavailableReason } = useConnectivity();
   const hasConnectionIssue = isOffline || usingSavedData;
-  if (!hasConnectionIssue && !hasSavedData && offlineStorageEnabled) return null;
+  if (!hasConnectionIssue && !hasSavedData && offlineStorageEnabled && !offlineStorageUnavailableReason) return null;
 
   const clearSavedData = async () => {
     await clearSavedFieldData();
@@ -23,6 +23,10 @@ export function OfflineBanner() {
       <span>
         {hasConnectionIssue
           ? `${isOffline ? "Offline" : "Connection issue"} — showing saved schedules and job packets when available. Changes need a connection.`
+          : offlineStorageUnavailableReason === "https"
+            ? "Offline access requires HTTPS. Online changes still save to the server."
+          : offlineStorageUnavailableReason === "browser"
+            ? "Offline access is unavailable in this browser. Online changes still save to the server."
           : !offlineStorageEnabled
             ? "Offline storage is off — field data won't be kept on this device."
           : "Offline access ready — saved schedule and job packets are stored on this device."}
@@ -33,7 +37,7 @@ export function OfflineBanner() {
       {hasSavedData && <button class="btn btn-ghost" onClick={clearSavedData}>
         <Trash2 size={14} /> Clear saved data
       </button>}
-      {!hasConnectionIssue && !offlineStorageEnabled && <button class="btn btn-ghost" onClick={enableStorage}>
+      {!hasConnectionIssue && !offlineStorageUnavailableReason && !offlineStorageEnabled && <button class="btn btn-ghost" onClick={enableStorage}>
         <HardDriveDownload size={14} /> Enable offline access
       </button>}
     </div>

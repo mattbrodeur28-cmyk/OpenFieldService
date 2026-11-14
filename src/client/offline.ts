@@ -55,6 +55,12 @@ export async function hasSavedFieldData(): Promise<boolean> {
   return (await cache.keys()).length > 0;
 }
 
+export function offlineStorageUnavailableReason(): "https" | "browser" | null {
+  if (!window.isSecureContext) return "https";
+  if (!("caches" in window) || !("serviceWorker" in navigator)) return "browser";
+  return null;
+}
+
 export async function isOfflineStorageEnabled(): Promise<boolean> {
   if (!("caches" in window)) return false;
   return !(await caches.keys()).includes(DISABLED_CACHE);

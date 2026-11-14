@@ -77,3 +77,19 @@ test('hosted provider uses Responses with storage disabled and parses all text o
   assert.equal(reply, 'Answer');
   await assert.rejects(() => modelReply('ollama', '', [], {}), /Configure OLLAMA/);
 });
+
+test('DeepSeek sends authenticated chat requests and returns only the final answer', async () => {
+  const messages = [{ role: 'user', content: 'Help with AHU checkout' }, { role: 'assistant', content: 'Inspect the filters.' }, { role: 'user', content: 'What next?' }];
+  const reply = await modelReply('deepseek', 'Service assistant instructions', messages, { DEEPSEEK_API_KEY: 'fixture-deepseek-key', DEEPSEEK_MODEL: 'configured-deepseek-model' }, async (url, options) => {
+    assert.equal(url, 'https://api.deepseek.com/chat/completions');
+    assert.equal(options.headers.Authorization, 'Bearer fixture-deepseek-key');
+    const body = JSON.parse(options.body);
+    assert.equal(body.model, 'configured-deepseek-model');
+    assert.equal(body.stream, false);
+    assert.equal(body.messages[0].role, 'system');
+    assert.deepEqual(body.messages.slice(1), messages);
+    return Response.json({ choices: [{ message: { reasoning_content: 'Internal reasoning', content: 'Check the belt tension.' } }] });
+  });
+  assert.equal(reply, 'Check the belt tension.');
+  await assert.rejects(() => modelReply('deepseek', '', [], {}), /Configure DEEPSEEK/);
+});

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   cacheOfflineResponse,
+  offlineStorageUnavailableReason,
   clearSavedFieldData,
   enableOfflineStorage,
   hasSavedFieldData,
@@ -68,5 +69,23 @@ test('saved field data can be detected and cleared while online', async () => {
     else globalThis.window = originalWindow;
     if (originalCaches === undefined) Reflect.deleteProperty(globalThis, 'caches');
     else globalThis.caches = originalCaches;
+  }
+});
+
+
+test('offline availability distinguishes insecure HTTP from a disabled cache', () => {
+  const originalWindow = globalThis.window;
+  const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  try {
+    globalThis.window = { isSecureContext: false };
+    assert.equal(offlineStorageUnavailableReason(), 'https');
+    globalThis.window = { isSecureContext: true };
+    assert.equal(offlineStorageUnavailableReason(), 'browser');
+    globalThis.window = { isSecureContext: true, caches: {} };
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { serviceWorker: {} } });
+    assert.equal(offlineStorageUnavailableReason(), null);
+  } finally {
+    if (originalWindow === undefined) Reflect.deleteProperty(globalThis, 'window'); else globalThis.window = originalWindow;
+    if (navigatorDescriptor) Object.defineProperty(globalThis, 'navigator', navigatorDescriptor); else Reflect.deleteProperty(globalThis, 'navigator');
   }
 });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import {
   hasSavedFieldData,
+  offlineStorageUnavailableReason,
   isOfflineStorageEnabled,
   isUsingSavedData,
   LIVE_DATA_EVENT,
@@ -49,5 +50,5 @@ export function useConnectivity() {
     };
   }, []);
 
-  return { isOffline, usingSavedData, hasSavedData, offlineStorageEnabled, readOnly: isOffline || usingSavedData };
+  return { offlineStorageUnavailableReason: offlineStorageUnavailableReason(), isOffline, usingSavedData, hasSavedData, offlineStorageEnabled, readOnly: isOffline || usingSavedData };
 }

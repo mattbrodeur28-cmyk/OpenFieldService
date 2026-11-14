@@ -37,11 +37,16 @@ export async function modelReply(provider, system, messages, env, fetcher = fetc
     url = 'https://api.openai.com/v1/responses';
     headers.Authorization = 'Bearer ' + env.OPENAI_API_KEY;
     body = { model: env.OPENAI_MODEL, instructions: system, input: messages, store: false, max_output_tokens: 12000 };
+  } else if (provider === 'deepseek') {
+    if (!env.DEEPSEEK_API_KEY || !env.DEEPSEEK_MODEL) throw new Error('Configure DEEPSEEK_API_KEY and DEEPSEEK_MODEL on the server');
+    url = 'https://api.deepseek.com/chat/completions';
+    headers.Authorization = 'Bearer ' + env.DEEPSEEK_API_KEY;
+    body = { model: env.DEEPSEEK_MODEL, messages: [{ role: 'system', content: system }, ...messages], stream: false, max_tokens: 12000 };
   } else throw new Error('Unknown AI provider');
   const response = await fetcher(url, { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(180000), redirect: 'error' });
   if (!response.ok) throw new Error('AI provider returned HTTP ' + response.status);
   const data = await response.json();
-  const reply = provider === 'ollama' ? data.message?.content : data.output?.flatMap(item => item.content ?? []).filter(item => item.type === 'output_text').map(item => item.text).join('\n');
+  const reply = provider === 'ollama' ? data.message?.content : provider === 'deepseek' ? data.choices?.[0]?.message?.content : data.output?.flatMap(item => item.content ?? []).filter(item => item.type === 'output_text').map(item => item.text).join('\n');
   if (!text(reply, 500000)) throw new Error('AI provider returned no usable text');
   return reply;
 }
@@ -75,7 +80,8 @@ export function createWorkspace({ filename, storage, root, env = process.env, fe
   }
   app.get('/status', c => c.json({
     providers: [{ id: 'ollama', label: 'Ollama', model: env.OLLAMA_MODEL ?? '', configured: Boolean(env.OLLAMA_BASE_URL && env.OLLAMA_MODEL) },
-      { id: 'openai', label: 'OpenAI', model: env.OPENAI_MODEL ?? '', configured: Boolean(env.OPENAI_API_KEY && env.OPENAI_MODEL) }],
+      { id: 'openai', label: 'OpenAI', model: env.OPENAI_MODEL ?? '', configured: Boolean(env.OPENAI_API_KEY && env.OPENAI_MODEL) },
+      { id: 'deepseek', label: 'DeepSeek', model: env.DEEPSEEK_MODEL ?? '', configured: Boolean(env.DEEPSEEK_API_KEY && env.DEEPSEEK_MODEL) }],
     quickbooks: { online: 'not_implemented', desktop: 'not_implemented' },
   }));
   app.get('/conversations', c => c.json({ conversations: db.prepare('SELECT * FROM conversations ORDER BY rowid DESC LIMIT 100').all() }));
@@ -86,7 +92,7 @@ export function createWorkspace({ filename, storage, root, env = process.env, fe
   });
   app.post('/chat', async c => {
     const input = await body(c);
-    if (!input || !text(input.message, 8000) || !['ollama', 'openai'].includes(input.provider) || typeof input.includeRecords !== 'boolean') return c.json({ error: 'Choose a provider and enter a message (up to 8,000 characters).' }, 400);
+    if (!input || !text(input.message, 8000) || !['ollama', 'openai', 'deepseek'].includes(input.provider) || typeof input.includeRecords !== 'boolean') return c.json({ error: 'Choose a provider and enter a message (up to 8,000 characters).' }, 400);
     let conversation = input.conversationId ? db.prepare('SELECT * FROM conversations WHERE id=?').get(input.conversationId) : null;
     if (input.conversationId && !conversation) return c.json({ error: 'Conversation not found' }, 404);
     if (conversation && conversation.provider !== input.provider) return c.json({ error: 'Start a new chat to change providers.' }, 409);
@@ -148,7 +154,7 @@ export function createWorkspace({ filename, storage, root, env = process.env, fe
   });
   app.post('/builder/proposals', async c => {
     const input = await body(c);
-    if (!input || !text(input.message, 8000) || !['ollama', 'openai'].includes(input.provider) || !Array.isArray(input.files) || input.files.length < 1 || input.files.length > 4 || new Set(input.files).size !== input.files.length) return c.json({ error: 'Describe the change and choose 1–4 frontend files.' }, 400);
+    if (!input || !text(input.message, 8000) || !['ollama', 'openai', 'deepseek'].includes(input.provider) || !Array.isArray(input.files) || input.files.length < 1 || input.files.length > 4 || new Set(input.files).size !== input.files.length) return c.json({ error: 'Describe the change and choose 1–4 frontend files.' }, 400);
     let sources;
     try { sources = input.files.map(file => sourceFile(root, file)); } catch { return c.json({ error: 'Invalid source file selection.' }, 400); }
     if (JSON.stringify(sources).length > 160000) return c.json({ error: 'Choose fewer or smaller files.' }, 400);

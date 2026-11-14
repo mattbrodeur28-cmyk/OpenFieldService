@@ -84,7 +84,7 @@ export function WorkspacePage({ view }: { view: View }) {
         </aside>
         <section class="workspace-chat">
           {selector}
-          {!configured && <p class="workspace-help">Connect Ollama or OpenAI in your server configuration to start chatting.</p>}
+          {!configured && <p class="workspace-help">Connect Ollama, OpenAI or DeepSeek in your server configuration to start chatting.</p>}
           <div class="workspace-messages" aria-live="polite" aria-busy={busy}>
             {!messages.length && <div class="workspace-empty"><h2>Your service assistant</h2><p>Ask about your equipment, service work, or saved knowledge. Use App builder for changes to the application.</p></div>}
             {messages.map((item, index) => <article key={index} class={`workspace-message ${item.role}`}><strong>{item.role === 'user' ? 'You' : 'Assistant'}</strong><div>{item.content}</div></article>)}
@@ -137,7 +137,7 @@ export function WorkspacePage({ view }: { view: View }) {
         {!!proposals.length && <section class="workspace-proposal"><h2>Previous proposals</h2>{proposals.map(item => <button class="workspace-list-item" onClick={() => void action(async () => setProposal(await request<Proposal>('/builder/proposals/' + item.id)))}>{item.request}</button>)}</section>}
       </section>}
       {(view === 'integrations' || view === 'settings') && <section class="workspace-editor">
-        <h2>AI connections</h2><p class="workspace-help">Both connections are optional. Choose a connection for each new chat or app change.</p>
+        <h2>AI connections</h2><p class="workspace-help">All connections are optional. Choose a connection for each new chat or app change.</p>
         <div class="workspace-connections">{providers.map(item => <div class="workspace-connection"><div><strong>{item.label}</strong><p>{item.model || 'No model configured'}</p></div><span class={`badge ${item.configured ? 'badge-success' : 'badge-muted'}`}>{item.configured ? 'Configured' : 'Not configured'}</span></div>)}</div>
         <p class="workspace-help">Connection settings and secrets are managed in /etc/openfieldservice.env. Restart the service after changes. Configured means settings are present; the first request verifies the connection.</p>
         <h2>Accounting</h2><p>QuickBooks Online and Desktop connectors are planned. No accounting connection is active.</p>

@@ -78,7 +78,7 @@ The original Wrangler development mode below remains available.
 For self-hosted login, users, roles and teams, see [Accounts and teams](deploy/ACCOUNTS.md).
 The standalone runtime has no Clawnify SDK or hosted-platform dependency.
 
-For the standalone Chat, Knowledge, local/hosted AI connections and review-first
+For self-hosted Google, Microsoft, HubSpot and LinkedIn read connections, see [integration setup](deploy/INTEGRATIONS.md). For the standalone Chat, Knowledge, local/hosted AI connections and review-first
 frontend app builder, see [workspace setup](deploy/WORKSPACE.md).
 
 Commercial/controls extensions and optional QuickBooks Online/Desktop connectors

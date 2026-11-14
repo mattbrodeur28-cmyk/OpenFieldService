@@ -54,6 +54,8 @@ export function createAuth({ filename, env = process.env }) {
   }
   const guard = async (c, next) => {
     const publicPaths = ['/api/auth/session', '/api/auth/login', '/api/auth/setup', '/api/public/company'];
+    // One-use, user-bound OAuth state validates cross-site callbacks without a session cookie.
+    if (/^\/api\/integrations\/(google|microsoft|hubspot|linkedin)\/callback$/.test(c.req.path) && c.req.method === 'GET') return next();
     if (publicPaths.includes(c.req.path)) return next();
     if (testMode) {
       c.set('user', { id: 'test-user', name: 'Test owner', email: 'test@example.test', role: 'owner', active: true, mustChangePassword: false });

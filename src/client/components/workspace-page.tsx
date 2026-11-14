@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { accountRequest, useAccount, isAdministrator } from '../auth';
+import type { Connector } from './connector-panel';
 import { IntegrationsPage } from './integrations-page';
 import type { View } from '../types';
 
@@ -21,6 +22,9 @@ export function WorkspacePage({ view }: { view: View }) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<{ id: string; title: string; provider: string }[]>([]);
   const [includeRecords, setIncludeRecords] = useState(false);
+  const [integrationSources, setIntegrationSources] = useState<Connector[]>([]);
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
+  useEffect(() => { setSelectedSources([]); void accountRequest<{ connectors: Connector[] }>('/api/integrations').then(result => setIntegrationSources(result.connectors.filter(item => item.connected))).catch(() => setIntegrationSources([])); }, [user.id, view]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -66,7 +70,7 @@ export function WorkspacePage({ view }: { view: View }) {
     {error && <div class="workspace-error" role="alert">{error}</div>}
     <>
       {view === 'chat' && <div class="workspace-columns">
-        <aside class="workspace-list" aria-label="Conversations"><button class="btn" disabled={busy} onClick={() => { setConversationId(null); setMessages([]); setIncludeRecords(false); }}>New chat</button>
+        <aside class="workspace-list" aria-label="Conversations"><button class="btn" disabled={busy} onClick={() => { setConversationId(null); setMessages([]); setIncludeRecords(false); setSelectedSources([]); }}>New chat</button>
           {conversations.map(item => <button class={`workspace-list-item ${conversationId === item.id ? 'active' : ''}`} disabled={busy} onClick={() => void action(async () => {
             const data = await request<{ conversation: { provider: string }; messages: Message[] }>('/conversations/' + item.id);
             setConversationId(item.id); setProvider(data.conversation.provider); setMessages(data.messages);
@@ -82,11 +86,16 @@ export function WorkspacePage({ view }: { view: View }) {
           </div>
           <form class="workspace-composer" onSubmit={e => { e.preventDefault(); void action(async () => {
             const sent = prompt;
-            const data = await request<{ conversationId: string; reply: string }>('/chat', 'POST', { provider, message: sent, conversationId, includeRecords });
+            const data = await request<{ conversationId: string; reply: string }>('/chat', 'POST', { provider, message: sent, conversationId, includeRecords, integrations: selectedSources.map(value => { const [provider, action] = value.split(':'); return { provider, action }; }) });
             setConversationId(data.conversationId); setMessages(current => [...current, { role: 'user', content: sent }, { role: 'assistant', content: data.reply }]); setPrompt('');
             setConversations((await request<{ conversations: typeof conversations }>('/conversations')).conversations);
           }); }}>
             <label class="workspace-consent"><input type="checkbox" checked={includeRecords} disabled={busy} onChange={e => setIncludeRecords(e.currentTarget.checked)} /> Include a limited snapshot of customers, buildings, equipment and jobs</label>
+            {!!integrationSources.length && user.role !== 'viewer' && <label class="form-group">Include live integration data (optional, choose up to three)
+              <select multiple size={5} disabled={busy} onChange={e => setSelectedSources(Array.from(e.currentTarget.selectedOptions).map(option => option.value).slice(0, 3))}>
+                {integrationSources.flatMap(item => item.actions.map(action => <option value={item.id + ':' + action} selected={selectedSources.includes(item.id + ':' + action)}>{item.name} · {action}</option>))}
+              </select><span class="workspace-help">Selected data is read from your connected account and sent to this chat's AI provider. Earlier conversation replies may retain previously shared details. Clear the selection to stop fetching new data.</span>
+            </label>}
             <p class="workspace-help">Messages and saved knowledge are sent to the selected AI connection. Record details are included only when checked.</p>
             <label class="form-group">Message<textarea value={prompt} maxLength={8000} rows={3} disabled={busy} onInput={e => setPrompt(e.currentTarget.value)} required /></label>
             <button class="btn btn-primary" disabled={busy || !configured || !prompt.trim()}>Send message</button>

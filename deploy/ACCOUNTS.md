@@ -129,13 +129,12 @@ keys, HTTPS configuration and other privileged variables; these are never expose
 as a general browser shell or arbitrary environment editor.
 
 QuickBooks Online/Desktop synchronization is still a separate planned module.
-The Integrations page now has a searchable catalog with Google, Microsoft, CRM,
-Social media, AI, Accounting and Other filters. It lists the 295 supplied services
-plus Ollama, DeepSeek and both QuickBooks editions. Cards open accessible details;
-Ollama, OpenAI and DeepSeek open their existing connection settings. Other cards
-explicitly identify connectors that are not yet implemented. Catalog entries do
-not imply available OAuth, synchronization or Chat tools. Logos are served locally
-from public/integrations with license and attribution alongside them. App builder
+The Integrations page is limited to Google services, Microsoft services, HubSpot
+CRM, LinkedIn and the existing AI providers. OAuth, encrypted per-user credentials,
+read previews and explicitly selected Chat context are implemented. Follow
+[Integration setup](INTEGRATIONS.md) for HTTPS, provider app registrations, exact
+permissions and supported read operations. Sending, editing, social posting and
+automatic synchronization are not implemented. App builder
 continues to prepare reviewed frontend edits for the existing validation/rebuild
 command; it does not autonomously execute commands or rewrite backend/auth code.
 

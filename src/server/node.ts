@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import api from "./index.js";
+import { createIntegrations } from "./integrations.mjs";
 import { createAuth } from "./auth.mjs";
 import { createWorkspace } from "./workspace.mjs";
 import { openStorage } from "./sqlite.mjs";
@@ -15,13 +16,15 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 process.chdir(root);
 if (!existsSync(resolve(root, "dist/index.html"))) throw new Error("Frontend missing: run pnpm build before pnpm start");
 const storage = openStorage(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite"));
-const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite"), storage, root });
+const integrations = createIntegrations({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
+const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite"), storage, root, integrationRead: integrations.read });
 const auth = createAuth({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
 const app = new Hono();
 app.use("/api/*", auth.guard);
 app.route("/api/auth", auth.app);
 app.get("/api/public/company", (c) => workspace.publicCompany(c));
 app.route("/api/workspace", workspace.app);
+app.route("/api/integrations", integrations.app);
 app.get("/healthz", async (c) => {
   await storage.query("SELECT 1");
   return c.json({ status: "ok" });
@@ -45,8 +48,8 @@ function stop() {
   stopping = true;
   const deadline = setTimeout(() => process.exit(1), 10000);
   deadline.unref();
-  server.close(() => { auth.close(); workspace.close(); storage.close(); clearTimeout(deadline); });
+  server.close(() => { auth.close(); integrations.close(); workspace.close(); storage.close(); clearTimeout(deadline); });
 }
 process.on("SIGTERM", stop);
 process.on("SIGINT", stop);
-server.on("error", (error) => { console.error(error); auth.close(); workspace.close(); storage.close(); process.exit(1); });
+server.on("error", (error) => { console.error(error); auth.close(); integrations.close(); workspace.close(); storage.close(); process.exit(1); });

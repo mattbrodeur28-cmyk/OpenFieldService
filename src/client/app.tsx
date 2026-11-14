@@ -1,4 +1,4 @@
-import { reportLocation } from "@clawnify/app/client";
+import { embedded, reportLocation } from "@clawnify/app/client";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { AppContext } from "./context";
 import { useAppState } from "./hooks/use-app";
@@ -18,6 +18,8 @@ import { InvoiceDetail } from "./components/invoice-detail";
 import { AssetDetail } from "./components/asset-detail";
 import { ErrorBanner } from "./components/error-banner";
 import { OfflineBanner } from "./components/offline-banner";
+import { WorkspacePage } from "./components/workspace-page";
+import { PanelLeft, Sparkles } from "lucide-preact";
 
 export function App() {
   const isAgent = useMemo(() => {
@@ -32,6 +34,11 @@ export function App() {
   }, [isAgent]);
 
   const { view, id, navigate } = useRouter();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.matchMedia("(max-width: 767px)").matches);
+  const workspaceNavigate = (to: string) => {
+    navigate(to);
+    if (window.matchMedia("(max-width: 767px)").matches) setSidebarCollapsed(true);
+  };
   const appState = useAppState(isAgent, navigate);
   const [detailError, setDetailError] = useState<string | null>(null);
   useEffect(() => { reportLocation(window.location.pathname + window.location.search); }, [view, id]);
@@ -49,6 +56,7 @@ export function App() {
   }, [view, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderMain = () => {
+    if (["chat", "knowledge", "integrations", "builder", "settings"].includes(view)) return <WorkspacePage view={view} />;
     if (view === "assets" && id) return <AssetDetail key={id} id={id} />;
     if (view === "jobs" && id) {
       if (appState.selectedJob) return <JobDetail />;
@@ -73,10 +81,19 @@ export function App() {
   };
 
   return (
-    <AppContext.Provider value={appState}>
-      <div class="layout">
-        <Sidebar currentView={view} />
-        <main class="main-content">
+    <AppContext.Provider value={{ ...appState, navigate: workspaceNavigate }}>
+      <div class={`layout ${embedded ? "" : "workspace-layout"}`}>
+        <Sidebar currentView={view} collapsed={sidebarCollapsed} />
+        {!embedded && !sidebarCollapsed && <button class="workspace-backdrop" aria-label="Close navigation" onClick={() => setSidebarCollapsed(true)} />}
+        <main class={`main-content ${embedded ? "" : "workspace-main"}`}>
+          {!embedded && <header class="workspace-header">
+            <button class="btn-icon" aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+              aria-expanded={!sidebarCollapsed} aria-controls="workspace-navigation"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><PanelLeft size={16} /></button>
+            <span class="workspace-header-title">Field Service</span>
+            <span class="workspace-header-divider" aria-hidden="true" />
+            <span class="workspace-header-subtitle">Your workspace</span>
+          </header>}
           <OfflineBanner />
           {appState.loading ? (
             <div class="loading-text">Loading...</div>
@@ -85,6 +102,7 @@ export function App() {
           )}
         </main>
       </div>
+      {!embedded && view !== "chat" && <button class="btn workspace-ask-ai" onClick={() => workspaceNavigate("/chat")}><Sparkles size={16} /> Ask AI</button>}
       <ErrorBanner />
     </AppContext.Provider>
   );

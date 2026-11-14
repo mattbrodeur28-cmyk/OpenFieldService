@@ -8,6 +8,11 @@ export interface RouteState {
 
 const VIEW_ROUTES: Record<string, View> = {
   "": "dashboard",
+  "chat": "chat",
+  "knowledge": "knowledge",
+  "integrations": "integrations",
+  "builder": "builder",
+  "settings": "settings",
   "dashboard": "dashboard",
   "schedule": "schedule",
   "jobs": "jobs",

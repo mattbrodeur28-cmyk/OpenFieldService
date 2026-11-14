@@ -1,7 +1,7 @@
 import { AppNav, embedded } from "@clawnify/app/client";
 import { useState } from "preact/hooks";
 import { useApp } from "../context";
-import { PanelLeft, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
+import { MessageSquare, BookOpen, Plug, Code2, SlidersHorizontal, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
 import type { View } from "../types";
 
 const navItems: { view: View; path: string; label: string; icon: typeof LayoutDashboard }[] = [
@@ -15,10 +15,10 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "services", path: "/services", label: "Service types", icon: Settings },
 ];
 
-export function Sidebar({ currentView }: { currentView: View }) {
+export function Sidebar({ currentView, collapsed = false }: { currentView: View; collapsed?: boolean }) {
   const { navigate, stats } = useApp();
 
-  const [collapsed, setCollapsed] = useState(false);
+  const [appsExpanded, setAppsExpanded] = useState(true);
 
   if (embedded) {
     const icons = ["home", "calendar-days", "briefcase", "users", "settings", "file-text", "package", "settings"];
@@ -33,48 +33,57 @@ export function Sidebar({ currentView }: { currentView: View }) {
       onNavigate={item => navigate(item.href ?? "/")} />;
   }
 
+  const active = (view: View) => currentView === view || (currentView === "assets" && view === "customers");
+  const colors: Partial<Record<View, string>> = {
+    schedule: "pink", jobs: "purple", customers: "blue", technicians: "pink",
+    invoices: "purple", materials: "cyan", services: "purple",
+  };
+  const navItem = (item: typeof navItems[number]) => {
+    const count = item.view === "jobs" ? stats.jobs : item.view === "customers" ? stats.customers
+      : item.view === "invoices" ? stats.invoices_outstanding : 0;
+    return <button key={item.view} title={item.label}
+      aria-current={active(item.view) ? "page" : undefined}
+      class={`sidebar-item ${active(item.view) ? "active" : ""}`}
+      onClick={() => navigate(item.path)}>
+      <span class={`workspace-nav-icon ${colors[item.view] ? `icon-${colors[item.view]}` : ""}`} aria-hidden="true"><item.icon size={12} /></span>
+      <span class="workspace-nav-label">{item.label}</span>
+      {count > 0 && <span class="sidebar-badge">{count}</span>}
+    </button>;
+  };
+
   return (
-    <aside class={`sidebar ${collapsed ? "collapsed" : ""}`}>
+    <aside id="workspace-navigation" aria-label="Workspace navigation" class={`sidebar workspace-sidebar ${collapsed ? "collapsed" : ""}`}>
       <div class="sidebar-brand">
-        <div class="sidebar-brand-icon">
-          <CalendarClock size={16} />
-        </div>
-        <span class="sidebar-brand-name">OpenFieldService</span>
-        <button class="btn-icon" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} onClick={() => setCollapsed(!collapsed)}><PanelLeft size={16} /></button>
+        <div class="sidebar-brand-icon" aria-hidden="true">F</div>
+        <span class="sidebar-brand-name">Field Service</span>
       </div>
-      <nav class="sidebar-nav">
-        <div class="sidebar-section-title">Menu</div>
-        {navItems.map((item) => (
-          <button
-            key={item.view}
-            title={item.label}
-            aria-current={(currentView === item.view || (currentView === "assets" && item.view === "customers")) ? "page" : undefined}
-            class={`sidebar-item ${(currentView === item.view || (currentView === "assets" && item.view === "customers")) ? "active" : ""}`}
-            onClick={() => navigate(item.path)}
-          >
-            <item.icon size={16} />
-            <span>{item.label}</span>
-            {item.view === "jobs" && stats.jobs > 0 && (
-              <span class="sidebar-badge">{stats.jobs}</span>
-            )}
-            {item.view === "customers" && stats.customers > 0 && (
-              <span class="sidebar-badge">{stats.customers}</span>
-            )}
-            {item.view === "invoices" && stats.invoices_outstanding > 0 && (
-              <span class="sidebar-badge">{stats.invoices_outstanding}</span>
-            )}
-          </button>
-        ))}
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <div class="workspace-home">
+          {navItem({ ...navItems[0], label: "Home" })}
+        </div>
+        <div class="sidebar-section-title">Apps</div>
+        <button class="sidebar-item workspace-app-toggle" title="Field Service"
+          aria-expanded={collapsed || appsExpanded} aria-controls="field-service-pages"
+          onClick={() => setAppsExpanded(!appsExpanded)} disabled={collapsed}>
+          <CalendarClock size={14} class="workspace-app-symbol" aria-hidden="true" />
+          <span class="workspace-nav-label">Field Service</span>
+          <ChevronDown size={14} class={`workspace-chevron ${appsExpanded ? "" : "closed"}`} aria-hidden="true" />
+        </button>
+        <div id="field-service-pages" class="workspace-app-pages" hidden={!collapsed && !appsExpanded}>
+          {navItems.slice(1).map(navItem)}
+        </div>
+        <div class="sidebar-section-title">Workspace</div>
+        {[
+          { view: "chat" as View, path: "/chat", label: "Chat", icon: MessageSquare },
+          { view: "knowledge" as View, path: "/knowledge", label: "Knowledge", icon: BookOpen },
+          { view: "integrations" as View, path: "/integrations", label: "Integrations", icon: Plug },
+          { view: "builder" as View, path: "/builder", label: "App builder", icon: Code2 },
+          { view: "settings" as View, path: "/settings", label: "Settings", icon: SlidersHorizontal },
+        ].map(navItem)}
       </nav>
-      <div class="sidebar-footer">
-        <div class="sidebar-stat">
-          <span class="sidebar-stat-value">{stats.today_jobs}</span>
-          <span class="sidebar-stat-label">Today</span>
-        </div>
-        <div class="sidebar-stat">
-          <span class="sidebar-stat-value">{stats.upcoming_jobs}</span>
-          <span class="sidebar-stat-label">Upcoming</span>
-        </div>
+      <div class="workspace-sidebar-footer">
+        <strong>Your workspace</strong>
+        <span>OpenFieldService</span>
       </div>
     </aside>
   );

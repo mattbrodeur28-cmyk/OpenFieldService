@@ -4,6 +4,9 @@ Standalone hosting is the first fork milestone. Commercial and controls extensio
 and the two QuickBooks connectors are planned separately; they are not implemented
 by this deployment change. QuickBooks is not required to run the app.
 
+For optional Chat, Knowledge, AI connections and frontend app-change proposals,
+see [Workspace setup](WORKSPACE.md).
+
 ## Container
 
 Use the Debian 13 amd64 standard template in an unprivileged LXC. A reasonable

@@ -13,7 +13,8 @@
     "previews:check": "node scripts/build-previews.mjs check",
     "previews:export": "node scripts/build-previews.mjs export",
     "start": "node --import tsx src/server/node.ts",
-    "db:backup": "node scripts/backup-db.mjs"
+    "db:backup": "node scripts/backup-db.mjs",
+    "builder:apply": "node scripts/apply-proposal.mjs"
   },
   "dependencies": {
     "@clawnify/app": "^0.2.1",

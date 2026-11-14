@@ -46,6 +46,12 @@ OpenFieldService is **vertical-agnostic** — configure service types, pricing, 
 | **Roofing** | Inspection, leak repair, shingle replacement, gutter cleaning, full replacement |
 | **Garage Door** | Spring repair, opener install, panel replacement, tune-up, emergency service |
 
+## Product roadmap and documentation
+
+See [Features.md](Features.md) for the SMB platform roadmap, feature IDs, milestone
+order and acceptance criteria. The [documentation index](docs/README.md) links the
+current deployment and development guides.
+
 ## Features
 
 - **Job scheduling** — create, assign, and track service visits with date/time scheduling, priority levels, and status workflow

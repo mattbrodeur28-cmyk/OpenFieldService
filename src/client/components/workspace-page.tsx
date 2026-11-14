@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { accountRequest, useAccount, isAdministrator } from '../auth';
-import { ProviderSettings } from './account-pages';
+import { IntegrationsPage } from './integrations-page';
 import type { View } from '../types';
 
 type Provider = { id: string; label: string; model: string; configured: boolean };
@@ -126,10 +126,7 @@ export function WorkspacePage({ view }: { view: View }) {
         </section>}
         {!!proposals.length && <section class="workspace-proposal"><h2>Previous proposals</h2>{proposals.map(item => <button class="workspace-list-item" onClick={() => void action(async () => setProposal(await request<Proposal>('/builder/proposals/' + item.id)))}>{item.request}</button>)}</section>}
       </section>}
-      {view === 'integrations' && <section class="workspace-editor">
-        {canManage ? <ProviderSettings /> : <><h2>AI connections</h2><div class="workspace-connections">{providers.map(item => <div class="workspace-connection"><strong>{item.label}</strong><span>{item.configured ? 'Configured' : 'Not configured'}</span></div>)}</div><p>Your administrator manages these connections.</p></>}
-        <h2 class="account-section-heading">Accounting</h2><p>QuickBooks Online and Desktop connectors are planned. No accounting connection is active.</p>
-      </section>}
+      {view === 'integrations' && <IntegrationsPage providers={providers} refresh={load} />}
     </>
   </div>;
 }

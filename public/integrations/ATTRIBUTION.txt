@@ -1,0 +1,5 @@
+Service logos sourced from Homarr Labs dashboard-icons
+https://github.com/homarr-labs/dashboard-icons
+Copyright (c) 2024 Bjorn Lammers, Meier Lukas, Thomas Camlong and Homarr Labs
+Apache License 2.0 (see LICENSE.txt). Logos are unmodified.
+Product names and marks belong to their respective owners.

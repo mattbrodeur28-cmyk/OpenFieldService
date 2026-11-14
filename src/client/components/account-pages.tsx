@@ -4,18 +4,18 @@ import type { AccountUser, UserRole } from '../auth';
 import type { View } from '../types';
 
 interface Configuration { values: Record<string, string>; secrets: Record<string, boolean> }
-export function ProviderSettings() {
+export function ProviderSettings({ providerId }: { providerId?: string } = {}) {
   const [config, setConfig] = useState<Configuration>({ values: {}, secrets: {} });
   const [values, setValues] = useState<Record<string, string>>({});
   const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false);
   async function load() { const result = await accountRequest<Configuration>('/api/workspace/configuration'); setConfig(result); setValues(Object.fromEntries(Object.entries(result.values).filter(([name]) => !name.startsWith('COMPANY_')))); }
   useEffect(() => { void load().catch(e => setError(e.message)); }, []);
   const fields = [
-    { title: 'Local Ollama', names: ['OLLAMA_BASE_URL', 'OLLAMA_MODEL'] },
-    { title: 'DeepSeek', names: ['DEEPSEEK_MODEL', 'DEEPSEEK_API_KEY'] },
-    { title: 'OpenAI', names: ['OPENAI_MODEL', 'OPENAI_API_KEY'] },
-  ];
-  return <section class="workspace-editor"><h2>AI connections</h2><p class="workspace-help">Settings saved here take effect immediately. API keys are stored encrypted and never returned to the browser. An empty key field leaves the current key unchanged.</p>
+    { id: 'ollama', title: 'Local Ollama', names: ['OLLAMA_BASE_URL', 'OLLAMA_MODEL'] },
+    { id: 'deepseek', title: 'DeepSeek', names: ['DEEPSEEK_MODEL', 'DEEPSEEK_API_KEY'] },
+    { id: 'openai', title: 'OpenAI', names: ['OPENAI_MODEL', 'OPENAI_API_KEY'] },
+  ].filter(group => !providerId || group.id === providerId);
+  return <section class="workspace-editor"><h2>{providerId ? 'Connection settings' : 'AI connections'}</h2><p class="workspace-help">Settings saved here take effect immediately. API keys are stored encrypted and never returned to the browser. An empty key field leaves the current key unchanged.</p>
     {error && <div class="workspace-error" role="alert">{error}</div>}{message && <p role="status">{message}</p>}
     <form onSubmit={e => { e.preventDefault(); setBusy(true); setError(''); setMessage(''); void accountRequest('/api/workspace/configuration', 'PUT', { values }).then(async () => { await load(); setMessage('Connections saved. Start a new chat to use a different provider.'); }).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>
       {fields.map(group => <fieldset class="account-fieldset"><legend>{group.title}</legend>{group.names.map(name => <label class="form-group">{name}

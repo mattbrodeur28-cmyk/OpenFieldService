@@ -1311,3 +1311,40 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
   .workspace-team-heading .btn-icon { min-width: 44px; min-height: 44px; }
   .auth-card { padding: 24px; }
 }
+
+/* Locally hosted integration catalog. */
+.integration-catalog { max-width: 1320px; padding-bottom: 32px; }
+.integration-intro { color: var(--text-secondary); margin: 0 0 20px; font-size: 14px; }
+.integration-toolbar { display: flex; margin-bottom: 16px; }
+.integration-search { display: flex; gap: 10px; align-items: center; width: 100%; max-width: 580px; border: 1px solid var(--border); border-radius: 9px; padding: 0 12px; color: var(--text-muted); background: var(--surface); }
+.integration-search:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.integration-search input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 12px 0; color: var(--text); font: inherit; outline: none; }
+.integration-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.integration-filter { font: inherit; font-size: 13px; border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px; background: var(--surface); color: var(--text-secondary); cursor: pointer; }
+.integration-filter.active { color: var(--text); background: var(--surface-sunken); border-color: var(--text-muted); }
+.integration-result-count { font-size: 12px; color: var(--text-muted); margin: 18px 0 12px; }
+.integration-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.integration-card { display: flex; align-items: flex-start; gap: 13px; min-height: 100px; padding: 18px 16px; border: 1px solid var(--border-subtle, var(--border)); border-radius: 10px; background: var(--surface-sunken); box-shadow: 0 1px 2px rgb(0 0 0 / 4%); text-align: left; font: inherit; color: var(--text); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.integration-card:hover { border-color: var(--text-muted); box-shadow: 0 2px 5px rgb(0 0 0 / 7%); }
+.integration-card:focus-visible, .integration-filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.integration-logo, .integration-monogram { flex-shrink: 0; width: 36px; height: 36px; object-fit: contain; margin-top: 1px; }
+.integration-monogram { display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; font-size: 15px; font-weight: 650; color: white; }
+.integration-color-0 { background: #2463d8; }.integration-color-1 { background: #7952c8; }.integration-color-2 { background: #16845c; }.integration-color-3 { background: #bf4578; }.integration-color-4 { background: #aa5a22; }.integration-color-5 { background: #357b98; }
+.integration-card-copy { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.integration-name { font-size: 14px; font-weight: 500; line-height: 1.35; }
+.integration-description { font-size: 12px; line-height: 1.35; color: var(--text-muted); overflow-wrap: anywhere; }
+.integration-availability { color: var(--accent); font-size: 11px; margin-top: 3px; }
+.integration-dialog { box-sizing: border-box; width: min(620px,calc(100vw - 32px)); max-height: calc(100dvh - 48px); margin: auto; padding: 24px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 80px rgb(0 0 0 / 20%); }
+.integration-dialog::backdrop { background: rgb(0 0 0 / 35%); }
+.integration-dialog-heading { display: flex; align-items: center; gap: 12px; }
+.integration-dialog-heading > div { flex: 1; }
+.integration-dialog-heading h2 { font-size: 18px; margin: 0; }
+.integration-dialog-heading p { font-size: 12px; color: var(--text-muted); margin: 4px 0 0; }
+.integration-dialog-description { color: var(--text-secondary); font-size: 14px; margin: 20px 0; }
+.integration-notice { padding: 14px; background: var(--surface-sunken); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+.integration-notice p { margin: 8px 0 0; color: var(--text-secondary); }
+.integration-dialog .workspace-editor { padding: 0; border: 0; max-width: none; }
+.integration-dialog .account-fieldset { margin-top: 16px; }
+.integration-dialog .btn { margin-top: 12px; }
+@media (max-width: 1100px) { .integration-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 600px) { .integration-grid { grid-template-columns: minmax(0,1fr); } .integration-dialog { padding: 18px; } }

@@ -1,0 +1,22 @@
+name: Debian standalone checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: node:24-trixie
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install --global pnpm@11.20.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm test
+        env:
+          WRANGLER_SEND_METRICS: "false"

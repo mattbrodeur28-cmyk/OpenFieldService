@@ -8,3 +8,8 @@ docs/
 .wrangler/
 
 .preview-build/
+
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

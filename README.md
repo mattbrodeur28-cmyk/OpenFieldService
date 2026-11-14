@@ -67,6 +67,19 @@ OpenFieldService is **vertical-agnostic** — configure service types, pricing, 
 
 ## Quickstart
 
+### This fork: Debian 13 standalone hosting
+
+For a Proxmox Debian 13 LXC, see [the standalone deployment guide](deploy/README.md).
+This fork adds a Node.js 24 entry point with a persistent SQLite file, a systemd
+unit and online database backups. Run `pnpm install --frozen-lockfile`,
+`pnpm build`, then `pnpm start` to try it locally at `http://127.0.0.1:3000`.
+The original Wrangler development mode below remains available.
+
+Commercial/controls extensions and optional QuickBooks Online/Desktop connectors
+are future milestones; this change supplies the hosting foundation only.
+
+### Original Wrangler development workflow
+
 ```bash
 git clone https://github.com/clawnify/OpenFieldService.git
 cd OpenFieldService
@@ -211,7 +224,7 @@ curl -X POST "http://localhost:8787/api/jobs/$JOB_ID/invoice"
 
 ### Prerequisites
 
-- Node.js 22+ (required by the locked Wrangler version)
+- Node.js 24 for this fork's standalone runtime and development checks
 - pnpm (or npm/yarn)
 
 ## Architecture

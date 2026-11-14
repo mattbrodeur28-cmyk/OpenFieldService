@@ -1,4 +1,4 @@
-import { OpenAPIHono, createRoute, z } from "@clawnify/app";
+import { OpenAPIHono, createRoute, z } from "./app.js";
 import { query, get, run } from "./db.js";
 
 export const equipmentApp = new OpenAPIHono({

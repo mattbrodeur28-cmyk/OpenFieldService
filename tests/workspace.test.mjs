@@ -15,7 +15,7 @@ test('workspace protects secrets, preserves chats/knowledge, and validates build
   const calls = [];
   let reply = 'The saved knowledge says to inspect filters.';
   let failure = false;
-  const env = { WORKSPACE_TOKEN: token, OLLAMA_BASE_URL: 'http://fixture.invalid:11434', OLLAMA_MODEL: 'fixture-model', OPENAI_API_KEY: 'secret-fixture', OPENAI_MODEL: 'fixture-hosted' };
+  const env = { NODE_ENV: 'test', WORKSPACE_TOKEN: token, OLLAMA_BASE_URL: 'http://fixture.invalid:11434', OLLAMA_MODEL: 'fixture-model', OPENAI_API_KEY: 'secret-fixture', OPENAI_MODEL: 'fixture-hosted' };
   const fetcher = async (url, options) => {
     calls.push({ url, body: JSON.parse(options.body) });
     if (failure) return new Response('Provider failure containing secret', { status: 503 });

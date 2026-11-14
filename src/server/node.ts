@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import api from "./index.js";
+import { createAuth } from "./auth.mjs";
 import { createWorkspace } from "./workspace.mjs";
 import { openStorage } from "./sqlite.mjs";
 
@@ -15,7 +16,11 @@ process.chdir(root);
 if (!existsSync(resolve(root, "dist/index.html"))) throw new Error("Frontend missing: run pnpm build before pnpm start");
 const storage = openStorage(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite"));
 const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite"), storage, root });
+const auth = createAuth({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
 const app = new Hono();
+app.use("/api/*", auth.guard);
+app.route("/api/auth", auth.app);
+app.get("/api/public/company", (c) => workspace.publicCompany(c));
 app.route("/api/workspace", workspace.app);
 app.get("/healthz", async (c) => {
   await storage.query("SELECT 1");
@@ -40,8 +45,8 @@ function stop() {
   stopping = true;
   const deadline = setTimeout(() => process.exit(1), 10000);
   deadline.unref();
-  server.close(() => { workspace.close(); storage.close(); clearTimeout(deadline); });
+  server.close(() => { auth.close(); workspace.close(); storage.close(); clearTimeout(deadline); });
 }
 process.on("SIGTERM", stop);
 process.on("SIGINT", stop);
-server.on("error", (error) => { console.error(error); workspace.close(); storage.close(); process.exit(1); });
+server.on("error", (error) => { console.error(error); auth.close(); workspace.close(); storage.close(); process.exit(1); });

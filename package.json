@@ -1,5 +1,5 @@
 {
-  "name": "@clawnify/open-fieldservice",
+  "name": "openfieldservice",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -14,14 +14,12 @@
     "previews:export": "node scripts/build-previews.mjs export",
     "start": "node --import tsx src/server/node.ts",
     "db:backup": "node scripts/backup-db.mjs",
-    "builder:apply": "node scripts/apply-proposal.mjs"
+    "builder:apply": "node scripts/apply-proposal.mjs",
+    "users:reset-password": "node scripts/reset-user-password.mjs"
   },
   "dependencies": {
-    "@clawnify/app": "^0.2.1",
-    "@clawnify/db": "^0.4.2",
     "@hono/node-server": "^2.1.8",
     "@hono/zod-openapi": "^0.18.0",
-    "@phosphor-icons/react": "^2.1.10",
     "hono": "^4.6.0",
     "lucide-preact": "^0.575.0",
     "preact": "^10.25.0",

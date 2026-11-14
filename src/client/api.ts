@@ -13,7 +13,7 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
     throw new Error("You're offline. Changes require a connection and were not saved.");
   }
 
-  const opts: RequestInit = { method, headers: {} };
+  const opts: RequestInit = { method, headers: { "X-Requested-With": "OpenFieldService" } };
   if (body) {
     (opts.headers as Record<string, string>)["Content-Type"] = "application/json";
     opts.body = JSON.stringify(body);
@@ -42,6 +42,7 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
   if (r.headers.get("X-OpenFieldService-Offline") === "true") usedSavedData = true;
   if (usedSavedData) announceOfflineData();
   const responseForCache = canUseSavedData && !usedSavedData ? r.clone() : null;
+  if (r.status === 401) window.dispatchEvent(new Event("ofs:auth-required"));
   const text = await r.text();
   let data: unknown;
   try {

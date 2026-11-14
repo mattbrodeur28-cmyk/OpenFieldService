@@ -1,4 +1,4 @@
-import { embedded, reportLocation } from "@clawnify/app/client";
+
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { AppContext } from "./context";
 import { useAppState } from "./hooks/use-app";
@@ -18,6 +18,7 @@ import { InvoiceDetail } from "./components/invoice-detail";
 import { AssetDetail } from "./components/asset-detail";
 import { ErrorBanner } from "./components/error-banner";
 import { OfflineBanner } from "./components/offline-banner";
+import { AccountPages } from "./components/account-pages";
 import { WorkspacePage } from "./components/workspace-page";
 import { PanelLeft, Sparkles } from "lucide-preact";
 
@@ -41,7 +42,7 @@ export function App() {
   };
   const appState = useAppState(isAgent, navigate);
   const [detailError, setDetailError] = useState<string | null>(null);
-  useEffect(() => { reportLocation(window.location.pathname + window.location.search); }, [view, id]);
+
 
   // Load detail when URL has an ID
   useEffect(() => {
@@ -56,7 +57,8 @@ export function App() {
   }, [view, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderMain = () => {
-    if (["chat", "knowledge", "integrations", "builder", "settings"].includes(view)) return <WorkspacePage view={view} />;
+    if (["team", "users", "website", "environment", "settings"].includes(view)) return <AccountPages key={view + id} view={view} id={id} />;
+    if (["chat", "knowledge", "integrations", "builder"].includes(view)) return <WorkspacePage view={view} />;
     if (view === "assets" && id) return <AssetDetail key={id} id={id} />;
     if (view === "jobs" && id) {
       if (appState.selectedJob) return <JobDetail />;
@@ -69,6 +71,7 @@ export function App() {
     if (view === "customers" && id && appState.selectedCustomer) return <CustomerDetail />;
     if (view === "invoices" && id && appState.selectedInvoice) return <InvoiceDetail />;
     switch (view) {
+      case "calendar":
       case "schedule": return <ScheduleView />;
       case "jobs": return <JobList />;
       case "customers": return <CustomerList />;
@@ -82,11 +85,11 @@ export function App() {
 
   return (
     <AppContext.Provider value={{ ...appState, navigate: workspaceNavigate }}>
-      <div class={`layout ${embedded ? "" : "workspace-layout"}`}>
-        <Sidebar currentView={view} collapsed={sidebarCollapsed} />
-        {!embedded && !sidebarCollapsed && <button class="workspace-backdrop" aria-label="Close navigation" onClick={() => setSidebarCollapsed(true)} />}
-        <main class={`main-content ${embedded ? "" : "workspace-main"}`}>
-          {!embedded && <header class="workspace-header">
+      <div class="layout workspace-layout">
+        <Sidebar currentView={view} currentId={id} collapsed={sidebarCollapsed} />
+        {!sidebarCollapsed && <button class="workspace-backdrop" aria-label="Close navigation" onClick={() => setSidebarCollapsed(true)} />}
+        <main class="main-content workspace-main">
+          {<header class="workspace-header">
             <button class="btn-icon" aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
               aria-expanded={!sidebarCollapsed} aria-controls="workspace-navigation"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><PanelLeft size={16} /></button>
@@ -102,7 +105,7 @@ export function App() {
           )}
         </main>
       </div>
-      {!embedded && view !== "chat" && <button class="btn workspace-ask-ai" onClick={() => workspaceNavigate("/chat")}><Sparkles size={16} /> Ask AI</button>}
+      {view !== "chat" && <button class="btn workspace-ask-ai" onClick={() => workspaceNavigate("/chat")}><Sparkles size={16} /> Ask AI</button>}
       <ErrorBanner />
     </AppContext.Provider>
   );

@@ -2,7 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-// Implements @clawnify/db's STORAGE contract; Wrangler keeps its D1 binding.
+// Implements the local storage contract; development D1 bindings remain supported.
 export function openStorage(filename) {
   if (filename !== ":memory:") mkdirSync(dirname(resolve(filename)), { recursive: true });
   const database = new DatabaseSync(filename);

@@ -7,6 +7,9 @@ by this deployment change. QuickBooks is not required to run the app.
 For optional Chat, Knowledge, AI connections and frontend app-change proposals,
 see [Workspace setup](WORKSPACE.md).
 
+For local login, users, teams, permissions and the shared-key upgrade, see
+[Accounts and teams](ACCOUNTS.md).
+
 ## Container
 
 Use the Debian 13 amd64 standard template in an unprivileged LXC. A reasonable
@@ -66,7 +69,7 @@ systemctl daemon-reload
 systemctl enable --now openfieldservice
 systemctl status openfieldservice --no-pager
 curl --fail http://127.0.0.1:3000/healthz
-curl --fail http://127.0.0.1:3000/api/stats
+curl --fail http://127.0.0.1:3000/api/auth/session
 ```
 
 The first start initializes a new UUID schema. The service account owns the state
@@ -85,8 +88,8 @@ port from your computer:
 ssh -L 3000:127.0.0.1:3000 root@LXC_IP
 ```
 
-Open `http://localhost:3000`. The inherited app has no standalone user login or
-roles. For shared access, place it behind an authenticated HTTPS reverse proxy.
+Open `http://localhost:3000`. The standalone app requires local account login. Configure the first owner using
+[the account setup guide](ACCOUNTS.md). For shared access, use a trusted HTTPS reverse proxy.
 Do not forward an unauthenticated listener to the public Internet. HTTPS also
 allows browser service workers/offline access on a remote hostname.
 
@@ -120,7 +123,7 @@ service and verify customers, equipment and jobs in the browser.
 Back up first. Stop `openfieldservice`, review and fast-forward to the intended
 commit in the checkout, then run `pnpm install --frozen-lockfile`, `pnpm build`,
 `pnpm exec tsc --noEmit` and `pnpm test`. Start the service and read back
-`/healthz` and `/api/stats`. Finally open a saved equipment/job bookmark and
+`/healthz` and `/api/auth/session`. Finally open a saved equipment/job bookmark and
 confirm records survived. Do not delete or reset the state directory for updates.
 
 Logs: `journalctl -u openfieldservice -n 100 --no-pager`.

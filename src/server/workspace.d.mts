@@ -1,3 +1,3 @@
-import type { Hono } from 'hono';
-import type { DBEnv } from '@clawnify/db';
-export function createWorkspace(options: { filename: string; storage: NonNullable<DBEnv['STORAGE']>; root: string; env?: NodeJS.ProcessEnv; fetcher?: typeof fetch }): { app: Hono; close(): void };
+import type { Hono, Context } from 'hono';
+import type { DBEnv } from './db.js';
+export function createWorkspace(options: { filename: string; storage: NonNullable<DBEnv['STORAGE']>; root: string; env?: NodeJS.ProcessEnv; fetcher?: typeof fetch }): { app: Hono; publicCompany(c: Context): Response | Promise<Response>; close(): void };

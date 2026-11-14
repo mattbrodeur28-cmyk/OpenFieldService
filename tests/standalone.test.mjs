@@ -16,7 +16,7 @@ test("standalone server preserves equipment workflows, restart data and live bac
   await once(socket, "listening");
   const port = socket.address().port;
   await new Promise((resolve) => socket.close(resolve));
-  const env = { ...process.env, PORT: String(port), HOST: "127.0.0.1", DATABASE_PATH: database };
+  const env = { ...process.env, NODE_ENV: 'test', AUTH_TEST_MODE: '1', PORT: String(port), HOST: "127.0.0.1", DATABASE_PATH: database };
   const base = `http://127.0.0.1:${port}`;
   let server;
   async function stop() {

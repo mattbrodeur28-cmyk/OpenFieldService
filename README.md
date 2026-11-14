@@ -75,6 +75,9 @@ unit and online database backups. Run `pnpm install --frozen-lockfile`,
 `pnpm build`, then `pnpm start` to try it locally at `http://127.0.0.1:3000`.
 The original Wrangler development mode below remains available.
 
+For self-hosted login, users, roles and teams, see [Accounts and teams](deploy/ACCOUNTS.md).
+The standalone runtime has no Clawnify SDK or hosted-platform dependency.
+
 For the standalone Chat, Knowledge, local/hosted AI connections and review-first
 frontend app builder, see [workspace setup](deploy/WORKSPACE.md).
 

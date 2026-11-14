@@ -6,25 +6,13 @@ capabilities; it does not install Clawnify's hosting platform. The existing
 schedule is the calendar. Clawnify account/team management, public website hosting,
 arbitrary backend generation, and QuickBooks sync are not supplied by this slice.
 
-## Enable the workspace
+## Login and configuration
 
-Update the deployment branch using the backup/update procedure in README.md.
-Install `openssl` and `nano` if needed. As root **inside the LXC**, generate an
-access key and configure the providers privately:
-
-```sh
-apt install -y openssl nano
-printf '\nWORKSPACE_TOKEN=%s\n' "$(openssl rand -hex 32)" >> /etc/openfieldservice.env
-chmod 600 /etc/openfieldservice.env
-nano /etc/openfieldservice.env
-```
-
-Keep only one WORKSPACE_TOKEN line if configuring a second time. Copy its value
-into the app's workspace unlock field; do not paste keys into AI chat or support
-messages. The key is held in sessionStorage for that browser tab. Use HTTPS and an
-authenticated reverse proxy for shared access. This key protects the workspace
-API, not the inherited customer/job APIs; those still need network/proxy access
-controls. This is a single trusted-admin workspace, not multi-user roles.
+Local login now protects the workspace and service APIs. Follow [Accounts and teams](ACCOUNTS.md)
+to create the initial owner with your existing workspace key. Administrators can
+configure AI connections directly under Integrations or Environment variables.
+Saved keys are encrypted and are not returned to the browser. Server environment
+configuration remains supported as an alternative:
 
 Add any of these provider configurations in that file:
 
@@ -58,7 +46,7 @@ systemctl restart openfieldservice
 curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:3000/healthz
 ```
 
-Open `/chat` and unlock the workspace. Integrations shows which providers have
+Open `/chat` after signing in. Integrations shows which providers have
 settings present; this is not a connectivity test. Send a small message to prove
 the real provider works. No real provider call was performed by automated tests.
 

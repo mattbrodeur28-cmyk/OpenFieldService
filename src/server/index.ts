@@ -1,5 +1,5 @@
-import { createApp, createRoute, z } from "@clawnify/app";
-import type { DBEnv } from "@clawnify/db";
+import { createApp, createRoute, z } from "./app.js";
+import type { DBEnv } from "./db.js";
 import { query, get, run } from "./db.js";
 import { equipmentApp } from "./equipment.js";
 

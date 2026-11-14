@@ -4,7 +4,8 @@
 
 Build an independent, modern, self-hosted operating platform for small and medium
 service businesses: CRM, field service, dispatch, equipment and controls records,
-contracts, maintenance agreements, collaboration, and QuickBooks-backed accounting.
+contracts, maintenance agreements, commercial/construction projects, residential
+service workflows, collaboration, and QuickBooks-backed accounting.
 
 ServiceTitan is a reference for business coverage. Salesforce Field Service is the
 reference for the Dispatcher interaction: a resource-based hourly Gantt board with
@@ -74,9 +75,15 @@ Kubernetes qualification are planned work.
 | M5 | Contracts, maintenance agreements and renewals | Planned | M4 customer/contact model; M3 scheduling |
 | M6 | QuickBooks-backed accounting | Planned | M2 reliable integration jobs/audit; M4 mappings |
 | M7 | Controls records, commissioning and handover | Planned | M4; existing equipment foundation |
+| M11 | Commercial/construction projects, phased billing, crews and job costing | Planned | M2–M6 shared domains; project and ledger foundations |
+| M12 | Residential memberships, mobile sales/service, booking and payment workflows | Planned | M3–M6 shared domains; relevant M8 capabilities |
 | M8 | Business-owner reporting and operational controls | Planned | M3–M7 business events |
 | M9 | Containers, Kubernetes and scale qualification | Planned | M2 shared-state/database work |
 | M10 | Optional extensions and broader SaaS | Planned | Proven core workflows |
+
+Milestone IDs remain stable; the table describes dependencies rather than a strict
+numeric execution order. M11/M12 are newly added business tracks and reuse shared
+modules instead of duplicating the M3–M8 work.
 
 Ordering can change explicitly. A narrow QuickBooks sandbox slice can precede
 contracts once its mapping and reliable execution foundations exist. Architectural
@@ -241,6 +248,8 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
 
 **Acceptance:** convert a prospect into a commercial customer with contacts and two
 sites, accept a quote into work and retain its history through reload and migration.
+Commercial/construction conversion into projects and residential three-option
+estimates extend this model in M11/M12.
 
 ## M5 — Contracts and maintenance agreements
 
@@ -279,7 +288,9 @@ production authorization are separate steps.
 - [ ] **QB-003 — Mapping:** customers, items, tax codes, accounts, payment terms,
   currency and external IDs; review duplicates before exporting.
 - [ ] **QB-004 — Invoice export:** validated lines/totals/tax/discounts, references,
-  deduplication and external links. Define edits after export and uncertain-write
+  deduplication and external links. Include approved project-phase/application and
+  retainage mappings from M11 when supported; keep operational applications distinct
+  from posted accounting invoices. Define edits after export and uncertain-write
   handling; never blindly retry a write that may already have succeeded.
 - [ ] **QB-005 — Payment/status import:** reconcile external balance/payment changes;
   invoice creation is not payment and does not establish cash receipt.
@@ -317,6 +328,179 @@ realm isolation and partial failures. Production needs separate company verifica
 **Acceptance:** complete a controller checkout, record a deficiency, attach a
 versioned backup, schedule corrective work and produce a traceable handover.
 
+## M11 — Commercial and construction projects
+
+**Status: Planned.** Commercial and Construction are business tracks on a shared
+project/job-costing foundation. They should not become separate implementations of
+customers, crews, purchasing, invoices or accounting. A company may operate more
+than one track; a business track is not a separate tenant.
+
+Commercial emphasizes proposal-driven service/install work and phased billing.
+Construction emphasizes project delivery, progress applications, committed costs
+and completion forecasting. Configure templates and workflow differences on shared
+domain modules, with explicit permissions and accounting ownership.
+
+### Shared project foundation
+
+- [ ] **PROJ-001 — Project structure:** customer, contract/proposal, sites, project
+  manager, phases, cost codes, milestones, deliverables, planned/actual dates and
+  linked jobs/appointments. Convert an accepted proposal without re-entering scope.
+- [ ] **PROJ-002 — Project management:** baseline budget and schedule, dependencies,
+  progress, committed/actual costs, forecast, issues and overdue actions. Show each
+  phase's responsible owner and preserve approved baseline versions.
+- [ ] **PROJ-003 — Field documentation:** job/phase-linked photos, forms, daily logs,
+  signatures, attachments and completion evidence, with author/time/version history.
+  Define required evidence for billing readiness; signatures capture stated approval
+  intent and do not silently approve unrelated scope or financial terms.
+- [ ] **PROJ-004 — Crew management:** crews/leads, effective-dated membership, dispatch
+  assignments and field time by person/job/phase/cost code. Include approval,
+  correction history and labor-cost allocation; payroll export is a separate step.
+- [ ] **PROJ-005 — Change orders:** versioned scope, estimated labor/material/subcontract
+  cost, pricing, schedule impact, approval authority and customer acceptance. Approved
+  changes update the current contract value/budget and become billable exactly once;
+  pending/rejected changes remain distinguishable and cannot inflate approved totals.
+- [ ] **PROJ-006 — Purchasing and inventory:** requisitions, approvals, POs, stock/truck
+  reservations, receipts, issues, returns and vendor invoices tied to job/phase/cost
+  code. Distinguish committed purchase cost, received material cost and billed cost;
+  avoid double-counting commitments when actual invoices arrive.
+- [ ] **PROJ-007 — Subcontractors:** company/contact, scope/package, approved commitment,
+  change orders, submitted invoices, approval and direct costs against budget.
+  Track required onboarding documents/expiry as configured; account for subcontract
+  retainage and link accounting records without implying a payment occurred.
+- [ ] **PROJ-008 — WIP reporting:** contract value including approved changes,
+  percentage complete, earned revenue, actual/committed cost, estimated cost to
+  complete, forecast at completion, billings, over/under-billing and retainage.
+  Define calculation method and source for every measure. Separate operational
+  estimates from posted accounting revenue, state the reporting cutoff/freshness,
+  and retain approved period snapshots and correction history.
+- [ ] **PROJ-009 — Project access/audit:** project-manager, field, purchasing,
+  subcontractor-review and accounting capabilities; approval thresholds and
+  segregation of duties. Record who changed budget, scope, progress or billing.
+- [ ] **PROJ-010 — Project workspace:** summary, schedule, phases, documents, crews,
+  change orders, purchasing, subcontractors, financials and closeout in one place.
+  Provide drill-down from budget/WIP figures to the original business records.
+
+### Commercial feature track
+
+- [ ] **COM-001 — Proposal billing:** convert approved proposal lines into billable
+  phases/milestones and a schedule of values; bill fixed amounts or accepted progress
+  as configured. Track current/prior applications, approved changes, retainage,
+  stored materials where applicable, remaining value and billing approval.
+- [ ] **COM-002 — Commercial billing documents:** plan AIA-style application and
+  continuation workflows, required data and export formats. Verify the applicable
+  form/template rights before distributing AIA-branded or licensed forms; use
+  properly authorized templates and label exports accurately. Freeze issued
+  applications and preserve revisions rather than silently rewriting prior periods.
+- [ ] **COM-003 — Commercial project workflow:** proposal → accepted scope → project/
+  phases → crew execution/evidence → phase approval → application/invoice → payment
+  reconciliation → handover. Support site/customer-specific approval requirements.
+
+### Construction feature track
+
+- [ ] **CONST-001 — Progress billing:** schedule of values, billing periods, original
+  contract, approved changes, prior/current completion, stored materials, retainage,
+  previous applications and amount currently due. Check cumulative limits and
+  prevent billing the same completed work twice.
+- [ ] **CONST-002 — Applications and certification:** draft/review/submitted/returned/
+  approved lifecycle, versioned evidence, customer/GC approval and period locking.
+  Include the same authorized AIA-form/export capability as COM-002; track invoice,
+  application approval and payment as separate events.
+- [ ] **CONST-003 — Construction delivery:** project/phases, dependencies, baseline
+  versus actual schedule, crew time, commitments, subcontractor costs, changes,
+  forecasting, WIP and closeout evidence using PROJ-001 through PROJ-010.
+
+### Coverage and dependency map
+
+| Requested capability | Commercial | Construction | Shared implementation |
+| --- | --- | --- | --- |
+| Proposal / progress billing | COM-001–003 | CONST-001–002 | Contracts, schedule of values, applications, invoices and QB mappings |
+| Project management | Commercial project workflow | Construction delivery workflow | PROJ-001–002, PROJ-010 |
+| Field documentation | Billing-ready service/install evidence | Phase/daily-log and application evidence | PROJ-003; CTRL handover and private file storage |
+| Crew management | Crew time by job/phase | Crew time by job/phase | PROJ-004; Dispatcher and labor approvals |
+| Change orders | Price, approve and bill scope changes | Price, approve and bill scope changes | PROJ-005; versioned contract/budget/billing events |
+| WIP reporting | Earned revenue, forecast and retainage | Earned revenue, forecast and retainage | PROJ-008; approved accounting definitions and cutoffs |
+| Purchasing & inventory | Job/phase-linked POs and parts | Job/phase-linked POs and parts | PROJ-006; BIZ-004 with one stock/commitment ledger |
+| Subcontractors | Invoices/direct cost versus budget | Invoices/direct cost versus budget | PROJ-007; supplier/commitment/accounting mappings |
+
+Dependencies: M2 repositories/migrations/audit/jobs/file storage, M3 appointments,
+M4 customers/proposals, M5 contracts and M6 accounting mappings. Implement the
+project/phase/cost-code model before progress billing and WIP; implement cost and
+billing ledgers before aggregate reports. Select the calculation/approval policies
+before building dashboards. Later reports may depend on a subset of M6 rather than
+waiting for every accounting feature.
+
+**Acceptance:** create one Commercial and one Construction project from accepted
+scope. Budget phases, assign a crew, approve time, receive job-linked materials and
+record a subcontractor invoice. Approve a change order and prepare two sequential
+billing applications with retainage. Verify prior/current/cumulative totals, reject
+duplicate billing, and trace WIP/forecast values to approved source records. Export
+an authorized billing document, reconcile its accounting mapping and preserve the
+issued application after later project changes. Verify permissions, concurrent
+approvals, retries, period corrections and populated-data migrations.
+
+## M12 — Residential service business
+
+**Status: Planned.** Residential uses the same customer/equipment, pricebook,
+appointments, contracts, invoices and accounting modules. Its screens and templates
+optimize household service calls and technician-assisted sales rather than creating
+an independent backend. Keep this track compatible with a company that also does
+Commercial or Construction work.
+
+- [ ] **RES-001 — Memberships:** service plans, equipment coverage, recurring visits,
+  benefits/discounts, renewal reminders and customer self-service acceptance.
+  Automatic renewal/payment requires configured terms and recorded authorization;
+  support expiry, cancellation, payment failure and renewal exceptions. Reuse M5
+  agreement scheduling and idempotent work generation.
+- [ ] **RES-002 — Pricing and estimates:** versioned pricebook, equipment/service
+  context, labor/materials, tax/discount rules and three configurable good/better/
+  best options on a technician's tablet. Record chosen options and acceptance;
+  convert into work/invoice without losing the accepted price/scope snapshot.
+- [ ] **RES-003 — Call booking:** manual call intake plus optional online, after-hours
+  or AI-assisted booking. Capture customer/location, issue, equipment, urgency,
+  appointment preferences and dispatch handoff; prevent duplicate bookings and use
+  configured escalation rules. Do not promise unattended coverage or guaranteed
+  headcount reduction. Telephony, consent and actual service availability require
+  explicit provider/configuration decisions.
+- [ ] **RES-004 — Technician mobile workspace:** responsive/tablet-friendly job
+  packets with customer/equipment history, accepted pricing, forms, photos,
+  signatures, navigation links and completion/billing actions. Preserve clear
+  online/offline behavior; any future offline write queue needs conflict resolution
+  and successful delivery acknowledgment before reporting a server save.
+- [ ] **RES-005 — Adaptive dispatch:** reuse the Salesforce-style board and resource
+  availability. Suggest schedule changes from delays, urgency, duration and travel
+  information where supported. Show impact and obtain dispatcher approval by
+  default; any automatic rescheduling needs an explicit bounded policy, audit,
+  customer/technician notification rules and failure recovery.
+- [ ] **RES-006 — Reporting:** invoices, aging, payment status, membership renewals,
+  booked/completed work and estimate conversion with documented definitions,
+  freshness, permissions and source-record drill-down. Integrate with BIZ reporting
+  rather than maintaining a separate residential reporting ledger.
+- [ ] **RES-007 — Invoicing, payments and financing:** present approved invoice lines
+  and balances in the field; integrate an optional payment provider for collection,
+  receipts, refunds and reconciliation using provider tokenization. Financing is
+  an optional provider workflow with customer choice and provider-owned eligibility/
+  credit decisions; do not build an internal lending/underwriting system. Handle
+  declined, pending, duplicate, partially paid and uncertain transactions explicitly.
+- [ ] **RES-008 — Accounting and payroll handoff:** reuse QuickBooks mappings and
+  approved time/labor exports so customer, invoice, payment and time records are
+  entered once operationally. Document direction/ownership and supported payroll
+  products. Exporting time is not proof payroll was calculated, filed or paid.
+  Track sync exceptions and provide reconciliation instead of silent overwrites.
+
+Dependencies: M3 scheduling, M4 CRM/quotes, M5 agreements, M6 accounting and relevant
+M8 labor/reporting. Mobile service workflows can ship incrementally before payment,
+financing, payroll or autonomous booking integrations. Actual financial or payroll
+provider actions need dedicated capability checks, audit and real sandbox tests.
+
+**Acceptance:** book a household service visit, dispatch a technician, open its
+history/forms on a tablet, present three priced options, accept one and generate
+an accurate invoice. Complete a real provider sandbox payment without duplicate
+charges under retries, reconcile it to accounting, and create/renew a membership
+according to the customer's recorded terms. Demonstrate booking conflicts,
+rescheduling approval, declined/pending payments, failed sync and offline recovery.
+Treat automated booking, financing and payroll as separately verified subfeatures,
+not prerequisites for claiming unrelated mobile or membership work complete.
+
 ## M8 — Empower the business owner
 
 - [ ] **BIZ-001 — Dashboard:** dispatch, pipeline, overdue work, quote approvals,
@@ -326,7 +510,8 @@ versioned backup, schedule corrective work and produce a traceable handover.
 - [ ] **BIZ-003 — Labor:** time entries, approvals, corrections and job costing;
   payroll is a separate capability from basic time tracking.
 - [ ] **BIZ-004 — Inventory/purchasing:** locations/truck stock, reservations,
-  consumption, reorder suggestions, purchase orders and receiving.
+  consumption, reorder suggestions, purchase orders and receiving. Reuse M11 project/
+  phase/cost-code commitments and material movements rather than duplicate ledgers.
 - [ ] **BIZ-005 — Reporting:** saved filters, exports, scheduled reports, permissions,
   dataset definitions and freshness indicators.
 - [ ] **BIZ-006 — Automation:** explicit triggers/actions, dry-run preview, approvals,

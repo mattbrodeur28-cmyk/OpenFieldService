@@ -68,6 +68,27 @@ model responses execute on the server.
 
 ## App builder: review, apply, rebuild
 
+App builder now uses saved conversations. Describe a change, choose an AI provider,
+and prepare a draft. Follow-up messages revise that draft while retaining earlier
+edits. Recent drafts reopen their saved request/summary thread, and you can start a
+new conversation for a separate change. Each revision is saved independently; an
+older draft can be reopened to begin another branch of changes.
+
+Automatic file selection is enabled by default and makes an additional AI request
+using the request and available frontend file names. Under Advanced, turn it off
+to choose files manually. Follow-ups retain existing draft files and may add files,
+up to the same four-file limit. The generation request includes original source,
+the previous cumulative draft, and up to ten recent request/summary turns. No
+customer records, integration snapshots or provider keys enter the builder prompt.
+
+Review highlights additions/removals with line numbers and collapses unchanged
+context. Very large diffs show only the first 4,000 lines; inspect the full exported
+before/after source locally. Check the review acknowledgment to enable download.
+A source-hash change marks an old proposal stale and blocks further revisions;
+start a new conversation against the current checkout. The deployment command
+rechecks hashes, because the source can change after the browser's last check.
+Generated drafts have not been compiled until that validation command runs.
+
 Builder handles **existing frontend TypeScript/TSX/CSS files**, one to four per
 proposal. It sends only the selected source files and your requested change to the
 selected provider. It retains the original content/hashes, generated replacements,

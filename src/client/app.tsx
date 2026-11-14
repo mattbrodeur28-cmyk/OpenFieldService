@@ -17,7 +17,8 @@ import { InvoiceList } from "./components/invoice-list";
 import { InvoiceDetail } from "./components/invoice-detail";
 import { AssetDetail } from "./components/asset-detail";
 import { ErrorBanner } from "./components/error-banner";
-import { OfflineBanner } from "./components/offline-banner";
+import { useConnectivity } from "./hooks/use-connectivity";
+import { TeamChannel } from "./components/team-channel";
 import { AccountPages } from "./components/account-pages";
 import { WorkspacePage } from "./components/workspace-page";
 import { PanelLeft, Sparkles } from "lucide-preact";
@@ -34,6 +35,7 @@ export function App() {
     }
   }, [isAgent]);
 
+  const connectivity = useConnectivity();
   const { view, id, navigate } = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.matchMedia("(max-width: 767px)").matches);
   const workspaceNavigate = (to: string) => {
@@ -57,7 +59,9 @@ export function App() {
   }, [view, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderMain = () => {
-    if (["team", "users", "website", "environment", "settings"].includes(view)) return <AccountPages key={view + id} view={view} id={id} />;
+    if (view === "team" && id) return <TeamChannel key={id} id={id} />;
+    if (["users", "environment", "settings", "integrations"].includes(view)) return <Dashboard />;
+    if (["team", "website"].includes(view)) return <AccountPages key={view + id} view={view} id={id} />;
     if (["chat", "knowledge", "integrations", "builder"].includes(view)) return <WorkspacePage view={view} />;
     if (view === "assets" && id) return <AssetDetail key={id} id={id} />;
     if (view === "jobs" && id) {
@@ -97,7 +101,7 @@ export function App() {
             <span class="workspace-header-divider" aria-hidden="true" />
             <span class="workspace-header-subtitle">Your workspace</span>
           </header>}
-          <OfflineBanner />
+          {connectivity.readOnly && <span class="workspace-offline-indicator" role="status">Offline / saved data · changes require a connection</span>}
           {appState.loading ? (
             <div class="loading-text">Loading...</div>
           ) : (

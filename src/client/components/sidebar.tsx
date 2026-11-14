@@ -1,7 +1,8 @@
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
+import { ProfilePopup, type ProfileSection } from "./profile-popup";
 import { useApp } from "../context";
 import { useAccount, isAdministrator } from "../auth";
-import { House, Globe, Plus, LogOut, MessageSquare, BookOpen, Plug, Code2, SlidersHorizontal, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
+import { House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
 import type { View } from "../types";
 
 const navItems: { view: View; path: string; label: string; icon: typeof LayoutDashboard }[] = [
@@ -17,9 +18,11 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
 
 export function Sidebar({ currentView, currentId, collapsed = false }: { currentView: View; currentId?: string | null; collapsed?: boolean }) {
   const { navigate, stats } = useApp();
-  const { user, teams, logout } = useAccount();
+  const { user, teams } = useAccount();
   const canManage = isAdministrator(user);
-  const [logoutError, setLogoutError] = useState('');
+  const [profileSection, setProfileSection] = useState<ProfileSection | null>(null);
+  useEffect(() => { const mapped: Partial<Record<View, ProfileSection>> = { settings: 'settings', integrations: 'integrations', environment: 'environment', users: 'administration' }; if (mapped[currentView]) setProfileSection(mapped[currentView]!); }, [currentView]);
+  function closeProfile() { setProfileSection(null); if (['settings', 'integrations', 'environment', 'users'].includes(currentView)) navigate('/'); }
 
   const [appsExpanded, setAppsExpanded] = useState(true);
 
@@ -70,21 +73,14 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
         <div id="field-service-pages" class="workspace-app-pages" hidden={!collapsed && !appsExpanded}>
           {navItems.slice(1).map(navItem)}
         </div>
-        <div class="sidebar-section-title workspace-account-heading">Account</div>
-        {canManage && navItem({ view: "website", path: "/website", label: "Website", icon: Globe })}
-        {navItem({ view: "knowledge", path: "/knowledge", label: "Knowledge", icon: BookOpen })}
-        {navItem({ view: "integrations", path: "/integrations", label: "Integrations", icon: Plug })}
-        {canManage && navItem({ view: "environment", path: "/environment", label: "Environment variables", icon: Code2 })}
-        {navItem({ view: "calendar", path: "/calendar", label: "Calendar", icon: CalendarDays })}
-        {canManage && navItem({ view: "users", path: "/users", label: "Users", icon: Users })}
         {canManage && navItem({ view: "builder", path: "/builder", label: "App builder", icon: Code2 })}
-        {navItem({ view: "settings", path: "/settings", label: "Settings", icon: SlidersHorizontal })}
+        {navItem({ view: "knowledge", path: "/knowledge", label: "Knowledge", icon: BookOpen })}
+        {canManage && navItem({ view: "website", path: "/website", label: "Website", icon: Globe })}
       </nav>
       <div class="workspace-sidebar-footer">
-        <button class="sidebar-item workspace-account-button" title={user.name} onClick={() => navigate("/settings")}><span class="workspace-team-avatar" aria-hidden="true">{user.name.slice(0, 1).toUpperCase()}</span><span class="workspace-nav-label">{user.name}<small>{user.role}</small></span></button>
-        <button class="sidebar-item" title="Sign out" onClick={() => { void logout().catch(error => setLogoutError(error.message)); }}><LogOut size={15} /><span class="workspace-nav-label">Sign out</span></button>
-        {logoutError && <p role="alert">{logoutError}</p>}
+        <button class="sidebar-item workspace-account-button" title={user.name} aria-haspopup="dialog" onClick={() => setProfileSection("profile")}><span class="workspace-team-avatar" aria-hidden="true">{user.name.slice(0, 1).toUpperCase()}</span><span class="workspace-nav-label">{user.name}<small>{user.role}</small></span></button>
       </div>
+      {profileSection && <ProfilePopup initialSection={profileSection} close={closeProfile} />}
     </aside>
   );
 }

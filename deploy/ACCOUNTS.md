@@ -49,7 +49,7 @@ Refresh the app. The initial owner screen requires the **existing WORKSPACE_TOKE
 from `/etc/openfieldservice.env`, plus a name, email and new password of at least
 12 characters. This prevents an unauthenticated visitor from claiming the server.
 The first owner is added to the initial Field Service team. Once an owner exists,
-public signup is closed; administrators create subsequent users under Users.
+public signup is closed; administrators create subsequent users under the account popup’s Administration section.
 
 If the key was never configured, generate one privately in the LXC and restart:
 
@@ -92,6 +92,7 @@ it does not host these Node/SQLite account services. Deploy using `pnpm start`.
 | Owner | All workspace operations; create/manage administrators; protected from UI deactivation |
 | Admin | Manage members/viewers, teams, Knowledge, AI connections, website and frontend proposals |
 | Member | Read/write service records and Knowledge; own AI chats; assigned team conversations |
+| Member + HR | Member capabilities plus ordinary-user management and team rosters; no privileged users, provider configuration or Builder |
 | Viewer | Read service records and Knowledge; own AI questions; read assigned team conversations |
 
 Only the owner can grant administrator access. Administrators cannot alter the
@@ -112,9 +113,15 @@ they are separate from AI Chat and are not sent to model providers. Team screens
 refresh messages every five seconds. Teams are collaboration groups within the
 company, not separate databases or service-record visibility boundaries.
 
-Apps contains the service pages. Account contains Website, Knowledge, Integrations,
-Environment variables, Calendar, Users, App builder and Settings according to role.
-Calendar opens the field-service schedule. The company Website page is a small
+Apps contains Field Service, Knowledge and administrator-only App Builder. Schedule
+is the single calendar entry; `/calendar` bookmarks still work. Clicking your name
+at the bottom left opens Profile, Settings, Integrations, administrator-only
+Environment variables and role-sensitive Administration. Device storage controls
+live in Settings; the online cache banner is removed. Actual offline/read-only
+state stays visible. HR can manage team rosters without reading messages until
+joining a team; Owners/Admins retain administrative message visibility.
+
+The company Website page is a small
 public landing page at `/company`, available only after an administrator explicitly
 publishes it; this is not a general-purpose web hosting platform.
 

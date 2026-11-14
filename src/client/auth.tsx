@@ -4,7 +4,7 @@ import { useContext, useEffect, useState } from 'preact/hooks';
 import { clearSavedFieldData } from './offline';
 
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
-export interface AccountUser { id: string; name: string; email: string; role: UserRole; active: boolean; mustChangePassword: boolean }
+export interface AccountUser { id: string; name: string; email: string; role: UserRole; active: boolean; hr?: boolean; mustChangePassword: boolean }
 export interface Team { id: string; name: string; description: string; member_count: number }
 export async function accountRequest<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(path, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'OpenFieldService' }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -13,10 +13,12 @@ export async function accountRequest<T>(path: string, method = 'GET', body?: unk
   if (!response.ok) throw new Error(data.error || 'The request failed.');
   return data;
 }
-interface AuthState { user: AccountUser; teams: Team[]; refreshTeams(): Promise<void>; logout(): Promise<void> }
+interface AuthState { user: AccountUser; teams: Team[]; refreshTeams(): Promise<void>; refreshAccount(): Promise<void>; logout(): Promise<void> }
 const AuthContext = createContext<AuthState | null>(null);
 export function useAccount() { const context = useContext(AuthContext); if (!context) throw new Error('Account context missing'); return context; }
 export const isAdministrator = (user: AccountUser) => ['owner', 'admin'].includes(user.role);
+
+export const canManagePeople = (user: AccountUser) => isAdministrator(user) || (user.hr === true && user.role === 'member');
 
 export function AuthGate({ children }: { children: ComponentChildren }) {
   const [user, setUser] = useState<AccountUser | null>(null);
@@ -91,5 +93,5 @@ export function AuthGate({ children }: { children: ComponentChildren }) {
     {setup && !canBootstrap && <p>Configure WORKSPACE_TOKEN on the server before creating the first owner.</p>}
     {!setup && !user && <p class="workspace-help">Your administrator creates accounts and resets forgotten passwords.</p>}
   </section></div>;
-  return <AuthContext.Provider key={user.id} value={{ user, teams, refreshTeams, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider key={user.id} value={{ user, teams, refreshTeams, refreshAccount: refresh, logout }}>{children}</AuthContext.Provider>;
 }

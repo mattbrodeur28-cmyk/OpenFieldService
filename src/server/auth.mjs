@@ -8,6 +8,7 @@ const scrypt = promisify(scryptCallback);
 const hash = value => createHash('sha256').update(value).digest('hex');
 const cookieName = 'ofs_session';
 const admin = user => user && ['owner', 'admin'].includes(user.role);
+const peopleAdmin = user => admin(user) || (user?.hr && user.role === 'member');
 const validPassword = value => typeof value === 'string' && value.length >= 12 && value.length <= 128;
 const validName = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 100;
 const validEmail = value => typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -20,7 +21,7 @@ async function passwordMatches(password, stored) {
   const calculated = await passwordHash(password, stored.split(':')[0]);
   return timingSafeEqual(Buffer.from(calculated), Buffer.from(stored));
 }
-const publicUser = row => row ? ({ id: row.id, name: row.name, email: row.email, role: row.role, active: Boolean(row.active), mustChangePassword: Boolean(row.must_change_password) }) : null;
+const publicUser = row => row ? ({ id: row.id, name: row.name, email: row.email, role: row.role, active: Boolean(row.active), hr: Boolean(row.is_hr), mustChangePassword: Boolean(row.must_change_password) }) : null;
 
 export function createAuth({ filename, env = process.env }) {
   const db = new DatabaseSync(filename);
@@ -30,6 +31,7 @@ export function createAuth({ filename, env = process.env }) {
     CREATE TABLE IF NOT EXISTS teams(id TEXT PRIMARY KEY,name TEXT NOT NULL UNIQUE,description TEXT NOT NULL DEFAULT '',archived INTEGER NOT NULL DEFAULT 0,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS team_members(team_id TEXT REFERENCES teams(id),user_id TEXT REFERENCES users(id),PRIMARY KEY(team_id,user_id));
     CREATE TABLE IF NOT EXISTS team_messages(id TEXT PRIMARY KEY,team_id TEXT REFERENCES teams(id),user_id TEXT REFERENCES users(id),content TEXT NOT NULL,created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
+  if (!db.prepare('PRAGMA table_info(users)').all().some(column => column.name === 'is_hr')) db.exec('ALTER TABLE users ADD COLUMN is_hr INTEGER NOT NULL DEFAULT 0');
   const app = new Hono();
   app.use('*', bodyLimit({ maxSize: 20000, onError: c => c.json({ error: 'Request too large.' }, 413) }));
   const attempts = new Map();
@@ -110,9 +112,10 @@ export function createAuth({ filename, env = process.env }) {
     const row = db.prepare('SELECT * FROM users WHERE email=?').get(email);
     const fallback = '0'.repeat(32) + ':' + '0'.repeat(128);
     const matches = await passwordMatches(input.password, row?.password_hash ?? fallback);
-    if (!row || !matches || !row.active) return c.json({ error: 'Email or password is incorrect.' }, 401);
+    const current = row && db.prepare('SELECT * FROM users WHERE id=?').get(row.id);
+    if (!current || !matches || !current.active || current.password_hash !== row.password_hash) return c.json({ error: 'Email or password is incorrect.' }, 401);
     attempts.delete('login:' + email);
-    const user = publicUser(row); issueSession(c, user); return c.json({ user });
+    const user = publicUser(current); issueSession(c, user); return c.json({ user });
   });
   app.post('/logout', c => {
     const token = getCookie(c, cookieName);
@@ -126,6 +129,8 @@ export function createAuth({ filename, env = process.env }) {
     const row = db.prepare('SELECT password_hash FROM users WHERE id=?').get(user.id);
     if (!await passwordMatches(input.currentPassword, row.password_hash)) return c.json({ error: 'Current password is incorrect.' }, 403);
     const nextHash = await passwordHash(input.password);
+    const current = db.prepare('SELECT * FROM users WHERE id=?').get(user.id);
+    if (!userFor(c) || !current?.active || current.password_hash !== row.password_hash) return c.json({ error: 'Your account changed. Sign in again.' }, 409);
     db.exec('BEGIN IMMEDIATE');
     try {
       db.prepare('UPDATE users SET password_hash=?,must_change_password=0 WHERE id=?').run(nextHash, user.id);
@@ -133,40 +138,54 @@ export function createAuth({ filename, env = process.env }) {
     } catch (error) { db.exec('ROLLBACK'); throw error; }
     issueSession(c, user); return c.json({ ok: true });
   });
-  app.get('/users', c => admin(c.get('user')) ? c.json({ users: db.prepare('SELECT * FROM users ORDER BY name').all().map(publicUser) }) : c.json({ error: 'Administrator access required.' }, 403));
+  app.put('/profile', async c => { const input = await body(c); if (!input || !validName(input.name)) return c.json({ error: 'Enter a name of 1–100 characters.' }, 400); db.prepare('UPDATE users SET name=? WHERE id=?').run(input.name.trim(), c.get('user').id); return c.json({ ok: true }); });
+  app.get('/users', c => peopleAdmin(c.get('user')) ? c.json({ users: db.prepare('SELECT * FROM users ORDER BY name').all().map(publicUser) }) : c.json({ error: 'Administrator access required.' }, 403));
   app.post('/users', async c => {
-    const actor = c.get('user'); if (!admin(actor)) return c.json({ error: 'Administrator access required.' }, 403);
+    const actor = c.get('user'); if (!peopleAdmin(actor)) return c.json({ error: 'Administrator access required.' }, 403);
     const input = await body(c);
     if (!input || !validName(input.name) || !validEmail(input.email) || !validPassword(input.password) || !['admin', 'member', 'viewer'].includes(input.role)) return c.json({ error: 'Enter a name, email, role and temporary password of 12–128 characters.' }, 400);
+    if (input.hr !== undefined && typeof input.hr !== 'boolean') return c.json({ error: 'Invalid HR access setting.' }, 400);
+    if (!admin(actor) && (input.hr || !['member', 'viewer'].includes(input.role))) return c.json({ error: 'Only administrators grant privileged access.' }, 403);
+    if (input.hr && input.role !== 'member') return c.json({ error: 'HR access applies to member accounts.' }, 400);
     if (input.role === 'admin' && actor.role !== 'owner') return c.json({ error: 'Only the owner can create administrators.' }, 403);
     if (db.prepare('SELECT id FROM users WHERE email=?').get(input.email.trim().toLowerCase())) return c.json({ error: 'A user with this email already exists.' }, 409);
     const encoded = await passwordHash(input.password); const id = randomUUID();
+    const currentActor = userFor(c);
+    if (!peopleAdmin(currentActor) || currentActor.mustChangePassword || (input.role === 'admin' && currentActor.role !== 'owner') || (input.hr && !admin(currentActor))) return c.json({ error: 'Your permissions changed. Sign in again.' }, 403);
+    if (db.prepare('SELECT id FROM users WHERE email=?').get(input.email.trim().toLowerCase())) return c.json({ error: 'A user with this email already exists.' }, 409);
     db.prepare('INSERT INTO users(id,name,email,password_hash,role,must_change_password) VALUES(?,?,?,?,?,1)').run(id, input.name.trim(), input.email.trim().toLowerCase(), encoded, input.role);
+    if (input.hr) db.prepare('UPDATE users SET is_hr=1 WHERE id=?').run(id);
     return c.json({ user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(id)) }, 201);
   });
   app.put('/users/:id', async c => {
-    const actor = c.get('user'); if (!admin(actor)) return c.json({ error: 'Administrator access required.' }, 403);
+    const actor = c.get('user'); if (!peopleAdmin(actor)) return c.json({ error: 'Administrator access required.' }, 403);
     const target = db.prepare('SELECT * FROM users WHERE id=?').get(c.req.param('id')); const input = await body(c);
     if (!target) return c.json({ error: 'User not found.' }, 404);
-    if (target.role === 'owner' || target.id === actor.id || (target.role === 'admin' && actor.role !== 'owner')) return c.json({ error: 'This account is protected. Use your account settings for password changes.' }, 403);
+    if (target.role === 'owner' || target.id === actor.id || (target.role === 'admin' && actor.role !== 'owner') || (target.is_hr && !admin(actor))) return c.json({ error: 'This account is protected. Use your account settings for password changes.' }, 403);
     if (!input || !validName(input.name) || !['admin', 'member', 'viewer'].includes(input.role) || typeof input.active !== 'boolean') return c.json({ error: 'Invalid user update.' }, 400);
+    if (input.hr !== undefined && typeof input.hr !== 'boolean') return c.json({ error: 'Invalid HR access setting.' }, 400);
+    if (!admin(actor) && (input.hr || !['member', 'viewer'].includes(input.role))) return c.json({ error: 'Only administrators grant privileged access.' }, 403);
+    if (input.hr && input.role !== 'member') return c.json({ error: 'HR access applies to member accounts.' }, 400);
     if (input.role === 'admin' && actor.role !== 'owner') return c.json({ error: 'Only the owner can grant administrator access.' }, 403);
-    db.prepare('UPDATE users SET name=?,role=?,active=? WHERE id=?').run(input.name.trim(), input.role, Number(input.active), target.id);
+    db.prepare('UPDATE users SET name=?,role=?,active=?,is_hr=? WHERE id=?').run(input.name.trim(), input.role, Number(input.active), Number(input.role === 'member' && (input.hr ?? Boolean(target.is_hr))), target.id);
     db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id); return c.json({ ok: true });
   });
   app.post('/users/:id/reset-password', async c => {
-    const actor = c.get('user'); if (!admin(actor)) return c.json({ error: 'Administrator access required.' }, 403);
+    const actor = c.get('user'); if (!peopleAdmin(actor)) return c.json({ error: 'Administrator access required.' }, 403);
     const target = db.prepare('SELECT * FROM users WHERE id=?').get(c.req.param('id')); const input = await body(c);
     if (!target) return c.json({ error: 'User not found.' }, 404);
-    if (target.role === 'owner' || target.id === actor.id || (target.role === 'admin' && actor.role !== 'owner')) return c.json({ error: 'This account is protected.' }, 403);
+    if (target.role === 'owner' || target.id === actor.id || (target.role === 'admin' && actor.role !== 'owner') || (target.is_hr && !admin(actor))) return c.json({ error: 'This account is protected.' }, 403);
     if (!input || !validPassword(input.password)) return c.json({ error: 'Temporary password must contain 12–128 characters.' }, 400);
     const encoded = await passwordHash(input.password);
+    const currentActor = userFor(c);
+    const currentTarget = db.prepare('SELECT * FROM users WHERE id=?').get(target.id);
+    if (!peopleAdmin(currentActor) || currentActor.mustChangePassword || !currentTarget || currentTarget.role === 'owner' || currentTarget.id === currentActor.id || (currentTarget.role === 'admin' && currentActor.role !== 'owner') || (currentTarget.is_hr && !admin(currentActor))) return c.json({ error: 'Account permissions changed. Reload before retrying.' }, 403);
     db.prepare('UPDATE users SET password_hash=?,must_change_password=1 WHERE id=?').run(encoded, target.id);
     db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id); return c.json({ ok: true });
   });
   app.get('/teams', c => {
     const actor = c.get('user');
-    const teams = admin(actor) ? db.prepare('SELECT t.*,(SELECT COUNT(*) FROM team_members m JOIN users u ON u.id=m.user_id WHERE m.team_id=t.id AND u.active=1) AS member_count FROM teams t WHERE archived=0 ORDER BY name').all()
+    const teams = peopleAdmin(actor) ? db.prepare('SELECT t.*,(SELECT COUNT(*) FROM team_members m JOIN users u ON u.id=m.user_id WHERE m.team_id=t.id AND u.active=1) AS member_count FROM teams t WHERE archived=0 ORDER BY name').all()
       : db.prepare('SELECT t.*,(SELECT COUNT(*) FROM team_members m JOIN users u ON u.id=m.user_id WHERE m.team_id=t.id AND u.active=1) AS member_count FROM teams t JOIN team_members mine ON mine.team_id=t.id WHERE mine.user_id=? AND t.archived=0 ORDER BY name').all(actor.id);
     return c.json({ teams });
   });
@@ -174,16 +193,17 @@ export function createAuth({ filename, env = process.env }) {
     const team = db.prepare('SELECT * FROM teams WHERE id=? AND archived=0').get(c.req.param('id'));
     if (!team) return null;
     const actor = c.get('user');
-    return admin(actor) || db.prepare('SELECT 1 FROM team_members WHERE team_id=? AND user_id=?').get(team.id, actor.id) ? team : null;
+    return peopleAdmin(actor) || db.prepare('SELECT 1 FROM team_members WHERE team_id=? AND user_id=?').get(team.id, actor.id) ? team : null;
   }
   app.get('/teams/:id', c => {
     const team = teamAccess(c); if (!team) return c.json({ error: 'Team not found or access denied.' }, 404);
     const members = db.prepare('SELECT u.* FROM users u JOIN team_members m ON m.user_id=u.id WHERE m.team_id=? ORDER BY u.name').all(team.id).map(publicUser);
-    const messages = db.prepare('SELECT m.id,m.content,m.created_at,u.name AS author FROM team_messages m JOIN users u ON u.id=m.user_id WHERE team_id=? ORDER BY m.rowid DESC LIMIT 100').all(team.id).reverse();
-    return c.json({ team, members, messages });
+    const canReadMessages = admin(c.get('user')) || Boolean(db.prepare('SELECT 1 FROM team_members WHERE team_id=? AND user_id=?').get(team.id, c.get('user').id));
+    const messages = canReadMessages ? db.prepare('SELECT m.id,m.user_id,m.content,m.created_at,u.name AS author FROM team_messages m JOIN users u ON u.id=m.user_id WHERE team_id=? ORDER BY m.rowid DESC LIMIT 100').all(team.id).reverse() : [];
+    return c.json({ team, members, messages, canReadMessages });
   });
   app.post('/teams', async c => {
-    if (!admin(c.get('user'))) return c.json({ error: 'Administrator access required.' }, 403);
+    if (!peopleAdmin(c.get('user'))) return c.json({ error: 'People administration access required.' }, 403);
     const input = await body(c);
     if (!input || !validName(input.name) || typeof input.description !== 'string' || input.description.length > 1000) return c.json({ error: 'Enter a team name and description.' }, 400);
     if (db.prepare('SELECT id FROM teams WHERE name=?').get(input.name.trim())) return c.json({ error: 'A team with this name already exists.' }, 409);
@@ -191,7 +211,7 @@ export function createAuth({ filename, env = process.env }) {
     db.prepare('INSERT INTO team_members(team_id,user_id) VALUES(?,?)').run(id, c.get('user').id); return c.json({ id }, 201);
   });
   app.put('/teams/:id/members', async c => {
-    if (!admin(c.get('user'))) return c.json({ error: 'Administrator access required.' }, 403);
+    if (!peopleAdmin(c.get('user'))) return c.json({ error: 'People administration access required.' }, 403);
     const team = teamAccess(c); const input = await body(c);
     if (!team) return c.json({ error: 'Team not found.' }, 404);
     if (!input || !Array.isArray(input.userIds) || input.userIds.length > 500 || input.userIds.some(id => typeof id !== 'string' || !db.prepare('SELECT id FROM users WHERE id=? AND active=1').get(id))) return c.json({ error: 'Choose active users for the team.' }, 400);
@@ -206,6 +226,7 @@ export function createAuth({ filename, env = process.env }) {
   app.post('/teams/:id/messages', async c => {
     const team = teamAccess(c); if (!team) return c.json({ error: 'Team not found or access denied.' }, 404);
     if (c.get('user').role === 'viewer') return c.json({ error: 'Your account has read-only access.' }, 403);
+    if (!admin(c.get('user')) && !db.prepare('SELECT 1 FROM team_members WHERE team_id=? AND user_id=?').get(team.id, c.get('user').id)) return c.json({ error: 'Join this team before posting messages.' }, 403);
     const input = await body(c);
     if (!input || typeof input.content !== 'string' || !input.content.trim() || input.content.length > 8000) return c.json({ error: 'Enter a message of up to 8,000 characters.' }, 400);
     const id = randomUUID(); db.prepare('INSERT INTO team_messages(id,team_id,user_id,content) VALUES(?,?,?,?)').run(id, team.id, c.get('user').id, input.content); return c.json({ id }, 201);

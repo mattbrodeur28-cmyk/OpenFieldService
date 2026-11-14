@@ -1,3 +1,4 @@
+import { AnimatedNumber } from "./ui/animated-number";
 import { StatusBadge } from "./status-badge";
 import { useApp } from "../context";
 import { Briefcase, Users, CalendarCheck, DollarSign, Clock, CheckCircle, FileText, AlertCircle } from "lucide-preact";
@@ -20,7 +21,7 @@ export function Dashboard() {
             <Briefcase size={20} />
           </div>
           <div class="stat-info">
-            <div class="stat-value">{stats.jobs}</div>
+            <div class="stat-value"><AnimatedNumber value={stats.jobs} /></div>
             <div class="stat-label">Total Jobs</div>
           </div>
         </button>
@@ -29,7 +30,7 @@ export function Dashboard() {
             <Users size={20} />
           </div>
           <div class="stat-info">
-            <div class="stat-value">{stats.customers}</div>
+            <div class="stat-value"><AnimatedNumber value={stats.customers} /></div>
             <div class="stat-label">Customers</div>
           </div>
         </button>
@@ -38,7 +39,7 @@ export function Dashboard() {
             <Clock size={20} />
           </div>
           <div class="stat-info">
-            <div class="stat-value">{stats.today_jobs}</div>
+            <div class="stat-value"><AnimatedNumber value={stats.today_jobs} /></div>
             <div class="stat-label">Today's Jobs</div>
           </div>
         </button>
@@ -47,7 +48,7 @@ export function Dashboard() {
             <CalendarCheck size={20} />
           </div>
           <div class="stat-info">
-            <div class="stat-value">{stats.upcoming_jobs}</div>
+            <div class="stat-value"><AnimatedNumber value={stats.upcoming_jobs} /></div>
             <div class="stat-label">Upcoming</div>
           </div>
         </div>
@@ -56,7 +57,7 @@ export function Dashboard() {
             <CheckCircle size={20} />
           </div>
           <div class="stat-info">
-            <div class="stat-value">{stats.completed_jobs}</div>
+            <div class="stat-value"><AnimatedNumber value={stats.completed_jobs} /></div>
             <div class="stat-label">Completed</div>
           </div>
         </div>
@@ -74,7 +75,7 @@ export function Dashboard() {
             <FileText size={20} />
           </div>
           <div class="stat-info">
-            <div class="stat-value">{stats.invoices_outstanding}</div>
+            <div class="stat-value"><AnimatedNumber value={stats.invoices_outstanding} /></div>
             <div class="stat-label">Outstanding Invoices</div>
           </div>
         </button>
@@ -84,7 +85,7 @@ export function Dashboard() {
               <AlertCircle size={20} />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{stats.invoices_overdue}</div>
+              <div class="stat-value"><AnimatedNumber value={stats.invoices_overdue} /></div>
               <div class="stat-label">Overdue</div>
             </div>
           </button>

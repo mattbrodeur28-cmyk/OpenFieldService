@@ -2,12 +2,12 @@ import { useEffect, useState } from 'preact/hooks';
 import { accountRequest, useAccount, isAdministrator } from '../auth';
 import type { Connector } from './connector-panel';
 import { IntegrationsPage } from './integrations-page';
+import { BuilderPage } from './builder-page';
 import type { View } from '../types';
 
 type Provider = { id: string; label: string; model: string; configured: boolean };
 type Document = { id: string; title: string; content: string };
 type Message = { role: string; content: string };
-type Proposal = { id: string; summary: string; files: { path: string; before: string; content: string; sha256: string }[] };
 const titles: Record<string, string> = { chat: 'Chat', knowledge: 'Knowledge', integrations: 'Integrations', builder: 'App builder', settings: 'Workspace settings' };
 
 export function WorkspacePage({ view }: { view: View }) {
@@ -29,10 +29,6 @@ export function WorkspacePage({ view }: { view: View }) {
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [files, setFiles] = useState<string[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<string[]>(['src/client/components/sidebar.tsx']);
-  const [proposal, setProposal] = useState<Proposal | null>(null);
-  const [proposals, setProposals] = useState<{ id: string; request: string }[]>([]);
   async function request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
     return accountRequest<T>('/api/workspace' + path, method, body);
   }
@@ -42,11 +38,10 @@ export function WorkspacePage({ view }: { view: View }) {
       setProviders(status.providers);
       setProvider(current => status.providers.find(item => item.id === current && item.configured)?.id ?? status.providers.find(item => item.configured)?.id ?? 'ollama');
       setError('');
-      const [chat, docs, sources, changes] = await Promise.all([
+      const [chat, docs] = await Promise.all([
         request<{ conversations: typeof conversations }>('/conversations'), request<{ documents: Document[] }>('/knowledge'),
-        canManage ? request<{ files: string[] }>('/builder/files') : Promise.resolve({ files: [] }), canManage ? request<{ proposals: typeof proposals }>('/builder/proposals') : Promise.resolve({ proposals: [] }),
       ]);
-      setConversations(chat.conversations); setDocuments(docs.documents); setFiles(sources.files); setProposals(changes.proposals);
+      setConversations(chat.conversations); setDocuments(docs.documents);
     } catch (e) { setError((e as Error).message); }
   }
   useEffect(() => { void load(); setPrompt(''); if (view !== 'chat') { setConversationId(null); setMessages([]); } }, [user.id, view]);
@@ -60,11 +55,6 @@ export function WorkspacePage({ view }: { view: View }) {
       {providers.map(item => <option value={item.id} disabled={!item.configured}>{item.label}{item.model ? ` · ${item.model}` : ' · Not configured'}</option>)}
     </select>
   </label>;
-  function download() {
-    const url = URL.createObjectURL(new Blob([JSON.stringify(proposal, null, 2)], { type: 'application/json' }));
-    const link = document.createElement('a'); link.href = url; link.download = `openfieldservice-change-${proposal!.id}.json`; link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
   return <div class="page workspace-page">
     <div class="page-header"><h1>{titles[view]}</h1></div>
     {error && <div class="workspace-error" role="alert">{error}</div>}
@@ -118,23 +108,7 @@ export function WorkspacePage({ view }: { view: View }) {
           </div>
         </form>
       </div>}
-      {view === 'builder' && canManage && <section class="workspace-editor">
-        <h2>Prepare an application change</h2><p class="workspace-help">Describe a frontend change and select its files. Review the generated replacements, then download the proposal to validate and rebuild on the server. This does not change your live application automatically.</p>
-        <form onSubmit={e => { e.preventDefault(); void action(async () => {
-          setProposal(await request<Proposal>('/builder/proposals', 'POST', { provider, message: prompt, files: selectedFiles }));
-          setProposals((await request<{ proposals: typeof proposals }>('/builder/proposals')).proposals);
-        }); }}>
-          {selector}
-          <label class="form-group">Files to change (choose up to four)<select multiple size={8} onChange={e => setSelectedFiles(Array.from(e.currentTarget.selectedOptions).map(option => option.value))}>{files.map(file => <option value={file} selected={selectedFiles.includes(file)}>{file}</option>)}</select></label>
-          <label class="form-group">Describe the change<textarea rows={4} maxLength={8000} value={prompt} onInput={e => setPrompt(e.currentTarget.value)} required /></label>
-          <button class="btn btn-primary" disabled={busy || !configured || !selectedFiles.length || selectedFiles.length > 4}>{busy ? 'Preparing…' : 'Prepare change'}</button>
-        </form>
-        {proposal && <section class="workspace-proposal"><h2>Review proposed changes</h2><p>{proposal.summary}</p>
-          {proposal.files.map(file => <details><summary>{file.path}</summary><div class="workspace-diff"><div><h3>Current</h3><pre>{file.before}</pre></div><div><h3>Proposed</h3><pre>{file.content}</pre></div></div></details>)}
-          <button class="btn" onClick={download}>Download proposal</button><p class="workspace-help">After reviewing, use pnpm builder:apply /path/to/proposal.json from a clean deployment checkout as a non-root deployment user.</p>
-        </section>}
-        {!!proposals.length && <section class="workspace-proposal"><h2>Previous proposals</h2>{proposals.map(item => <button class="workspace-list-item" onClick={() => void action(async () => setProposal(await request<Proposal>('/builder/proposals/' + item.id)))}>{item.request}</button>)}</section>}
-      </section>}
+      {view === 'builder' && canManage && <BuilderPage />}
       {view === 'integrations' && <IntegrationsPage providers={providers} refresh={load} />}
     </>
   </div>;

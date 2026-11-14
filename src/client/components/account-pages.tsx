@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { accountRequest, useAccount, isAdministrator } from '../auth';
+import { accountRequest, useAccount, isAdministrator, canManagePeople } from '../auth';
 import type { AccountUser, UserRole } from '../auth';
 import type { View } from '../types';
 
@@ -27,14 +27,15 @@ export function ProviderSettings({ providerId }: { providerId?: string } = {}) {
 }
 
 function UserRow({ item, refresh }: { item: AccountUser; refresh(): Promise<void> }) {
-  const { user } = useAccount(); const [name, setName] = useState(item.name); const [role, setRole] = useState(item.role); const [active, setActive] = useState(item.active);
+  const { user } = useAccount(); const [name, setName] = useState(item.name); const [role, setRole] = useState(item.role); const [active, setActive] = useState(item.active); const [hr, setHr] = useState(Boolean(item.hr));
   const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
-  const protectedUser = item.role === 'owner' || item.id === user.id || (item.role === 'admin' && user.role !== 'owner');
+  const protectedUser = item.role === 'owner' || item.id === user.id || (item.role === 'admin' && user.role !== 'owner') || (item.hr && !isAdministrator(user));
   return <article class="account-user"><div class="account-user-heading"><span class="account-avatar">{item.name.slice(0, 1).toUpperCase()}</span><div><strong>{item.name}</strong><p>{item.email}</p></div><span class="badge badge-muted">{item.role}</span>{!item.active && <span class="badge badge-warning">Inactive</span>}</div>
     {!protectedUser && <details><summary>Manage account</summary>{error && <div class="workspace-error" role="alert">{error}</div>}
-      <form class="account-inline-form" onSubmit={e => { e.preventDefault(); setBusy(true); setError(''); void accountRequest('/api/auth/users/' + item.id, 'PUT', { name, role, active }).then(refresh).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>
+      <form class="account-inline-form" onSubmit={e => { e.preventDefault(); setBusy(true); setError(''); void accountRequest('/api/auth/users/' + item.id, 'PUT', { name, role, active, hr: role === 'member' && hr }).then(refresh).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>
         <label class="form-group">Name<input value={name} onInput={e => setName(e.currentTarget.value)} required maxLength={100} /></label>
         <label class="form-group">Role<select value={role} onChange={e => setRole(e.currentTarget.value as UserRole)}>{user.role === 'owner' && <option value="admin">Admin</option>}<option value="member">Member</option><option value="viewer">Viewer</option></select></label>
+        {isAdministrator(user) && role === 'member' && <label class="workspace-consent"><input type="checkbox" checked={hr} onChange={e => setHr(e.currentTarget.checked)} /> HR / people administration</label>}
         <label class="workspace-consent"><input type="checkbox" checked={active} onChange={e => setActive(e.currentTarget.checked)} /> Active</label><button class="btn" disabled={busy}>Save account</button>
       </form>
       <form class="account-inline-form" onSubmit={e => { e.preventDefault(); setBusy(true); setError(''); void accountRequest('/api/auth/users/' + item.id + '/reset-password', 'POST', { password }).then(() => { setPassword(''); return refresh(); }).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>
@@ -45,7 +46,7 @@ function UserRow({ item, refresh }: { item: AccountUser; refresh(): Promise<void
 }
 
 export function AccountPages({ view, id }: { view: View; id: string | null }) {
-  const { user, teams, refreshTeams } = useAccount(); const canManage = isAdministrator(user);
+  const { user, teams, refreshTeams } = useAccount(); const canManage = isAdministrator(user); const managePeople = canManagePeople(user);
   const [users, setUsers] = useState<AccountUser[]>([]); const [members, setMembers] = useState<AccountUser[]>([]); const [selected, setSelected] = useState<string[]>([]);
   const [team, setTeam] = useState<{ name: string; description: string } | null>(null); const [messages, setMessages] = useState<{ id: string; author: string; content: string; created_at: string }[]>([]);
   const [values, setValues] = useState<Record<string, string>>({}); const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [currentPassword, setCurrentPassword] = useState('');
@@ -59,8 +60,8 @@ export function AccountPages({ view, id }: { view: View; id: string | null }) {
     setError(''); setSuccess(''); setName(''); setDescription('');
     void (async () => {
       try {
-        if (view === 'users' && canManage) await loadUsers();
-        if (view === 'team' && id) { await loadTeam(); if (canManage) await loadUsers(); }
+        if (view === 'users' && managePeople) await loadUsers();
+        if (view === 'team' && id) { await loadTeam(); if (managePeople) await loadUsers(); }
         if (view === 'website' && canManage) setValues((await accountRequest<Configuration>('/api/workspace/configuration')).values);
       } catch (e) { setError((e as Error).message); }
     })();
@@ -72,7 +73,7 @@ export function AccountPages({ view, id }: { view: View; id: string | null }) {
   const title = view === 'team' ? team?.name && id ? team.name : 'Teams' : view === 'users' ? 'Users' : view === 'website' ? 'Website' : view === 'environment' ? 'Environment variables' : 'Your account';
   return <div class="page workspace-page"><div class="page-header"><h1>{title}</h1></div>
     {error && <div class="workspace-error" role="alert">{error}</div>}{success && <p class="account-success" role="status">{success}</p>}
-    {view === 'users' && (canManage ? <section class="workspace-editor"><h2>Workspace users</h2><p class="workspace-help">One company workspace. Owners and admins manage access; members manage service work; viewers have read-only service access. User accounts and technician records are separate.</p>
+    {view === 'users' && (managePeople ? <section class="workspace-editor"><h2>Workspace users</h2><p class="workspace-help">One company workspace. Owners and admins manage access; members manage service work; viewers have read-only service access. User accounts and technician records are separate.</p>
       <div>{users.map(item => <UserRow key={item.id} item={item} refresh={loadUsers} />)}</div>
       <h2 class="account-section-heading">Create a user</h2><form onSubmit={e => { e.preventDefault(); void action(async () => { await accountRequest('/api/auth/users', 'POST', { name, email, password, role }); setName(''); setEmail(''); setPassword(''); await loadUsers(); setSuccess('Account created. Share the temporary password privately; the user must replace it at first sign-in.'); }); }}>
         <label class="form-group">Name<input value={name} onInput={e => setName(e.currentTarget.value)} maxLength={100} required /></label><label class="form-group">Email<input type="email" value={email} onInput={e => setEmail(e.currentTarget.value)} required /></label>
@@ -81,7 +82,7 @@ export function AccountPages({ view, id }: { view: View; id: string | null }) {
       </form>
     </section> : <p>Administrator access is required to manage users.</p>)}
     {view === 'team' && !id && <section class="workspace-editor"><h2>Your teams</h2><div class="account-team-grid">{teams.map(item => <a href={'/team/' + item.id} class="account-team-card"><span class="account-avatar">{item.name.slice(0, 1).toUpperCase()}</span><div><strong>{item.name}</strong><p>{item.member_count} members</p></div></a>)}</div>
-      {canManage && <><h2 class="account-section-heading">Create a team</h2><form onSubmit={e => { e.preventDefault(); void action(async () => { await accountRequest('/api/auth/teams', 'POST', { name, description }); setName(''); setDescription(''); await refreshTeams(); setSuccess('Team created. Open it to add members.'); }); }}>
+      {managePeople && <><h2 class="account-section-heading">Create a team</h2><form onSubmit={e => { e.preventDefault(); void action(async () => { await accountRequest('/api/auth/teams', 'POST', { name, description }); setName(''); setDescription(''); await refreshTeams(); setSuccess('Team created. Open it to add members.'); }); }}>
         <label class="form-group">Team name<input value={name} maxLength={100} onInput={e => setName(e.currentTarget.value)} required /></label><label class="form-group">Description<textarea value={description} maxLength={1000} onInput={e => setDescription(e.currentTarget.value)} /></label><button class="btn btn-primary" disabled={busy}>Create team</button>
       </form></>}
     </section>}

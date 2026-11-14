@@ -58,16 +58,17 @@ two separate SQLite databases. The intended HTTPS origin is
 | Offline | Saved schedules/job packets on supported HTTPS browsers | Read-only; no offline write queue |
 | Operations | Direct install, health endpoint, systemd, backups and CI | Not qualified for multiple replicas or horizontal scaling |
 
-The navigation/profile/HR/channel refresh and conversational Builder changes are
-**in progress**. They require final verification and release evidence before being
-called deployed. QuickBooks integration, contracts, broader CRM, Dispatcher and
+The navigation/profile/HR/channel refresh and conversational Builder core are
+implemented in the [M0/M1 release](docs/releases/2026-11-14-workspace.md). M1 remains
+in progress for full accessibility/theme qualification and later collaboration/preview
+slices. Local browser evidence is not a live LXC deployment claim. QuickBooks integration, contracts, broader CRM, Dispatcher and
 Kubernetes qualification are planned work.
 
 ## Milestone order
 
 | Milestone | Outcome | Status | Depends on |
 | --- | --- | --- | --- |
-| M0 | Product inventory, documentation and delivery standards | In progress | Existing foundation |
+| M0 | Product inventory, documentation and delivery standards | Implemented | Existing foundation |
 | M1 | Navigation, profile/settings, HR, channels and conversational Builder | In progress | M0 |
 | M2 | Maintainable backend boundaries and operational foundations | Planned | M0; complete M1 first |
 | M3 | Salesforce-style Dispatcher app | Planned | M2 concurrency and scheduling foundation |
@@ -91,66 +92,105 @@ boundaries must be designed before the Kubernetes milestone.
 
 ## M0 — Documentation and delivery standards
 
-- [ ] **DOC-001 — Roadmap:** maintain this file with feature IDs, dependencies,
+- [x] **DOC-001 — Roadmap:** maintain this file with feature IDs, dependencies,
   acceptance criteria, status and links to completed release evidence.
-- [ ] **DOC-002 — Documentation index:** link product, architecture, development,
+- [x] **DOC-002 — Documentation index:** link product, architecture, development,
   API, deployment, operations, security and release documentation from README.
-- [ ] **DOC-003 — ADRs:** record context, options, decision, consequences, migration
+- [x] **DOC-003 — ADRs:** record context, options, decision, consequences, migration
   and revisit triggers for significant architectural decisions.
-- [ ] **DOC-004 — Domain glossary:** define company/customer, contact, site/building,
+- [x] **DOC-004 — Domain glossary:** define company/customer, contact, site/building,
   equipment/controller, job/work order, appointment, contract, invoice and payment.
-- [ ] **DOC-005 — Delivery template:** problem, users/roles, workflow, business rules,
+- [x] **DOC-005 — Delivery template:** problem, users/roles, workflow, business rules,
   data model, API, errors, migration, tests, operations and acceptance evidence.
-- [ ] **DOC-006 — Release record:** commit, schema version, deployed version,
+- [x] **DOC-006 — Release record:** commit, schema version, deployed version,
   validation performed, provider checks, migration instructions and known limits.
 
 **Acceptance:** a new maintainer can locate setup instructions, the owning module,
 API, permission rules, migration history and recovery runbook without this chat.
 Documentation is reviewed with code; planned documentation is labeled accordingly.
 
+M0 evidence: [module map](docs/architecture/overview.md), [glossary](docs/product/glossary.md),
+[delivery standard](docs/development/delivery.md), [API map](docs/api/README.md),
+[permissions](docs/security/permissions.md), [recovery](docs/operations/runbook.md)
+and [release record](docs/releases/2026-11-14-workspace.md).
+
 ## M1 — Modern workspace
 
 ### Navigation and account access
 
-- [ ] **UX-001 — Apps:** keep Field Service service pages together; place App Builder
+- [x] **UX-001 — Apps:** keep Field Service service pages together; place App Builder
   and Knowledge in Apps and add Dispatcher when implemented. Remove duplicate
   Calendar navigation while preserving schedule bookmarks.
-- [ ] **UX-002 — Profile:** clicking the bottom-left username opens a profile popup
+- [x] **UX-002 — Profile:** clicking the bottom-left username opens a profile popup
   with name, email, role, editable display name and password management.
-- [ ] **UX-003 — Settings:** move Settings into the account popup; Integrations is
+- [x] **UX-003 — Settings:** move Settings into the account popup; Integrations is
   its own section, and Environment variables is restricted to Owner/Admin.
-- [ ] **UX-004 — Administration:** show people administration to Owner/Admin/HR.
+- [x] **UX-004 — Administration:** show people administration to Owner/Admin/HR.
   HR manages ordinary users and team membership only. Owner/Admin grant HR access;
   existing administrator-promotion restrictions remain. HR cannot manage privileged
   accounts, system configuration, provider app secrets or App Builder.
-- [ ] **UX-005 — Device storage:** remove the persistent online storage banner;
+- [x] **UX-005 — Device storage:** remove the persistent online storage banner;
   move enable/clear controls to Settings. Retain compact genuine offline/read-only
   feedback so users understand when changes cannot be saved.
 - [ ] **UX-006 — Accessibility:** keyboard access, focus return, Escape dismissal,
   dialog focus trapping, contrast, reduced motion and usable mobile layouts.
 
+### Shared UI system and modern interaction standards
+
+The requested component sources and adoption rules are recorded in
+[ADR-0001](docs/architecture/decisions/0001-ui-system.md) and the
+[UI implementation guide](docs/development/ui-system.md).
+
+- [x] **UI-001 — Design system decision:** shadcn/ui is the primary source-owned
+  component system, Radix is the requested primitive foundation, and all adopted
+  components use shared tokens and documented variants.
+- [x] **UI-002 — NumberFlow:** local framework-independent adapter for selected
+  operational counters, static first values, accessible text, reduced motion and
+  bounded transitions; financial review/editing values stay static.
+- [ ] **UI-003 — Compatibility:** test shadcn/Radix and Tailwind integration with the
+  actual Preact toolchain, including types, refs, portals, focus and nested dialogs.
+  Make a documented rendering-framework decision before broader adoption.
+- [ ] **UI-004 — Shared primitives:** maintain reusable buttons, fields, menus,
+  dialogs/sheets, tabs, tables, tooltips, notifications and loading/empty/error states.
+- [ ] **UI-005 — Workspace adoption:** migrate profile/settings, integrations,
+  navigation, team channels and Builder to the shared system incrementally.
+- [ ] **UI-006 — Business adoption:** Dispatcher, CRM, contracts, projects and
+  accounting reuse the same primitives, accessibility rules and information hierarchy.
+- [ ] **UI-007 — Curated sources:** review Beautiful UI for AI/chat patterns, RareUI
+  for selected interactions, Magic UI for restrained effects, and 21st.dev for
+  individual components. Verify each source/license/dependency and adapt to shared
+  tokens; avoid multiple competing themes or redundant libraries.
+- [ ] **UI-008 — Interaction quality:** apply Emil Kowalski's design/motion guidance,
+  require purposeful motion, immediate frequent keyboard actions, pointer-aware hover,
+  reduced motion, responsive layouts and real-browser performance/accessibility checks.
+
+**Acceptance:** trace each adopted component to its source and local wrapper;
+prove one complete business workflow in light/dark, keyboard and mobile layouts.
+Confirm a single rendering-runtime strategy, consistent styling and accurate
+pending/success/failure feedback. Installing packages is not evidence of migration.
+
 ### Team channels
 
-- [ ] **COLLAB-001 — Channel design:** modern header, avatars, grouped messages,
+- [x] **COLLAB-001 — Channel design:** modern header, avatars, grouped messages,
   date separators, timestamps, members panel and subtle motion.
-- [ ] **COLLAB-002 — Composer:** Enter sends; Shift+Enter adds a newline. Preserve
+- [x] **COLLAB-002 — Composer:** Enter sends; Shift+Enter adds a newline. Preserve
   failed drafts and distinguish pending delivery from a saved message.
-- [ ] **COLLAB-003 — Search/updates:** search recent messages, state the search limit,
+- [x] **COLLAB-003 — Search/updates:** search recent messages, state the search limit,
   and label polling honestly. Later add pagination and streaming reconnect/resync.
-- [ ] **COLLAB-004 — Access:** membership protects messages. HR can manage a roster
+- [x] **COLLAB-004 — Access:** membership protects messages. HR can manage a roster
   without automatically reading conversations in teams they have not joined.
 - [ ] **COLLAB-005 — Later collaboration:** attachments, mentions, unread counters,
   notifications, replies, retention and moderation are separate follow-on slices.
 
 ### Conversational App Builder
 
-- [ ] **BUILD-001 — Conversations:** saved requests, assistant summaries and follow-up
+- [x] **BUILD-001 — Conversations:** saved requests, assistant summaries and follow-up
   edits in the same draft thread; reopen prior drafts and start separate work.
-- [ ] **BUILD-002 — File selection:** automatic relevant frontend-file selection;
+- [x] **BUILD-002 — File selection:** automatic relevant frontend-file selection;
   searchable manual selection under Advanced. Explain the additional AI request.
-- [ ] **BUILD-003 — Cumulative drafts:** retain earlier changes and original hashes,
+- [x] **BUILD-003 — Cumulative drafts:** retain earlier changes and original hashes,
   allow more selected files within the supported limit, and preserve revision history.
-- [ ] **BUILD-004 — Review:** line-numbered additions/removals, unchanged context,
+- [x] **BUILD-004 — Review:** line-numbered additions/removals, unchanged context,
   stale-source warnings and review acknowledgment before export.
 - [ ] **BUILD-005 — Apply boundary:** generation does not edit the live checkout;
   retain non-root apply, typecheck/build validation and restoration on failure.

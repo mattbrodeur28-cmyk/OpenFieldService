@@ -23,7 +23,7 @@ Conceptual UI illustrations of the app’s main capabilities, with fictional exa
 
 ## What Is It?
 
-OpenFieldService is a production-ready field service management platform designed for the OpenClaw community. Think of it as an open-source alternative to **PestPac**, **ServiceTitan**, **FieldWork**, **Jobber**, or **Housecall Pro** — a complete scheduling and dispatch system you can self-host, customize, and embed in any SaaS product.
+OpenFieldService is a field service management platform designed for the OpenClaw community. Think of it as an open-source alternative to **PestPac**, **ServiceTitan**, **FieldWork**, **Jobber**, or **Housecall Pro** — a complete scheduling and dispatch system you can self-host, customize, and embed in any SaaS product.
 
 Unlike PestPac or ServiceTitan, this runs entirely on your own infrastructure. No per-user fees, no contracts, no vendor lock-in. Manage your entire field service operation from scheduling to invoicing.
 
@@ -76,7 +76,7 @@ current deployment and development guides.
 ### This fork: Debian 13 standalone hosting
 
 For a Proxmox Debian 13 LXC, see [the standalone deployment guide](deploy/README.md).
-This fork adds a Node.js 24 entry point with a persistent SQLite file, a systemd
+This fork adds a Node.js 24 entry point with persistent service and workspace SQLite files, a systemd
 unit and online database backups. Run `pnpm install --frozen-lockfile`,
 `pnpm build`, then `pnpm start` to try it locally at `http://127.0.0.1:3000`.
 The original Wrangler development mode below remains available.
@@ -177,11 +177,11 @@ marks saved data, and create, edit, delete, and week-navigation controls stay di
 until live data returns. Jobs outside the saved set say that they must be opened online
 first instead of showing an empty record.
 
-Offline data can contain customer details. While saved data exists, the connection banner
-stays available online so you can use **Clear saved data** before handing a device to
-another person. Clearing also pauses field-data caching across reloads until you choose
-**Enable offline access**. Offline writes are deliberately not queued: a job update must
-reach the server before the app claims it was saved.
+Offline data can contain customer details. Open your bottom-left profile popup →
+Settings → Device storage to enable caching or clear saved data and pause storage.
+Online storage status does not take up a persistent banner. Actual offline access
+stays visibly read-only; writes are not queued or claimed saved until the server
+accepts them. Sign-out clears local field caches.
 
 ### Appearance
 

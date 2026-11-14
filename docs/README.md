@@ -3,6 +3,11 @@
 Start with [Features.md](../Features.md) for the product direction, feature IDs,
 milestone sequence, acceptance criteria and definition of done.
 
+## UI architecture and development
+
+- [ADR-0001: selected UI system and compatibility strategy](architecture/decisions/0001-ui-system.md)
+- [UI component and interaction implementation guide](development/ui-system.md)
+
 ## Current guides
 
 - [Overview and local workflow](../README.md)
@@ -11,7 +16,16 @@ milestone sequence, acceptance criteria and definition of done.
 - [AI, knowledge and reviewed App Builder deployment](../deploy/WORKSPACE.md)
 - [Google, Microsoft, HubSpot and LinkedIn configuration](../deploy/INTEGRATIONS.md)
 
-Architecture ADRs, domain glossary, comprehensive API contracts, security matrices
-and operations runbooks are planned in Features.md. This index distinguishes current
-guides from that proposed enterprise documentation structure. Add links as documents
-are implemented, and review documentation alongside the associated code.
+## Maintainer reference
+
+- [Architecture and module ownership](architecture/overview.md)
+- [Domain glossary](product/glossary.md)
+- [Development and delivery standard](development/delivery.md)
+- [ADR template](architecture/decisions/template.md)
+- [API contract map](api/README.md)
+- [Security and permission matrix](security/permissions.md)
+- [Operations and recovery](operations/runbook.md)
+- [M0 / M1 release record](releases/2026-11-14-workspace.md)
+
+Complete generated workspace API contracts, versioned migrations, durable audit,
+PostgreSQL and Kubernetes qualification remain planned in Features.md.

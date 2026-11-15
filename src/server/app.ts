@@ -16,6 +16,7 @@ export function createApp<E extends Env & { Bindings: DBEnv }>(options: { title:
       DISPATCH_INVALID: 'Choose a valid interval within one calendar day.',
     };
     const conflict = Object.entries(conflicts).find(([code]) => error.message.includes(code));
+    if (error.message.includes('FOREIGN KEY constraint failed')) return c.json({ error: 'This record is linked to other business records. Remove or reassign those links first.' }, 409);
     if (conflict) return c.json({ error: conflict[1] }, 409);
     if ('getResponse' in error && typeof error.getResponse === 'function') return error.getResponse();
     console.error('Service request failed:', error.name);

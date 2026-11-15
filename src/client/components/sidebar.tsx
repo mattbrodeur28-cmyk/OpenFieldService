@@ -3,7 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { ProfilePopup, type ProfileSection } from "./profile-popup";
 import { useApp } from "../context";
 import { useAccount, isAdministrator } from "../auth";
-import { House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
+import { TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
 import type { View } from "../types";
 
 const navItems: { view: View; path: string; label: string; icon: typeof LayoutDashboard }[] = [
@@ -30,7 +30,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
 
   const active = (view: View) => currentView === view || (currentView === "assets" && view === "customers");
   const colors: Partial<Record<View, string>> = {
-    dispatcher: "blue", schedule: "pink", jobs: "purple", customers: "blue", technicians: "pink",
+    sales: "cyan", dispatcher: "blue", schedule: "pink", jobs: "purple", customers: "blue", technicians: "pink",
     invoices: "purple", materials: "cyan", services: "purple",
   };
   const navItem = (item: typeof navItems[number]) => {
@@ -75,6 +75,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
         <div id="field-service-pages" class="workspace-app-pages" hidden={!collapsed && !appsExpanded}>
           {navItems.slice(1).map(navItem)}
         </div>
+        {navItem({view:"sales",path:"/sales",label:"Sales",icon:TrendingUp})}
         {canManage && navItem({ view: "builder", path: "/builder", label: "App builder", icon: Code2 })}
         {navItem({ view: "knowledge", path: "/knowledge", label: "Knowledge", icon: BookOpen })}
         {canManage && navItem({ view: "website", path: "/website", label: "Website", icon: Globe })}

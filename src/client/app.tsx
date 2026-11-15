@@ -1,3 +1,4 @@
+import { SalesPage } from "./components/sales-page";
 import { Dispatcher } from "./components/dispatcher";
 
 import { useEffect, useMemo, useState } from "preact/hooks";
@@ -60,6 +61,7 @@ export function App() {
   }, [view, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderMain = () => {
+    if (view === "sales") return <SalesPage />;
     if (view === "dispatcher") return <Dispatcher />;
     if (view === "team" && id) return <TeamChannel key={id} id={id} />;
     if (["users", "environment", "settings", "integrations"].includes(view)) return <Dashboard />;

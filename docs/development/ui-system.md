@@ -75,6 +75,14 @@ its immediate drag/stretch feedback uses ordinary pointer-driven rendering.
 
 [Current release evidence](../releases/2026-11-14-dispatcher.md) distinguishes tested
 browser interactions from pending physical touch/accessibility qualification.
+Sales opportunities/pipelines now use these wrappers, with form and pipeline
+components separated under `components/sales/`. Explicit wrapper-owned option,
+content and title IDs avoid generated-ID collisions across Preact portals.
+Modal content receives initial focus; Tab reaches its controls. Escape closes the
+inner select independently and the outer editor restores focus to its card trigger.
+Sales stage/note updates preserve the mounted sheet and draft fields. Full
+screen-reader/physical-touch qualification remains open.
+
 CRM/contracts/projects/accounting will reuse these wrappers as those modules ship.
 
 ## Review checklist

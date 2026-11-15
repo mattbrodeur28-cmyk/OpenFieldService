@@ -14,6 +14,8 @@ prove AI/OAuth availability or workspace database health.
 | HTTP composition, static assets, shutdown | `src/server/node.ts` | Node 24; single process |
 | Business records and validation | `src/server/index.ts`, `db.ts` | `schema.sql`; `/api/openapi.json` |
 | Standalone service storage | `src/server/sqlite.mjs` | `DATABASE_PATH`, default `data/openfieldservice.sqlite` |
+| Dispatcher | `src/server/dispatch/` | Checked module migration, atomic assignments, audit, durable SSE revisions |
+| Sales | `src/server/sales/`, `src/server/platform/sqlite.mjs` | Opportunities/stages, checked migrations, atomic writes/audit; [Sales API](../api/sales.md) |
 | Identity, sessions, users, HR, teams | `src/server/auth.mjs` | `workspace.sqlite`, beside service DB |
 | AI, Knowledge, configuration, Builder | `src/server/workspace.mjs` | workspace DB; scoped proposal files |
 | OAuth and provider reads | `src/server/integrations.mjs` | workspace DB; encrypted per-user tokens |
@@ -29,7 +31,8 @@ owns these boundaries; features must name the affected module in their delivery 
 
 One company and one Node instance own two local SQLite databases. Database creation
 and additive workspace upgrades run during startup; the UUID migration is explicit
-and rejects unknown custom schema. There is no version/checksum migration ledger yet.
+and rejects unknown custom schema. Dispatcher and Sales have version/checksum migration ledgers. Other legacy
+modules still need migration-ledger adoption in M2.
 Migration code lives in `scripts/uuid-migration.mjs`, `sqlite.mjs`, `auth.mjs`,
 `workspace.mjs` and `integrations.mjs`. Back up both DBs and the private encryption
 configuration before upgrades. See [recovery](../operations/runbook.md).

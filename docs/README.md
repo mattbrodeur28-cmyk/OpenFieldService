@@ -14,6 +14,10 @@ milestone sequence, acceptance criteria and definition of done.
 - [Dispatcher API and operating rules](api/dispatcher.md)
 - [Dispatcher and workspace UI release evidence](releases/2026-11-14-dispatcher.md)
 
+- [Sales foundation architecture decision](architecture/decisions/0004-sales-foundation.md)
+- [Sales API, ownership and forecast rules](api/sales.md)
+- [Sales foundation release evidence](releases/2026-11-14-sales-foundation.md)
+
 ## Current guides
 
 - [Overview and local workflow](../README.md)

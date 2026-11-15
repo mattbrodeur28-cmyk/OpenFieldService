@@ -6,6 +6,9 @@ may have HR capability; HR is not a separate database role or service-data tenan
 | Operation | Owner | Admin | Member + HR | Member | Viewer |
 | --- | --- | --- | --- | --- | --- |
 | Read service records | Yes | Yes | Yes | Yes | Yes |
+| Read Sales opportunities | Yes | Yes | Yes | Yes | Yes |
+| Edit/note Sales opportunities | Any | Any | Own | Own | No |
+| Configure Sales pipelines / reopen Lost | Yes | Yes | No | No | No |
 | Write service records / Knowledge | Yes | Yes | Yes | Yes | No |
 | Own AI conversations | Yes | Yes | Yes | Yes | Yes |
 | Manage ordinary people / team rosters | Yes | Yes | Yes | No | No |

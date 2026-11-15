@@ -1,3 +1,4 @@
+import { createSales } from "./sales/http.mjs";
 import { createDispatcher } from "./dispatch/service.mjs";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
@@ -21,10 +22,12 @@ const integrations = createIntegrations({ filename: resolve(dirname(process.env.
 const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite"), storage, root, integrationRead: integrations.read });
 const auth = createAuth({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
 const dispatcher = createDispatcher({ storage, currentUser: auth.currentUser });
+const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.salesOwners});
 const app = new Hono();
 app.use("/api/*", auth.guard);
 app.route("/api/auth", auth.app);
 app.route("/api/dispatch", dispatcher.app);
+app.route("/api/sales", sales.app);
 app.get("/api/public/company", (c) => workspace.publicCompany(c));
 app.route("/api/workspace", workspace.app);
 app.route("/api/integrations", integrations.app);

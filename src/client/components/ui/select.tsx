@@ -1,6 +1,6 @@
 import * as Primitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-preact";
-import { useId } from "preact/hooks";
+import { useCallback, useId } from "preact/hooks";
 
 export type SelectOption = { value: string; label: string; disabled?: boolean };
 export function Select({
@@ -22,7 +22,10 @@ export function Select({
   name?: string;
   required?: boolean;
 }) {
-  const id = useId();
+  const id = "ofs-select-" + useId();
+  const focusContent = useCallback((node: HTMLDivElement | null) => {
+    if (node && !node.contains(document.activeElement)) node.focus();
+  }, []);
   return (
     <div class="ui-field ui-select-field">
       <label for={id}>{label}</label>
@@ -41,6 +44,7 @@ export function Select({
         </Primitive.Trigger>
         <Primitive.Portal container={document.body}>
           <Primitive.Content
+            ref={focusContent}
             className="ui-select-content"
             position="popper"
             sideOffset={5}
@@ -52,14 +56,17 @@ export function Select({
             <Primitive.Viewport>
               {options
                 .filter((option) => option.value !== "")
-                .map((option) => (
+                .map((option, index) => (
                   <Primitive.Item
                     key={option.value}
                     value={option.value}
+                    aria-labelledby={id + "-option-" + index}
                     disabled={option.disabled}
                     className="ui-select-item"
                   >
-                    <Primitive.ItemText>{option.label}</Primitive.ItemText>
+                    <Primitive.ItemText id={id + "-option-" + index}>
+                      {option.label}
+                    </Primitive.ItemText>
                     <Primitive.ItemIndicator>
                       <Check size={14} />
                     </Primitive.ItemIndicator>

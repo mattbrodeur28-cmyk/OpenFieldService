@@ -69,17 +69,7 @@ export function installDispatch(db) {
     throw error;
   }
 }
-export function transaction(db, work) {
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    const result = work();
-    db.exec("COMMIT");
-    return result;
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
-}
+export { transaction } from "../platform/sqlite.mjs";
 export function dispatchError(error) {
   const messages = {
     DISPATCH_OVERLAP: "This technician already has overlapping work.",

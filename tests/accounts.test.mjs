@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { createAuth } from '../src/server/auth.mjs';
 import { createWorkspace } from '../src/server/workspace.mjs';
+import { createSales } from '../src/server/sales/http.mjs';
 import { openStorage } from '../src/server/sqlite.mjs';
 
 const bootstrap = 'a-test-bootstrap-key-with-more-than-24-characters';
@@ -20,7 +21,8 @@ test('local accounts protect all APIs, enforce roles, isolate chats and preserve
   const storage = openStorage(join(directory, 'service.sqlite'));
   const auth = createAuth({ filename, env });
   const workspace = createWorkspace({ filename, storage, root: new URL('../', import.meta.url).pathname, env, fetcher: async () => Response.json({ message: { content: 'Service answer' } }) });
-  const app = new Hono(); app.use('/api/*', auth.guard); app.route('/api/auth', auth.app); app.route('/api/workspace', workspace.app);
+  const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.salesOwners});
+  const app = new Hono(); app.use('/api/*', auth.guard); app.route('/api/auth', auth.app); app.route('/api/workspace', workspace.app);app.route('/api/sales',sales.app);
   app.get('/api/public/company', c => workspace.publicCompany(c));
   app.get('/api/jobs', c => c.json({ jobs: [] })); app.post('/api/jobs', c => c.json({ ok: true }));
   let ownerCookie;
@@ -61,6 +63,18 @@ test('local accounts protect all APIs, enforce roles, isolate chats and preserve
     const member = await createUser('member@example.test', 'member');
     const viewer = await createUser('viewer@example.test', 'viewer');
     const administrator = await createUser('admin@example.test', 'admin');
+    const salesSetup = await request('/sales/pipelines', {cookie:member.cookie});
+    const salesPipeline=salesSetup.data.pipelines[0];
+    const salesOptions=(await request('/sales/options',{cookie:member.cookie})).data;
+    assert.ok(salesOptions.owners.some(person=>person.id===member.user.id));
+    assert.ok(!salesOptions.owners.some(person=>person.id===viewer.user.id));
+    assert.ok(salesOptions.owners.every(person=>Object.keys(person).sort().join(',')==='id,name'));
+    const opportunity={title:'Authenticated Sales prospect',pipelineId:salesPipeline.id,stageId:salesPipeline.stages[0].id,ownerId:member.user.id,prospectName:'Preview business',contactName:'',contactEmail:'',contactPhone:'',segment:'commercial',source:'',expectedValue:50000,probability:10,expectedCloseDate:'',nextAction:'Site visit',nextActionDate:'',customerId:null,siteId:null,assetId:null,notes:''};
+    const createdSales=await request('/sales/opportunities',{cookie:member.cookie,method:'POST',body:opportunity,expected:201});
+    await request('/sales/opportunities',{cookie:viewer.cookie,method:'POST',body:opportunity,expected:403});
+    await request('/sales/opportunities/'+createdSales.data.opportunity.id+'/stage',{cookie:member.cookie,method:'PUT',verify:false,body:{stageId:salesPipeline.stages[1].id,expectedVersion:0},expected:403});
+    await request('/sales/opportunities/'+createdSales.data.opportunity.id,{cookie:viewer.cookie});
+
     await request('/auth/users', { cookie: member.cookie, expected: 403 });
     await request('/workspace/configuration', { cookie: member.cookie, expected: 403 });
     await request('/workspace/builder/files', { cookie: member.cookie, expected: 403 });

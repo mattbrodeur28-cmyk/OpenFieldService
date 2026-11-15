@@ -61,8 +61,9 @@ two separate SQLite databases. The intended HTTPS origin is
 The navigation/profile/HR/channel refresh and conversational Builder core are
 implemented in the [M0/M1 release](docs/releases/2026-11-14-workspace.md). M1 remains
 in progress for full accessibility/theme qualification and later collaboration/preview
-slices. Local browser evidence is not a live LXC deployment claim. QuickBooks integration, contracts, broader CRM, Dispatcher and
-Kubernetes qualification are planned work.
+slices. Local browser evidence is not a live LXC deployment claim. Dispatcher core and the first Sales opportunities/pipelines/Kanban increment are
+implemented. QuickBooks integration, contracts, broader CRM and Kubernetes
+qualification remain planned work.
 
 ## Milestone order
 
@@ -72,7 +73,7 @@ Kubernetes qualification are planned work.
 | M1 | Navigation, profile/settings, HR, channels and conversational Builder | In progress | M0 |
 | M2 | Maintainable backend boundaries and operational foundations | Planned | M0; complete M1 first |
 | M3 | Salesforce-style Dispatcher app | Core implemented; accessibility qualification remains | M2 concurrency and scheduling foundation |
-| M4 | Commercial CRM, Sales pipeline and quote-to-job conversion | Planned | M2; existing customers/sites |
+| M4 | Commercial CRM, Sales pipeline and quote-to-job conversion | In progress: Sales opportunities/pipelines/Kanban | M2; existing customers/sites |
 | M5 | Contracts, maintenance agreements and renewals | Planned | M4 customer/contact model; M3 scheduling |
 | M6 | QuickBooks-backed accounting | Planned | M2 reliable integration jobs/audit; M4 mappings |
 | M7 | Controls records, commissioning and handover | Planned | M4; existing equipment foundation |
@@ -276,7 +277,9 @@ timezone, availability, concurrency and metrics. M2's broader platform work rema
 - [x] **DISPATCH-008 — Concurrent dispatch:** live change delivery/reconnect and tests
   for competing assignments by two dispatchers.
 - [ ] **DISPATCH-009 — Accessibility:** real pointer drag, touch, keyboard assignment,
-  reduced motion and a narrow-screen alternate view.
+  reduced motion and a narrow-screen alternate view. Desktop pointer/keyboard and
+  400px dark/reduced-motion assignment/save are verified; physical touch and
+  broader assistive-technology qualification remain open.
 - [ ] **DISPATCH-010 — Later:** maps, geocoding, routing, travel estimates, shifts,
   breaks, skills, multi-tech and multi-visit jobs; optional provider credentials.
 
@@ -308,17 +311,20 @@ estimates extend this model in M11/M12.
 
 ### Sales app — Kanban, quotes and conversion
 
-Requested scope: a dedicated Sales app linked to CRM and Dispatcher. Planned after
-current UI/M3 work; existing customer/job screens are not evidence of this workflow.
+The dedicated Sales app now implements opportunities, configured pipelines and
+Kanban. Existing customer/site/equipment links are supported. Quote generation,
+acceptance and Dispatcher/job conversion remain subsequent increments. See
+[the release evidence](docs/releases/2026-11-14-sales-foundation.md) and
+[API/permission/operating rules](docs/api/sales.md).
 
-- [ ] **SALES-001 — Opportunities:** title, prospect/customer, contacts, site/equipment,
+- [x] **SALES-001 — Opportunities:** title, prospect/customer, contacts, site/equipment,
   owner, source, expected value, expected close date, probability, next action and
   activity timeline. Support residential and commercial work without duplicate CRM.
-- [ ] **SALES-002 — Pipelines/stages:** administrator-configured pipelines and ordered
+- [x] **SALES-002 — Pipelines/stages:** administrator-configured pipelines and ordered
   stages (for example New, Qualified, Site visit, Estimating, Proposal sent,
   Negotiation, Won, Lost). Define required information and allowed transitions;
   stage names are configurable rather than new hardcoded job statuses.
-- [ ] **SALES-003 — Kanban:** drag opportunities across stages, owner/value/date/search
+- [x] **SALES-003 — Kanban:** drag opportunities across stages, owner/value/date/search
   filters, stage totals and list alternative. Persist moves, reject stale versions,
   explain failed transitions and offer keyboard/form equivalents.
 - [ ] **SALES-004 — Sales activities:** calls, meetings, site surveys, tasks, follow-up

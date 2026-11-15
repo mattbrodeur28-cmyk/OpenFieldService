@@ -84,6 +84,11 @@ The original Wrangler development mode below remains available.
 For self-hosted login, users, roles and teams, see [Accounts and teams](deploy/ACCOUNTS.md).
 The standalone runtime has no Clawnify SDK or hosted-platform dependency.
 
+The fork now includes an hourly [Dispatcher](docs/api/dispatcher.md) and a separate
+[Sales app](docs/api/sales.md) with opportunities, configurable pipelines, Kanban,
+forecast filters and internal activity. Quotes, accepted quote-to-job conversion
+and QuickBooks remain roadmap work; the Sales board does not fabricate them.
+
 For self-hosted Google, Microsoft, HubSpot and LinkedIn read connections, see [integration setup](deploy/INTEGRATIONS.md). For the standalone Chat, Knowledge, local/hosted AI connections and review-first
 frontend app builder, see [workspace setup](deploy/WORKSPACE.md).
 

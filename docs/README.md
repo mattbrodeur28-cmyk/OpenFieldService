@@ -44,3 +44,11 @@ PostgreSQL and Kubernetes qualification remain planned in Features.md.
 - [Fleet and Purchasing design and owner decisions](product/fleet-and-purchasing.md)
 
 - [Fleet and maintenance release evidence](releases/2026-11-15-fleet.md)
+
+- [Purchasing release evidence](releases/2026-11-15-purchasing.md)
+- [Sales estimating and accepted-material purchasing design](product/sales-estimating.md)
+
+- [Private tagged document API](api/documents.md)
+- [Document storage decision](architecture/decisions/0006-private-documents.md)
+- [Ticket/PO document release evidence](releases/2026-11-15-documents.md)
+- [Purchasing API](api/purchasing.md)

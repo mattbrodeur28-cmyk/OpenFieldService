@@ -29,6 +29,7 @@ const app = new Hono();
 app.use("/api/*", auth.guard);
 app.route("/api/auth", auth.app);
 app.route("/api/service",service.app);
+app.route("/api/documents",service.documents.app);
 app.route("/api/dispatch", dispatcher.app);
 app.route("/api/sales", sales.app);
 app.get("/api/public/company", (c) => workspace.publicCompany(c));

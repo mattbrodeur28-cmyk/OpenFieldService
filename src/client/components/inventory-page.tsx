@@ -26,13 +26,13 @@ import {
   Sheet,
   Table,
 } from "./ui/surfaces";
-export function InventoryPage({locationId}: {locationId?:string|null}) {
+export function InventoryPage({ locationId }: { locationId?: string | null }) {
   const { readOnly } = useConnectivity(),
     { navigate } = useApp(),
     company = useCompanyTimeZone();
   const [options, setOptions] = useState<StockOptions | null>(null),
     [catalog, setCatalog] = useState<CatalogItem[]>([]),
-    [selected, setSelected] = useState(locationId||""),
+    [selected, setSelected] = useState(locationId || ""),
     [data, setData] = useState<StockDetail | null>(null),
     [page, setPage] = useState(1),
     [revision, setRevision] = useState(0),
@@ -109,7 +109,8 @@ export function InventoryPage({locationId}: {locationId?:string|null}) {
       <p class="workspace-help">
         Shared materials, warehouse stock and truck custody. Movements preserve
         quantities and costs; job usage links to the same work order and billing
-        sources. Costs use the company-wide weighted average; quantities remain per location.
+        sources. Costs use the company-wide weighted average; quantities remain
+        per location.
       </p>
       {error && <Notice tone="danger">{error}</Notice>}
       {notice && (
@@ -214,7 +215,12 @@ export function InventoryPage({locationId}: {locationId?:string|null}) {
                       {units(item.quantity_milli)} {item.unit}
                     </td>
                     <td>
-                      {item.company_unit_cost_cents === null ? "—" : new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(item.company_unit_cost_cents / 100)}
+                      {item.company_unit_cost_cents === null
+                        ? "—"
+                        : new Intl.NumberFormat(undefined, {
+                            style: "currency",
+                            currency: "USD",
+                          }).format(item.company_unit_cost_cents / 100)}
                     </td>
                     <td>
                       {units(item.reorder_milli)} {item.unit}
@@ -292,7 +298,18 @@ export function InventoryPage({locationId}: {locationId?:string|null}) {
                             Work order
                           </Button>
                         )}
+                        {m.purchase_order_id && (
+                          <Button
+                            variant="ghost"
+                            onClick={() =>
+                              navigate("/purchasing/" + m.purchase_order_id)
+                            }
+                          >
+                            {m.purchase_order_number || "Purchase order"}
+                          </Button>
+                        )}
                         {options.canManage &&
+                          !m.purchase_order_id &&
                           !m.reversed_by &&
                           [
                             "opening",

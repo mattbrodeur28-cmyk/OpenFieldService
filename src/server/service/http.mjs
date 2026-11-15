@@ -1,3 +1,5 @@
+import { createDocumentModule } from "../documents/http.mjs";
+import { mountPurchasing } from "../purchasing/http.mjs";
 import { mountFleet } from "../fleet/http.mjs";
 import { mountInventory } from "../inventory/http.mjs";
 import { createBilling } from "./billing.mjs";
@@ -62,7 +64,18 @@ export function createService({ storage, currentUser, people }) {
         409,
       );
     if (String(error.message).includes("FLEET_REQUIRES_TRUCK"))
-      return c.json({error:"A linked vehicle must retain its truck stock location."},409);
+      return c.json(
+        { error: "A linked vehicle must retain its truck stock location." },
+        409,
+      );
+    if (String(error.message).includes("PURCH_RECEIPT_USE_RETURN"))
+      return c.json(
+        {
+          error:
+            "A PO receipt requires a reviewed supplier-return correction; it cannot be reversed independently in Inventory.",
+        },
+        409,
+      );
     console.error("Service identity request failed:", error.name);
     return c.json(
       { error: "The technician identity operation could not be completed." },
@@ -146,7 +159,37 @@ export function createService({ storage, currentUser, people }) {
     }
     return c.json(billing.save(check(c), c.req.param("id"), data));
   });
-  const inventory = mountInventory(app, { storage, identity: service, check });
-  const fleet = mountFleet(app, { storage, identity: service, inventory, company, check });
-  return { app, service, execution, company, timesheets, billing, inventory, fleet };
+  let purchasing;
+  const inventory = mountInventory(app, {
+    storage,
+    identity: service,
+    check,
+    purchaseReferences: (user, ids) =>
+      purchasing?.stockReferencesInTransaction(user, ids) || [],
+  });
+  const fleet = mountFleet(app, {
+    storage,
+    identity: service,
+    inventory,
+    company,
+    check,
+  });
+  purchasing = mountPurchasing(app, { storage, inventory, check });
+  const documents = createDocumentModule({
+    storage,
+    identity: service,
+    currentUser,
+  });
+  return {
+    app,
+    documents,
+    service,
+    execution,
+    company,
+    timesheets,
+    billing,
+    inventory,
+    fleet,
+    purchasing,
+  };
 }

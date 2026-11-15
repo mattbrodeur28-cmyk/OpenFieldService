@@ -1,4 +1,4 @@
-export type View = "fleet" | "inventory" | "timesheets" | "sales" | "dispatcher" | "calendar" | "team" | "users" | "website" | "environment" | "chat" | "knowledge" | "integrations" | "builder" | "settings" | "assets" | "dashboard" | "schedule" | "jobs" | "customers" | "technicians" | "services" | "invoices" | "materials";
+export type View = "purchasing" | "fleet" | "inventory" | "timesheets" | "sales" | "dispatcher" | "calendar" | "team" | "users" | "website" | "environment" | "chat" | "knowledge" | "integrations" | "builder" | "settings" | "assets" | "dashboard" | "schedule" | "jobs" | "customers" | "technicians" | "services" | "invoices" | "materials";
 
 export type JobStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled";
 export type Priority = "low" | "normal" | "high" | "urgent";
@@ -217,4 +217,47 @@ export interface AssetHistory {
   summary: string;
   details: string;
   created_at: string;
+}
+
+// CRM-001: accounts and contacts (multiple people per account, each with roles).
+export type ContactRole =
+  | "billing"
+  | "service"
+  | "accounts_payable"
+  | "site_supervisor"
+  | "estimator"
+  | "other";
+
+export interface Contact {
+  id: string;
+  customerId: string;
+  siteId: string | null;
+  name: string;
+  title: string;
+  email: string;
+  phone: string;
+  emailOk: boolean;
+  phoneOk: boolean;
+  smsOk: boolean;
+  notes: string;
+  active: boolean;
+  roles: ContactRole[];
+  version: number;
+}
+
+export interface BillingLink {
+  id: string;
+  siteId: string;
+  siteName: string;
+  billingCustomerId: string;
+  billingName: string;
+  poRequired: boolean;
+  notes: string;
+}
+
+export interface AccountSettings {
+  customerId: string;
+  segment: "commercial" | "residential";
+  accountType: "customer" | "prospect" | "vendor" | "inactive";
+  parentCustomerId: string | null;
 }

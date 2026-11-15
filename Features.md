@@ -82,7 +82,7 @@ qualification remain planned work.
 | M13 | Technician workflow, actual time, timesheets and truck inventory | In progress; PJSA/report/actual-time and timesheet pilots implemented | M2, M3; shared users/jobs/materials |
 | M14 | Refrigerant Monitoring System and dashboard | Planned | M13 inventory/time/job evidence; equipment baseline |
 | M15 | Fleet, vehicle maintenance and live dispatch tracking | In progress: native vehicles, stock links and in-app maintenance | M13 shared stock/custody; M3 Dispatcher; authorized location feeds |
-| M16 | Suppliers, purchase orders and receiving | Planned | M13 movement/cost ledger; M11 job/phase commitments |
+| M16 | Suppliers, purchase orders and receiving | In progress: suppliers, PO approval/issue and atomic partial receiving | M13 movement/cost ledger; M11 job/phase commitments |
 | M8 | Business-owner reporting and operational controls | Planned | M3–M7 business events |
 | M9 | Containers, Kubernetes and scale qualification | Planned | M2 shared-state/database work |
 | M10 | Optional extensions and broader SaaS | Planned | Proven core workflows |
@@ -266,6 +266,33 @@ Changed source must invalidate a draft. Never label generated code compiled or l
 populated installs; retry/concurrency behavior is proven. Shared state is either
 externalized or explicitly documented as single-instance.
 
+### Tagged ticket and purchasing documents
+
+- [x] **DOC-001 — Private uploads:** PDF and supported receipt/photo files on native
+  job tickets with original filename, author/time, checksum, size/type validation and
+  explicit limits. File storage is shared infrastructure, not a separate item copy
+  inside each app. No public/static upload folder or automatic document execution.
+- [x] **DOC-002 — Document tags:** Packing slip, Receipt, Invoice, Photo, Service
+  report and custom tags; filter/search, versioned title/tag corrections and audit.
+- [x] **DOC-003 — Native links/import:** one file can support job, PO and actual PO
+  receipt through real native IDs. Admin can import/link an already-uploaded purchase
+  document to a ticket without copying bytes. A document link is supporting evidence,
+  not proof of material quantity allocation or a substitute for inventory movements.
+- [x] **DOC-004 — Access/evidence:** admin full access, assigned mapped technician job
+  scope, current access rechecked on download; no HR elevation. Preserve immutable
+  bytes and approved report evidence; later ticket uploads are supplementary documents.
+  Retain attributable metadata/link changes and reversible archive/restore behavior.
+Document pilot evidence: [tagged documents release](docs/releases/2026-11-15-documents.md),
+[API](docs/api/documents.md), [storage decision](docs/architecture/decisions/0006-private-documents.md).
+Original bytes currently live privately in the service SQLite database with metadata
+and links; online-backup restore is tested. This is a single-instance adapter, not
+completion of ARCH-010 or multi-replica/object-storage qualification.
+
+- [ ] **DOC-005 — Storage qualification:** private local and S3-compatible adapters,
+  backup/restore, scanning/quarantine policy, retention/purge, object lifecycle and
+  multi-replica qualification. External inbox/OCR imports need separate provider and
+  extraction review; uploaded text must not become assistant instructions.
+
 ## M3 — Dispatcher app
 
 Reference: the supplied Salesforce Field Service Gantt screenshot.
@@ -363,6 +390,9 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
 - [ ] **SALES-005 — Quote generation:** build quotes from opportunities using service,
   labor and material catalog items, quantities, tax, discounts, scope, exclusions,
   alternates, validity, customer/site details and reusable business templates.
+  Owner detail (2026-11-15): line-by-line technician and optional apprentice labor,
+  material, subcontractor, permit/licensing, fuel/distance and after-hours estimates;
+  separate cost, selling price, tax, fees and margin with deliberate overrides.
 - [ ] **SALES-006 — Quote revisions:** immutable offered versions with revision numbers,
   internal draft vs customer-visible scope, price changes, approvals, PDF/export,
   delivered/accepted/declined/expired status and retained acceptance evidence.
@@ -385,6 +415,26 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
 - [ ] **SALES-012 — Permissions and audit:** owner/team visibility rules, protected
   pricing/approval actions, auditable stage/quote/conversion changes and documented
   APIs, migrations, backup/recovery and end-to-end acceptance evidence.
+
+- [ ] **SALES-013 — Estimating workbench:** material lines use existing catalog IDs
+  and a retained company-average cost snapshot; labor lines name role (technician,
+  apprentice or configured crew role), quantity/hours and reviewed cost/selling rates.
+  Include subcontracts, permits, licenses, fuel/distance and after-hours lines. Support
+  unit/fixed/rate-derived costs without double-counting travel or labor multipliers.
+- [ ] **SALES-014 — Billing/tax profiles in Settings:** reviewed, effective-dated
+  profiles by U.S. state/jurisdiction and Residential/Commercial segment, with explicit
+  line tax categories, exemptions, source/review notes, rates and overrides. No baked-in
+  current legal rates or automatic state-wide taxability assumptions. Offered quotes
+  retain the profile/rule/rounding snapshot; missing configuration stays unresolved.
+- [ ] **SALES-015 — Bid review:** compare estimated cost, selling value, markup and
+  margin; distinguish overhead/burden, allowances, exclusions, alternates and taxes.
+  Require explicit review for no-charge/zero-cost lines and configured approval limits.
+- [ ] **SALES-016 — Accepted quote to procurement:** optional material selection from
+  an actually accepted immutable quote version; create grouped draft POs or link lines
+  to an existing editable draft PO. Preserve quote-line → demand/allocation → PO-line →
+  receipt → job UUIDs. Track ordered/received/reserved quantities and prevent repeated
+  acceptance/conversion or partial selection from ordering the same demand twice.
+  Do not append silently to issued POs or automatically send a supplier order.
 
 **Acceptance:** create a prospect/opportunity, move it on Kanban with pointer and
 keyboard, generate/revise/accept a quote, convert it once into a linked active job,
@@ -776,20 +826,34 @@ A provider outage must show stale state rather than leave a misleading live mark
 - [ ] **PURCH-001 — Supplier records:** shared supplier UUID, contacts, terms,
   currency, active status and material/vendor SKU mapping. Preserve existing material,
   job and future phase IDs; do not represent a supplier as a duplicate customer.
+  Implemented supplier register/contact/terms and native material/job links, USD only.
+  Material/vendor SKU mappings and multi-currency remain open.
 - [ ] **PURCH-002 — Purchase order lifecycle:** draft, approval, issued, partially
   received, received, closed/cancelled; numbered immutable issued revisions, approval
   permissions, expected delivery, ship-to warehouse/vehicle, job/phase allocation and
   retained price/quantity/tax/freight terms. Keep commitments separate from actual costs.
+  Implemented versioned draft/approve/issue, immutable issued revision, partial/full
+  receiving, cancellation before acceptance and closure with retained shortfalls.
+  Open material commitment and actual accepted material cost are separate. Post-issue
+  amendments, project phases, approval limits and supplier delivery/export remain open.
 - [ ] **PURCH-003 — Atomic receiving:** each partial receipt references PO/line,
   actual quantity and actual reviewed cost, then posts one inventory receipt in the
   same database transaction. Idempotency/version/remaining-quantity checks prevent
   double receipts. Record shortages, over-receipt approval and damaged/rejected goods.
+  Implemented partial acceptance/rejection, reviewed price variances and explicit
+  over-receipt approval. Shared inventory receipt, valuation, PO state and replay
+  acknowledgement commit atomically. Independent receiver contention and injected
+  failures pass. Packing slips have text references plus tagged file upload and
+  PO/delivery-to-ticket import through DOC-001–004; broader file qualification is
+  DOC-005. See [Purchasing release](docs/releases/2026-11-15-purchasing.md).
 - [ ] **PURCH-004 — Company weighted-average costing:** extend the implemented M13
   cost ledger, using actual accepted receipt value plus existing company stock value
   divided by total company quantity. Transfers preserve value; returns retain original
   usage cost; losses use current average; gains use reviewed cost. Retain exact values,
   rounding evidence and historical job cost. Separate actual cost from selling prices.
-  Define landed-cost adjustments, vendor credits, bill variances and currency policy
+  Actual accepted PO receipts now feed the existing company-average ledger; historical
+  job cost remains unchanged after later purchases. Define landed-cost adjustments,
+  vendor credits, bill variances and currency policy
   before provider posting; do not retroactively overwrite closed job snapshots.
 - [ ] **PURCH-005 — Job costs and accounting:** trace PO → receipt → stock movement →
   job/phase usage; reconcile ordered/received/billed balances, supplier returns and
@@ -947,13 +1011,19 @@ enterprise documentation set already exists. Current guides:
 
 ## Next checkpoint
 
-Native inventory/company-average costing and the Fleet register/in-app maintenance
-pilot now have migration/API, automated and local-browser evidence. Next implement
-supplier/PO receiving (M16) as one native transaction and complete Fleet reminder
-delivery and tracking adapters (M15). Real GPS feeds remain separately qualified. Continue quote
-versions/accepted conversion (SALES-005–009), PM entitlements and reviewed invoice
-handoff; complete reservations/stocktake and UI-009 Timesheet polish before closing
-those tracks. Build RMS on the same job/equipment/material evidence. ARCH-003/005/006 remain prerequisites for shared PostgreSQL,
-reliable external writes and multi-replica Kubernetes; do not mark M2 complete from
-these single-instance modules. QuickBooks sandbox work follows reviewed mapping
-and idempotent export design. Attach evidence to each feature as it is delivered.
+Inventory/company-average cost, Fleet register/in-app maintenance, Purchasing/partial
+receiving and tagged ticket/PO documents now have migration/API, automated and local
+browser evidence. Document online-backup restore is tested on disposable records.
+
+Next implement Sales estimating, quote versions and acceptance (SALES-005–009,
+SALES-013–016), including reviewed Billing Settings profiles and accepted-material
+procurement allocations. Continue remaining M16 purchasing qualification, M15 reminder
+delivery/tracking adapters, PM entitlements and reviewed invoice handoff. Complete
+reservations/stocktake and UI-009 Timesheet polish before closing those tracks. Build
+RMS on the same job/equipment/material evidence. Real GPS/provider/LXC qualification
+remains separate from fixtures and local browser proof.
+
+ARCH-003/005/006 and DOC-005 remain prerequisites for shared PostgreSQL, reliable
+external writes, shared file storage and multi-replica Kubernetes; do not mark M2
+complete from these single-instance modules. QuickBooks sandbox work follows reviewed
+mapping and idempotent export design. Attach evidence to each delivered feature.

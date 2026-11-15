@@ -4,4 +4,4 @@ export function createService(options: {
   storage: ReturnType<typeof openStorage>;
   currentUser(c: Context): unknown;
   people(): { id: string; name: string }[];
-}): { app: Hono };
+}): { app: Hono; documents: { app: Hono } };

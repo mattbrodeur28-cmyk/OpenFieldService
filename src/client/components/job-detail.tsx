@@ -1,3 +1,4 @@
+import {TicketDocuments} from "./ticket-documents";
 import { useState } from "preact/hooks";
 import { useApp } from "../context";
 import { JobExecution } from "./job-execution";
@@ -156,6 +157,7 @@ export function JobDetail() {
 
           <JobExecution key={"execution-"+job.id} jobId={job.id} jobVersion={job.schedule_version} equipmentId={job.asset_id}/>
           <JobEquipment key={job.id} job={job} />
+          <TicketDocuments key={"documents-"+job.id} target={{jobId:job.id}}/>
 
           {/* Checklist */}
           <div class="detail-section">

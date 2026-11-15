@@ -45,3 +45,18 @@ Never restore just service records when identity/workspace state also changed.
 Record the deployed commit, restore point, commands performed and browser readback
 in a release entry. Schedule off-container backups and periodically prove restoration
 in a separate instance. A backup file existing is not proof of recovery.
+
+## Private document pilot
+
+Bounded document bytes/metadata/native links live in the service SQLite file, so the
+existing online database backup includes them. Back up both service/workspace files
+and private configuration; test a matched-version restore. Document volume increases
+DB and backup size. A disposable restore test now verifies bytes, PO receipt/job links
+and stock integrity; live LXC/large-library recovery remains unqualified.
+
+The upload endpoint accepts a10MiB file plus64KiB multipart overhead, separately from
+50KB JSON requests. Verify reverse-proxy request limits for `/api/documents/upload`
+when deploying; a proxy limit can reject an otherwise supported file before the app.
+Do not expose a storage directory publicly. Scanning/quarantine, object adapters,
+retention/purge and multi-replica operation are pending; current downloads are private,
+attachment-only and explicitly unscanned. Archived records require restore to download.

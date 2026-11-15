@@ -3,7 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { ProfilePopup, type ProfileSection } from "./profile-popup";
 import { useApp } from "../context";
 import { useAccount, isAdministrator } from "../auth";
-import { Truck, TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
+import { ShoppingCart, Truck, TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
 import type { View } from "../types";
 
 const navItems: { view: View; path: string; label: string; icon: typeof LayoutDashboard }[] = [
@@ -15,6 +15,7 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "timesheets", path: "/timesheets", label: "Timesheets", icon: CalendarClock },
   { view: "technicians", path: "/technicians", label: "Technicians", icon: Wrench },
   { view: "invoices", path: "/invoices", label: "Invoices", icon: FileText },
+  { view: "purchasing", path: "/purchasing", label: "Purchasing", icon: ShoppingCart },
   { view: "fleet", path: "/fleet", label: "Fleet", icon: Truck },
   { view: "inventory", path: "/inventory", label: "Inventory", icon: Package },
   { view: "materials", path: "/materials", label: "Materials", icon: Package },
@@ -76,7 +77,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
           <ChevronDown size={14} class={`workspace-chevron ${appsExpanded ? "" : "closed"}`} aria-hidden="true" />
         </button>
         <div id="field-service-pages" class="workspace-app-pages" hidden={!collapsed && !appsExpanded}>
-          {navItems.slice(1).filter(item=>!["inventory","fleet"].includes(item.view)||user.role!=="viewer").map(navItem)}
+          {navItems.slice(1).filter(item=>item.view!=="purchasing"||canManage).filter(item=>!["inventory","fleet"].includes(item.view)||user.role!=="viewer").map(navItem)}
         </div>
         {navItem({view:"sales",path:"/sales",label:"Sales",icon:TrendingUp})}
         {canManage && navItem({ view: "builder", path: "/builder", label: "App builder", icon: Code2 })}

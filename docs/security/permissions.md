@@ -40,3 +40,12 @@ Keep deployment env files private; use private maintainer contact for vulnerabil
 reports, not public issues containing secrets. MFA/SSO, centralized capabilities,
 durable audit and distributed rate limits remain planned. Saved offline device data
 cannot be erased remotely while disconnected; logout clears local field caches.
+
+Native Purchasing is Owner/Admin only; the HR flag does not grant supplier/PO access.
+Private documents allow mapped assigned technicians to read/upload their job files;
+Owner/Admin can manage/link/archive files and use PO/receipt documents. Current link
+access is rechecked for each download. A file linked to a job becomes available to
+its assigned technician; importing is an explicit administrative action. File bytes
+are not public/static, are never automatically executed or sent to AI, and currently
+have no malware scanner. Archive is reversible and applies to every shared link.
+The signed-object/retention/scanning qualification work remains open in ARCH-010.

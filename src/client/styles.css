@@ -1628,3 +1628,5 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 @media(max-width:767px){.timesheet-summary{grid-template-columns:1fr;}.timesheet-controls .ui-field{max-width:none;flex:1 1 160px;}}
 
 .inventory-toolbar {display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0;}.inventory-toolbar .ui-field{margin:0;min-width:220px;max-width:380px;}.inventory-page .table td{vertical-align:top;}.inventory-page .table td:last-child .ui-button{margin:2px 5px 2px 0;}
+
+.purchase-line{border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:grid;gap:12px;min-width:0}.purchase-line legend{padding:0 6px;font-weight:600}.purchase-line-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}@media(max-width:480px){.purchase-line-values{grid-template-columns:1fr}}

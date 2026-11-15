@@ -3,7 +3,9 @@
 Owner decisions, 2026-11-15: support self-hosted Traccar, other GPS providers and
 technician phones. Use company-wide perpetual weighted-average inventory costing.
 Native vehicle register, assignment, inventory links and in-app maintenance are now
-implemented as a pilot; live tracking, reminder delivery and Purchasing remain planned.
+implemented as a pilot. Supplier/PO approval, issue and atomic partial receiving now
+also have a pilot; live tracking, reminder delivery and the remaining Purchasing
+qualification work stay planned.
 The native inventory pilot provides the authoritative cost and quantity ledger.
 
 ## Shared records and transaction boundaries

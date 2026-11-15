@@ -1,7 +1,10 @@
 import { createInventory } from "./service.mjs";
 import { fail } from "./domain.mjs";
-export function mountInventory(app, { storage, identity, check }) {
-  const inventory = createInventory({ storage, identity });
+export function mountInventory(
+  app,
+  { storage, identity, check, purchaseReferences },
+) {
+  const inventory = createInventory({ storage, identity, purchaseReferences });
   const body = async (c) => {
     try {
       return await c.req.json();

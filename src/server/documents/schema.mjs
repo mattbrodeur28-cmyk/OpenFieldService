@@ -1,0 +1,23 @@
+export const documentsSchema = `
+CREATE TABLE _document_blobs(id TEXT PRIMARY KEY,sha256 TEXT NOT NULL UNIQUE,size_bytes INTEGER NOT NULL CHECK(size_bytes BETWEEN 1 AND 10485760),media_type TEXT NOT NULL,bytes BLOB NOT NULL,CHECK(length(bytes)=size_bytes));
+CREATE TABLE _document_records(id TEXT PRIMARY KEY,blob_id TEXT NOT NULL REFERENCES _document_blobs(id) ON DELETE RESTRICT,actor_id TEXT NOT NULL,title TEXT NOT NULL,original_name TEXT NOT NULL,tags_json TEXT NOT NULL,archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN(0,1)),version INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE _document_links(id TEXT PRIMARY KEY,document_id TEXT NOT NULL REFERENCES _document_records(id) ON DELETE RESTRICT,job_id TEXT REFERENCES jobs(id) ON DELETE RESTRICT,order_id TEXT REFERENCES _purch_orders(id) ON DELETE RESTRICT,receipt_id TEXT REFERENCES _purch_receipts(id) ON DELETE RESTRICT,actor_id TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,CHECK((job_id IS NOT NULL)+(order_id IS NOT NULL)+(receipt_id IS NOT NULL)=1));
+CREATE UNIQUE INDEX _document_link_job ON _document_links(document_id,job_id) WHERE job_id IS NOT NULL;
+CREATE UNIQUE INDEX _document_link_order ON _document_links(document_id,order_id) WHERE order_id IS NOT NULL;
+CREATE UNIQUE INDEX _document_link_receipt ON _document_links(document_id,receipt_id) WHERE receipt_id IS NOT NULL;
+CREATE INDEX _document_jobs ON _document_links(job_id,document_id);
+CREATE INDEX _document_orders ON _document_links(order_id,document_id);
+CREATE INDEX _document_receipts ON _document_links(receipt_id,document_id);
+CREATE TABLE _document_audit(id INTEGER PRIMARY KEY AUTOINCREMENT,actor_id TEXT NOT NULL,action TEXT NOT NULL,document_id TEXT NOT NULL REFERENCES _document_records(id) ON DELETE RESTRICT,before_json TEXT NOT NULL,after_json TEXT NOT NULL,reason TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE _document_requests(request_key TEXT PRIMARY KEY,actor_id TEXT NOT NULL,request_hash TEXT NOT NULL,response_json TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TRIGGER _document_blobs_no_update BEFORE UPDATE ON _document_blobs BEGIN SELECT RAISE(ABORT,'DOCUMENT_BYTES_IMMUTABLE'); END;
+CREATE TRIGGER _document_blobs_no_delete BEFORE DELETE ON _document_blobs BEGIN SELECT RAISE(ABORT,'DOCUMENT_BYTES_IMMUTABLE'); END;
+CREATE TRIGGER _document_identity BEFORE UPDATE OF id,blob_id,actor_id,original_name,created_at ON _document_records BEGIN SELECT RAISE(ABORT,'DOCUMENT_IDENTITY_IMMUTABLE'); END;
+CREATE TRIGGER _document_records_no_delete BEFORE DELETE ON _document_records BEGIN SELECT RAISE(ABORT,'DOCUMENT_EVIDENCE_IMMUTABLE'); END;
+CREATE TRIGGER _document_links_no_update BEFORE UPDATE ON _document_links BEGIN SELECT RAISE(ABORT,'DOCUMENT_EVIDENCE_IMMUTABLE'); END;
+CREATE TRIGGER _document_links_no_delete BEFORE DELETE ON _document_links BEGIN SELECT RAISE(ABORT,'DOCUMENT_EVIDENCE_IMMUTABLE'); END;
+CREATE TRIGGER _document_audit_no_update BEFORE UPDATE ON _document_audit BEGIN SELECT RAISE(ABORT,'DOCUMENT_EVIDENCE_IMMUTABLE'); END;
+CREATE TRIGGER _document_audit_no_delete BEFORE DELETE ON _document_audit BEGIN SELECT RAISE(ABORT,'DOCUMENT_EVIDENCE_IMMUTABLE'); END;
+CREATE TRIGGER _document_requests_no_update BEFORE UPDATE ON _document_requests BEGIN SELECT RAISE(ABORT,'DOCUMENT_EVIDENCE_IMMUTABLE'); END;
+CREATE TRIGGER _document_requests_no_delete BEFORE DELETE ON _document_requests BEGIN SELECT RAISE(ABORT,'DOCUMENT_EVIDENCE_IMMUTABLE'); END;
+`;

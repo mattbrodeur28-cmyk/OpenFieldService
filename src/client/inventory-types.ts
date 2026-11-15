@@ -23,6 +23,8 @@ export interface StockOptions {
   locations: StockLocation[];
 }
 export interface StockHistory {
+  purchase_order_id: string | null;
+  purchase_order_number: string | null;
   reversed_by: string | null;
   id: string;
   kind: string;

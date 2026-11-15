@@ -413,6 +413,10 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   Owner detail (2026-11-15): line-by-line technician and optional apprentice labor,
   material, subcontractor, permit/licensing, fuel/distance and after-hours estimates;
   separate cost, selling price, tax, fees and margin with deliberate overrides.
+  Implemented foundation: versioned internal draft quote persistence over the exact
+  estimate calculator, frozen profile/material pricing and native line references.
+  Quote editor/templates/alternates, customer offering and acceptance remain open.
+  See [internal draft API](docs/api/sales-quotes.md).
 - [ ] **SALES-006 — Quote revisions:** immutable offered versions with revision numbers,
   internal draft vs customer-visible scope, price changes, approvals, PDF/export,
   delivered/accepted/declined/expired status and retained acceptance evidence.

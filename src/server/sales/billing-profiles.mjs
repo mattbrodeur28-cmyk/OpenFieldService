@@ -103,69 +103,71 @@ export function createBillingProfiles({
       return result;
     });
   }
-  function preview(user, input) {
+  // Synchronous narrow contract: caller owns the service database transaction.
+  function previewInTransaction(user, input) {
     const data = parse(previewInput, input);
-    return transaction(db, () => {
-      const opportunity = sales.opportunity(data.opportunityId);
-      requireOwner(user, opportunity);
-      if (opportunity.version !== data.expectedOpportunityVersion)
-        throw new SalesError(
-          "Opportunity changed. Reload before estimating.",
-          409,
-        );
-      if (opportunity.stage_kind !== "open")
-        throw new SalesError("Reopen the opportunity before estimating.", 409);
-      const selected = profile(data.profileId),
-        config = selected.config;
-      if (selected.requiresReview)
-        throw new SalesError(
-          "Review current billing tax categories in Settings before estimating.",
-          409,
-        );
-      if (selected.version !== data.expectedProfileVersion)
-        throw new SalesError(
-          "Billing profile changed. Review the new version.",
-          409,
-        );
+    const opportunity = sales.opportunity(data.opportunityId);
+    requireOwner(user, opportunity);
+    if (opportunity.version !== data.expectedOpportunityVersion)
+      throw new SalesError(
+        "Opportunity changed. Reload before estimating.",
+        409,
+      );
+    if (opportunity.stage_kind !== "open")
+      throw new SalesError("Reopen the opportunity before estimating.", 409);
+    const selected = profile(data.profileId),
+      config = selected.config;
+    if (selected.requiresReview)
+      throw new SalesError(
+        "Review current billing tax categories in Settings before estimating.",
+        409,
+      );
+    if (selected.version !== data.expectedProfileVersion)
+      throw new SalesError(
+        "Billing profile changed. Review the new version.",
+        409,
+      );
+    if (
+      !config.active ||
+      config.segment !== opportunity.segment ||
+      data.pricingDate < config.effectiveFrom ||
+      (config.effectiveTo && data.pricingDate > config.effectiveTo)
+    )
+      throw new SalesError(
+        "Choose an active profile matching the work segment and pricing date.",
+        409,
+      );
+    const materials = data.lines.filter((l) => l.materialId),
+      snapshots = materials.length
+        ? materialSnapshots([...new Set(materials.map((l) => l.materialId))])
+        : [];
+    for (const line of materials) {
+      const snapshot = snapshots.find((s) => s.id === line.materialId);
+      if (!snapshot)
+        throw new SalesError("A material is no longer available.", 409);
       if (
-        !config.active ||
-        config.segment !== opportunity.segment ||
-        data.pricingDate < config.effectiveFrom ||
-        (config.effectiveTo && data.pricingDate > config.effectiveTo)
+        (snapshot.unitCostCents === null ||
+          snapshot.unitCostCents !== line.unitCostCents) &&
+        line.costOverrideReason.length < 10
       )
         throw new SalesError(
-          "Choose an active profile matching the work segment and pricing date.",
+          "Review a material cost override with a reason of at least 10 characters.",
           409,
         );
-      const materials = data.lines.filter((l) => l.materialId),
-        snapshots = materials.length
-          ? materialSnapshots([...new Set(materials.map((l) => l.materialId))])
-          : [];
-      for (const line of materials) {
-        const snapshot = snapshots.find((s) => s.id === line.materialId);
-        if (!snapshot)
-          throw new SalesError("A material is no longer available.", 409);
-        if (
-          (snapshot.unitCostCents === null ||
-            snapshot.unitCostCents !== line.unitCostCents) &&
-          line.costOverrideReason.length < 10
-        )
-          throw new SalesError(
-            "Review a material cost override with a reason of at least 10 characters.",
-            409,
-          );
-      }
-      return {
-        ...calculateEstimate(data.lines, config),
-        profileId: selected.id,
-        profileVersion: selected.version,
-        pricingDate: data.pricingDate,
-        opportunityId: opportunity.id,
-        opportunityVersion: opportunity.version,
-        materialSnapshots: snapshots,
-        persisted: false,
-      };
-    });
+    }
+    return {
+      ...calculateEstimate(data.lines, config),
+      profileId: selected.id,
+      profileVersion: selected.version,
+      pricingDate: data.pricingDate,
+      opportunityId: opportunity.id,
+      opportunityVersion: opportunity.version,
+      materialSnapshots: snapshots,
+      persisted: false,
+    };
   }
-  return { list, save, preview };
+  function preview(user, input) {
+    return transaction(db, () => previewInTransaction(user, input));
+  }
+  return { list, save, preview, previewInTransaction };
 }

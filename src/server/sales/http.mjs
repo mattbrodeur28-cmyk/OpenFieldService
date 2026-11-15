@@ -1,3 +1,4 @@
+import { createQuotes } from "./quotes.mjs";
 import { createBillingProfiles } from "./billing-profiles.mjs";
 import { createActivities } from "./activities.mjs";
 import { Hono } from "hono";
@@ -18,6 +19,7 @@ export function createSales({
     sales: service,
     materialSnapshots,
   });
+  const quotes = createQuotes({ storage, sales: service, pricing: billingProfiles });
   const activities = createActivities({
     storage,
     sales: service,
@@ -70,6 +72,12 @@ export function createSales({
       throw new SalesError("Send a valid JSON request.");
     }
   }
+  app.get("/quotes", c => c.json(quotes.list(check(c), c.req.query())));
+  app.get("/quotes/:id", c => c.json(quotes.detail(check(c), c.req.param("id"), c.req.query())));
+  app.post("/quotes", async c => {
+    const data = await body(c);
+    return c.json(quotes.save(check(c), data));
+  });
   app.get("/billing-profiles", (c) =>
     c.json(billingProfiles.list(check(c), c.req.query())),
   );
@@ -155,5 +163,5 @@ export function createSales({
       ),
     );
   });
-  return { app, service, billingProfiles };
+  return { app, service, billingProfiles, quotes };
 }

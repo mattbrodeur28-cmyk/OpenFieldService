@@ -7,8 +7,6 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import type { JSX } from "preact";
 import {
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   GripVertical,
   RefreshCw,
@@ -27,7 +25,6 @@ import {
   clockOf,
   minuteOf,
   snapMinute,
-  shiftDate,
   dayInZone,
   layoutAppointments,
   overlapIds,
@@ -973,37 +970,6 @@ export function Dispatcher() {
         >
           <PanelLeft size={15} /> Pipeline
         </Button>
-        <div class="dispatch-date-controls">
-          <Button
-            size="icon"
-            aria-label="Previous day"
-            disabled={busy}
-            onClick={() => setDate(shiftDate(board.date, -1))}
-          >
-            <ChevronLeft size={17} />
-          </Button>
-          <TextField
-            label="Dispatch date"
-            type="date"
-            value={board.date}
-            required
-            disabled={busy}
-            onInput={(e) => {
-              if (e.currentTarget.value) setDate(e.currentTarget.value);
-            }}
-          />
-          <Button
-            size="icon"
-            aria-label="Next day"
-            disabled={busy}
-            onClick={() => setDate(shiftDate(board.date, 1))}
-          >
-            <ChevronRight size={17} />
-          </Button>
-          <Button onClick={() => setDate(dayInZone(board.timeZone))}>
-            Today
-          </Button>
-        </div>
         <Select
           label="Board view"
           value={view}

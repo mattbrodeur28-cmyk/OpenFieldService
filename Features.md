@@ -1098,6 +1098,6 @@ in-memory navigation. These preferences never grant access or configure the serv
 
 Dispatcher's embedded week has no redundant Schedule heading. Selecting a day,
 previous/next week, or Today updates the shared dispatch date and native board;
-daily board navigation keeps the visible week aligned. Work pipeline remains an
+the duplicate daily toolbar controls are removed, leaving one shared weekly control group. Work pipeline remains an
 all-date backlog so unfinished work does not disappear when navigating dates.
 The requested extra In progress column was withdrawn; existing stage filters remain.

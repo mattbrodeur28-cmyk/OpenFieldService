@@ -1,3 +1,5 @@
+import { lazy, Suspense } from "preact/compat";
+const QuotesPage = lazy(() => import("./quotes/quotes-page"));
 import { businessModules } from '../business-modules';
 import { ModuleOverview } from './module-overview';
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
@@ -806,8 +808,8 @@ function SalesWorkspace({ opportunityId }: { opportunityId: string | null }) {
   );
 }
 
-export function SalesPage({opportunityId}:{opportunityId:string|null}) {
+export function SalesPage({opportunityId,quoteId}:{opportunityId:string|null;quoteId?:string|null}) {
   if(!opportunityId)return <ModuleOverview module={businessModules.sales}/>;
-  if(opportunityId==='quotes')return <div class="page"><div class="page-header"><h1>Quotes</h1><span class="badge badge-muted">Planned</span></div><p>The quote workbench, customer proposals, and acceptance workflow are planned. Estimate calculation and billing profiles are available in the backend; saved customer quotes are not yet implemented.</p></div>;
+  if(opportunityId==='quotes')return <Suspense fallback={<div class="page"><p role="status">Loading Quotes…</p></div>}><QuotesPage quoteId={quoteId}/></Suspense>;
   return <SalesWorkspace opportunityId={opportunityId==='pipeline'?null:opportunityId}/>;
 }

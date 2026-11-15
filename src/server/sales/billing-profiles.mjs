@@ -41,7 +41,7 @@ export function createBillingProfiles({
       updatedAt: row.updated_at,
     };
   };
-  function list(user, query = {}) {
+  function requirePricingAccess(user) {
     // Internal pricing rules include review notes; restrict to active Sales writers.
     if (
       !user?.active ||
@@ -49,14 +49,26 @@ export function createBillingProfiles({
       !["owner", "admin", "member"].includes(user.role)
     )
       throw new SalesError("Sales writer access required.", 403);
+  }
+  function list(user, query = {}) {
+    requirePricingAccess(user);
     const page = Number(query.page ?? 1);
     if (!Number.isSafeInteger(page) || page < 1 || page > 100000)
       throw new SalesError("Choose a valid profile page.");
+    const search = String(query.search ?? "").slice(0, 200);
+    const segment = query.segment;
+    if (
+      segment !== undefined &&
+      !["commercial", "residential"].includes(segment)
+    )
+      throw new SalesError("Choose a valid work segment.");
     const rows = db
       .prepare(
-        "SELECT id FROM _sales_billing_profiles ORDER BY updated_at DESC,id LIMIT 51 OFFSET ?",
+        "SELECT id FROM _sales_billing_profiles WHERE instr(lower(json_extract(config_json,'$.name') || ' ' || json_extract(config_json,'$.state') || ' ' || json_extract(config_json,'$.jurisdiction')),lower(?))>0" +
+          (segment ? " AND json_extract(config_json,'$.segment')=?" : "") +
+          " ORDER BY updated_at DESC,id LIMIT 51 OFFSET ?",
       )
-      .all((page - 1) * 50);
+      .all(search, ...(segment ? [segment] : []), (page - 1) * 50);
     return {
       profiles: rows.slice(0, 50).map((r) => profile(r.id)),
       page,
@@ -169,5 +181,11 @@ export function createBillingProfiles({
   function preview(user, input) {
     return transaction(db, () => previewInTransaction(user, input));
   }
-  return { list, save, preview, previewInTransaction };
+  function get(user, id) {
+    requirePricingAccess(user);
+    if (!/^[0-9a-f-]{36}$/i.test(id))
+      throw new SalesError("Choose a valid billing profile.");
+    return { profile: profile(id) };
+  }
+  return { list, get, save, preview, previewInTransaction };
 }

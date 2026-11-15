@@ -415,7 +415,11 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   separate cost, selling price, tax, fees and margin with deliberate overrides.
   Implemented foundation: versioned internal draft quote persistence over the exact
   estimate calculator, frozen profile/material pricing and native line references.
-  Quote editor/templates/alternates, customer offering and acceptance remain open.
+  A draft workbench is implemented with line editing, server price review, saved
+  revisions, bounded lookups, and pending-save protection. Browser qualification
+  currently covers only the initial opportunity/profile/labor-entry flow; material
+  selection, save/reload, history and narrow-layout checks are still pending.
+  Templates/alternates, customer offering and acceptance remain open.
   See [internal draft API](docs/api/sales-quotes.md).
 - [ ] **SALES-006 — Quote revisions:** immutable offered versions with revision numbers,
   internal draft vs customer-visible scope, price changes, approvals, PDF/export,
@@ -454,7 +458,8 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   attributed review versions; exact server-side estimate preview with native material
   cost snapshots. Company policy: one Labor tax rule covers technician/apprentice/
   after-hours; service, permits, licensing, subcontractors, fuel and travel distance
-  have no tax; Other fees removed. Saved quotes, offer/acceptance snapshots and bid workbench remain open.
+  have no tax; Other fees removed. Internal draft snapshots and a pilot workbench
+  are implemented; offer/acceptance snapshots and complete bid workflow remain open.
   See [Sales pricing contracts](docs/api/sales-pricing.md).
 - [ ] **SALES-015 — Bid review:** compare estimated cost, selling value, markup and
   margin; distinguish overhead/burden, allowances, exclusions, alternates and taxes.
@@ -1093,7 +1098,7 @@ planned states. Navigation is not evidence these backends are implemented.
 
 Sales, Fleet, HR, and Finance have independently expandable sidebar groups, child
 routes, and general overview pages listing every section. Sales pipeline uses
-native opportunities/stages; Quotes remains planned. Fleet vehicles/maintenance
+native opportunities/stages; Quotes has an internal draft workbench pilot. Customer offering and acceptance remain planned. Fleet vehicles/maintenance
 and truck inventory use existing vehicles and stock locations; GPS remains planned.
 Schedule is embedded directly above the Work pipeline on Dispatcher, whose board can create native jobs. Home
 embeds the shared weekly schedule with every job-creation control suppressed.
@@ -1111,3 +1116,19 @@ previous/next week, or Today updates the shared dispatch date and native board;
 the duplicate daily toolbar controls are removed, leaving one shared weekly control group. Work pipeline remains an
 all-date backlog so unfinished work does not disappear when navigating dates.
 The requested extra In progress column was withdrawn; existing stage filters remain.
+
+### Quote workbench pilot qualification
+
+The Quotes UI now has deep links, explicit server calculation, exact decimal
+inputs, native opportunity/material searches, profile-version review, saved draft
+revision views, and guarded unsaved/uncertain navigation. Pending material refresh
+blocks calculation/save/history changes; edited inputs invalidate prior previews.
+The lazy module adds no second framework or business-record copy.
+
+Real Chrome reached native opportunity/profile selection, entered disposable labor
+pricing, and opened the second-line category menu. The Materials click was not
+executed: automatic approval review could not complete because of an account usage
+limit. Material selection, Calculate/Save/reload, revision interaction, navigation
+prompts, and narrow-layout browser qualification remain pending. Unit/API results
+are not substitutes for those checks. See
+[quote workbench release](docs/releases/2026-11-15-quote-workbench.md).

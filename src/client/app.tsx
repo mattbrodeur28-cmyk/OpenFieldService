@@ -43,10 +43,10 @@ export function App() {
   }, [isAgent]);
 
   const connectivity = useConnectivity();
-  const { view, id, navigate } = useRouter();
+  const { view, id, subId, navigate } = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.matchMedia("(max-width: 767px)").matches);
   const workspaceNavigate = (to: string) => {
-    navigate(to);
+    if (navigate(to) === false) return;
     if (window.matchMedia("(max-width: 767px)").matches) setSidebarCollapsed(true);
   };
   const appState = useAppState(isAgent, navigate);
@@ -66,7 +66,7 @@ export function App() {
   }, [view, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderMain = () => {
-    if (view === "sales") return <SalesPage opportunityId={id} />;
+    if (view === "sales") return <SalesPage opportunityId={id} quoteId={subId} />;
     if (view === "inventory") return <InventoryPage locationId={id}/>;
     if (view === "fleet") return <FleetPage section={id}/>;
     if (["hr", "finance", "purchasing", "invoices"].includes(view)) return <BusinessSection view={view} id={id} invoiceDetail={view === "invoices" && !!id && !!appState.selectedInvoice}/>;

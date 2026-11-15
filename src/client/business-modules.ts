@@ -20,6 +20,6 @@ export const businessModules: Record<'hr' | 'finance' | 'fleet' | 'sales', Busin
   ] },
   sales: { view: 'sales', label: 'Sales', pages: [
     { key: 'pipeline', label: 'Pipelines & stages', path: '/sales/pipeline', description: 'Kanban opportunities, stages, follow-ups, and job conversion.' },
-    { key: 'quotes', label: 'Quotes', path: '/sales/quotes', description: 'Material and labor estimates, customer proposals, and acceptance.', planned: true },
+    { key: 'quotes', label: 'Quotes', path: '/sales/quotes', description: 'Internal labor and material estimates with pricing and revision history.' },
   ] },
 };

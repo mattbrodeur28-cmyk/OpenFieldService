@@ -1,7 +1,7 @@
 # Internal quote drafts
 
 Standalone service-database module under `/api/sales`. This increment persists
-internal quote drafts; the Sales Quotes UI remains planned. There is no offering,
+internal quote drafts; the Sales Quotes workbench pilot is implemented with browser qualification still incomplete. There is no offering,
 customer document, customer acceptance, delivery, job conversion, or procurement
 allocation command yet. A pipeline stage change is not quote acceptance.
 
@@ -65,3 +65,27 @@ request tables. Original Sales/pricing migrations are unchanged. Standard servic
 SQLite online backups cover these records; restore a consistent matching backup
 for recovery. PostgreSQL, multi-replica, provider, and customer-portal qualification
 remain separate roadmap work.
+
+## Workbench lookups
+
+`GET /quotes/options?kind=opportunities&search=&page=1` returns up to 25 open
+opportunities the actor may estimate (current owner for Members, all for admins),
+with native id/title/version/segment/customerName plus total/page/pageSize.
+`kind=materials` requires a native `opportunityId` the actor currently owns or may
+administer. It returns up to 25 native inventory cost snapshots, total/page/pageSize,
+and accepts an optional exact UUID `materialId` for deliberate single-line cost
+refresh. No cost fallback to the legacy catalog price is introduced. Viewer403;
+invalid pages/kinds/IDs400; unauthorized opportunity403. These are read contracts,
+not stock movements or approvals. Lookups run in one service transaction.
+
+Billing profile list additionally accepts bounded name/state/jurisdiction search
+and optional `segment=commercial|residential`. `GET /billing-profiles/:id` returns
+the current profile to active Sales writers, retaining requiresReview. Picking an
+old saved revision does not silently adopt a newer tax rule version.
+
+Workbench routes: `/sales/quotes`, `/sales/quotes/new`, `/sales/quotes/:quoteId`.
+Calculation and saving remain server-owned. Browser fields convert decimals to
+integer cents/milli quantities without truncation or exponent coercion. A price
+review is invalidated when inputs change; failed/uncertain saves retain the exact
+command in memory for retry. No client-only success, customer acceptance or stock
+reservation is inferred. Pending edits are not a durable offline draft store.

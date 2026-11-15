@@ -7,7 +7,7 @@ bodies. This is pricing foundation, not a persisted quote or customer acceptance
 
 ## Billing profiles
 
-`GET /billing-profiles?page=1`: active Owner/Admin/Member, 50 profiles/page with
+`GET /billing-profiles?page=1&search=&segment=<optional commercial|residential>`: active Owner/Admin/Member, 50 profiles/page with
 `profiles`, `page`, `hasMore`. Viewer has no pricing-rule access. HR adds no power.
 Each row: `id`, `version`, `config`, `updatedAt`, `requiresReview`.
 

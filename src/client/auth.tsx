@@ -6,12 +6,15 @@ import { clearSavedFieldData } from './offline';
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
 export interface AccountUser { id: string; name: string; email: string; role: UserRole; active: boolean; hr?: boolean; mustChangePassword: boolean }
 export interface Team { id: string; name: string; description: string; member_count: number }
+export class AccountRequestError extends Error {
+  constructor(message: string, public status?: number) { super(message); }
+}
 export async function accountRequest<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(path, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'OpenFieldService' }, body: body === undefined ? undefined : JSON.stringify(body) });
   if (response.status === 401) window.dispatchEvent(new Event('ofs:auth-required'));
   let data;
   try { data = await response.json(); } catch { throw new Error(`The server returned an unexpected response (HTTP ${response.status}). Reload the page; if it continues, check that the application and proxy are running the same release.`); }
-  if (!response.ok) throw new Error(data.error || 'The request failed.');
+  if (!response.ok) throw new AccountRequestError(data.error || 'The request failed.', response.status);
   return data;
 }
 interface AuthState { user: AccountUser; teams: Team[]; refreshTeams(): Promise<void>; refreshAccount(): Promise<void>; logout(): Promise<void> }

@@ -90,7 +90,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
           {!teams.length && !collapsed && <p class="workspace-team-empty">No teams assigned</p>}
         </div>
         <div class="sidebar-section-title">Apps</div>
-        <button class="sidebar-item workspace-app-toggle" title="Field Service"
+        <button class={`sidebar-item workspace-app-toggle ${navItems.some(item => active(item.view)) ? 'active' : ''}`} title="Field Service"
           aria-expanded={collapsed || appsExpanded} aria-controls="field-service-pages"
           onClick={() => toggleModule("fieldService")} disabled={collapsed}>
           <CalendarClock size={14} class="workspace-app-symbol" aria-hidden="true" />

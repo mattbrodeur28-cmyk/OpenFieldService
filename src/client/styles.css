@@ -1265,7 +1265,6 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .workspace-team-avatar { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 20px; width: 20px; height: 20px; border-radius: 50%; background: var(--border); color: var(--text-secondary); font-size: 10px; font-weight: 600; }
 .workspace-team-empty { padding: 6px 8px; color: var(--text-muted); font-size: 12px; }
 .workspace-account-heading { margin-top: 28px; }
-.workspace-app-toggle { background: var(--primary-light); }
 .workspace-app-pages { margin: 2px 0 0 14px; border-left: 1px solid var(--border); }
 .workspace-app-pages .sidebar-item { padding-left: 10px; }
 .workspace-sidebar-footer { border-top: 1px solid var(--border); padding: 8px; }

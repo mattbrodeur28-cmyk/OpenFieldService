@@ -702,6 +702,10 @@ apps or another copy of the job status. Detailed contract and implementation ord
   billing lines. On-Demand uses approved T&M, quoted work respects accepted scope
   and changes, PM uses entitlement/coverage and approved overages. Invoice readiness
   is separate from service completion, invoice posting and actual payment.
+  Implemented preparation: admin On-Demand draft review of approved source labor
+  and material usage, explicit selling rates/reasons, exact-cent totals and stale
+  source/version protection. Final readiness/RMS checks, invoice handoff and
+  quote/PM coverage remain open.
 - [ ] **TECH-009 — Truck inventory:** real trucks as stock locations, technician
   custody assignments, shared material catalog, warehouse/truck transfers, receipts,
   returns, job/phase usage, reservations, counts and reorder levels. Append movement

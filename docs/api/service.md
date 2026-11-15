@@ -203,3 +203,37 @@ Checked additive `_service_timesheet_migrations` v1 periods/submissions/reviews/
 locks, v2 retained correction events. Never edit applied SQL. Use matched application
 and database backups for rollback. Wage/overtime rules, paid/unpaid break policy,
 crew/phase identity, non-job labor and payroll-provider qualification remain open.
+
+
+## On-Demand billing preparation
+
+GET `/jobs/:id/billing` is Owner/Admin only. Returns original job/report identity,
+approved labor candidates, same-job material usage/cost, source token, blockers and
+saved draft/version/stale flag. Requires completed supervisor-approved report with
+retained matching equipment and On-Demand category. Quoted/PM/Unclassified work is
+blocked until accepted scope, agreement coverage and entitlement rules exist.
+
+PUT `/jobs/:id/billing-draft` accepts strict `{expectedVersion,sourceToken,
+currency:"USD",labor,materials,taxBasisPoints,notes}`. Each labor/material source ID
+must appear exactly once. Labor entries contain sourceId, integer hourly rateCents,
+integer billableMinutes and reason; materials contain sourceId, integer selling
+rateCents and reason. Material quantities come from source usage (positive, <=3
+fractional digits); selling prices never default to unit cost. Labor billing cannot
+exceed worked minutes; nonbillable work stays zero. Changing requested billable
+minutes, zero hourly rate or no-charge material requires explanation>=10characters.
+Max20 labor/200 material sources, rate<=10million cents, total<=$10million USD.
+
+Amounts use integer/BigInt arithmetic: labor cents rounded half-up per source from
+minutes*hourlyCents/60, materials from milliQuantity*unitCents/1000, then a single
+subtotal tax rounding at taxBasisPoints/10,000. Tax rate is explicitly reviewed input,
+not a taxability determination. The UI takes decimal USD values and converts them
+without floating-point money calculations. Saved totals refer to the saved draft.
+
+A source hash covers current job/category/equipment/report/labor/material usage and
+cost/name context. Stale source/version, duplicate/unknown sources and invalid
+quantities fail without changes. Draft and attributed before/after audit commit
+atomically. `_service_billing_migrations` v1 creates drafts/audit additively.
+
+This is preparation, not approved billing or invoice readiness. Execution stays at
+billing review; no invoice, payment or QuickBooks posting occurs. Final material/RMS
+checks, accepted quote/PM coverage and idempotent invoice handoff remain TECH-008.

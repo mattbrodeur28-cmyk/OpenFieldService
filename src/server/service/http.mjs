@@ -1,3 +1,4 @@
+import { createBilling } from "./billing.mjs";
 import { createTimesheets } from "./timesheets.mjs";
 import { createCompanySettings } from "./company.mjs";
 import { mountExecution } from "./execution-http.mjs";
@@ -128,5 +129,18 @@ export function createService({ storage, currentUser, people }) {
       },
     });
   });
-  return { app, service, execution, company, timesheets };
+  const billing = createBilling({ storage });
+  app.get("/jobs/:id/billing", (c) =>
+    c.json(billing.detail(check(c), c.req.param("id"))),
+  );
+  app.put("/jobs/:id/billing-draft", async (c) => {
+    let data;
+    try {
+      data = await c.req.json();
+    } catch {
+      throw new ServiceIdentityError("Send a valid JSON request.");
+    }
+    return c.json(billing.save(check(c), c.req.param("id"), data));
+  });
+  return { app, service, execution, company, timesheets, billing };
 }

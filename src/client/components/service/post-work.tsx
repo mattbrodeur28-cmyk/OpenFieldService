@@ -1,3 +1,4 @@
+import { BillingPreparation } from "./billing-preparation";
 import { useState } from "preact/hooks";
 import type {
   ExecutionDetail,
@@ -80,6 +81,9 @@ export function PostWorkPanel({
           Service completed with an approved report. Billing remains pending its
           separate review; report approval does not post an invoice or payment.
         </Notice>
+      )}
+      {data.workflow?.service_completed === 1 && data.canManage && (
+        <BillingPreparation jobId={data.job.id} disabled={disabled} />
       )}
       {data.timeEntries && data.timeEntries.length > 0 && (
         <section class="sales-details">

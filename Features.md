@@ -1110,6 +1110,11 @@ to the requested customer; no customer, site, asset, or material copy is created
 Sidebar section disclosures persist per user in this browser, survive reloads, and
 synchronize between tabs. Blocked/unavailable browser storage falls back to usable
 in-memory navigation. These preferences never grant access or configure the server.
+Module headings are one full-width disclosure button, including their chevron;
+Overview remains the first child link. In the collapsed icon rail, Sales/Fleet/HR/Finance
+children are hidden and module icons open the corresponding overview. Collapsing the
+rail does not rewrite section preferences. Profile initials stay visible with mouse
+as well as touch input. See [sidebar repair evidence](docs/releases/2026-11-15-sidebar.md).
 
 Dispatcher's embedded week has no redundant Schedule heading. Selecting a day,
 previous/next week, or Today updates the shared dispatch date and native board;

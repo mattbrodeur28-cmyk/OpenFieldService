@@ -5,7 +5,7 @@ import { useEffect, useState } from "preact/hooks";
 import { ProfilePopup, type ProfileSection } from "./profile-popup";
 import { useApp } from "../context";
 import { useAccount, isAdministrator, canManagePeople } from "../auth";
-import { Wallet, ContactRound, ShoppingCart, Truck, TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
+import { Wallet, ContactRound, Truck, TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, Package } from "lucide-preact";
 import type { View } from "../types";
 
 const navItems: { view: View; path: string; label: string; icon: typeof LayoutDashboard }[] = [
@@ -38,7 +38,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
   const navItem = (item: typeof navItems[number]) => {
     const count = item.view === "jobs" ? stats.jobs : item.view === "customers" ? stats.customers
       : item.view === "invoices" ? stats.invoices_outstanding : 0;
-    return <button key={item.view} title={item.label}
+    return <button key={item.view} title={item.label} aria-label={item.label}
       aria-current={active(item.view) ? "page" : undefined}
       class={`sidebar-item ${active(item.view) ? "active" : ""}`}
       onClick={() => navigate(item.path)}>
@@ -49,15 +49,19 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
   };
 
   const moduleGroup = (module: BusinessModule, Icon: typeof LayoutDashboard) => {
-    const expanded = collapsed || expandedModules[module.view];
+    const expanded = !collapsed && expandedModules[module.view];
     const selected = active(module.view);
     return <div class="workspace-module" key={module.view}>
-      <div class="workspace-module-heading">
-        <button type="button" class={`sidebar-item workspace-app-toggle ${selected ? 'active' : ''}`} title={`${module.label} overview`} aria-current={selected && !currentId && currentView===module.view ? 'page' : undefined} onClick={() => navigate('/'+module.view)}>
-          <Icon size={14} aria-hidden="true"/><span class="workspace-nav-label">{module.label}</span>
-        </button>
-        {!collapsed && <button type="button" class="btn-icon workspace-module-disclosure" aria-label={`${expanded ? 'Collapse' : 'Expand'} ${module.label}`} aria-expanded={!!expanded} aria-controls={`${module.view}-pages`} onClick={() => toggleModule(module.view)}><ChevronDown size={14} class={`workspace-chevron ${expanded ? '' : 'closed'}`} aria-hidden="true"/></button>}
-      </div>
+      <button type="button" class={`sidebar-item workspace-app-toggle ${selected ? 'active' : ''}`}
+        title={collapsed ? `${module.label} overview` : module.label}
+        aria-label={collapsed ? `${module.label} overview` : `${expanded ? 'Collapse' : 'Expand'} ${module.label}`}
+        aria-current={collapsed && selected && !currentId && currentView===module.view ? 'page' : undefined}
+        aria-expanded={collapsed ? undefined : expanded}
+        aria-controls={collapsed ? undefined : `${module.view}-pages`}
+        onClick={() => collapsed ? navigate('/'+module.view) : toggleModule(module.view)}>
+        <Icon size={14} aria-hidden="true"/><span class="workspace-nav-label">{module.label}</span>
+        {!collapsed && <ChevronDown size={14} class={`workspace-chevron ${expanded ? '' : 'closed'}`} aria-hidden="true"/>}
+      </button>
       <div id={`${module.view}-pages`} class="workspace-app-pages" hidden={!expanded}>
         {[{key:'overview',label:'Overview',path:'/'+module.view},...module.pages].map(page=>{
           const pageActive = selected && (page.key==='overview' ? !currentId && currentView===module.view : currentView===page.key || (currentView===module.view && currentId===page.key));
@@ -80,7 +84,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
         </div>
         <div class="workspace-team-heading"><button class="sidebar-section-title" onClick={() => navigate("/team")}>Team</button><button class="btn-icon" title="View teams" aria-label="View teams" onClick={() => navigate("/team")}><Plus size={14} /></button></div>
         <div class="workspace-team-list">
-          {teams.map(team => <button class={`sidebar-item ${currentView === "team" && currentId === team.id ? "active" : ""}`} title={team.name} aria-current={currentView === "team" && currentId === team.id ? "page" : undefined} onClick={() => navigate("/team/" + team.id)}>
+          {teams.map(team => <button class={`sidebar-item ${currentView === "team" && currentId === team.id ? "active" : ""}`} title={team.name} aria-label={team.name} aria-current={currentView === "team" && currentId === team.id ? "page" : undefined} onClick={() => navigate("/team/" + team.id)}>
             <span class="workspace-team-avatar" aria-hidden="true">{team.name.slice(0, 1).toUpperCase()}</span><span class="workspace-nav-label">{team.name}</span>
           </button>)}
           {!teams.length && !collapsed && <p class="workspace-team-empty">No teams assigned</p>}
@@ -105,7 +109,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
         {canManage && navItem({ view: "website", path: "/website", label: "Website", icon: Globe })}
       </nav>
       <div class="workspace-sidebar-footer">
-        <button class="sidebar-item workspace-account-button" title={user.name} aria-haspopup="dialog" onClick={() => setProfileSection("profile")}><Avatar name={user.name} /><span class="workspace-nav-label">{user.name}<small>{user.role}</small></span></button>
+        <button class="sidebar-item workspace-account-button" title={user.name} aria-label={`${user.name} profile and settings`} aria-haspopup="dialog" onClick={() => setProfileSection("profile")}><Avatar name={user.name} /><span class="workspace-nav-label">{user.name}<small>{user.role}</small></span></button>
       </div>
       {profileSection && <ProfilePopup initialSection={profileSection} close={closeProfile} />}
     </aside>

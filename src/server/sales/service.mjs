@@ -517,7 +517,42 @@ export function createSalesService({ storage, owners = () => [] }) {
     });
   }
   bootstrap();
+  function customerContext(customerId, pageValue = 1) {
+    const page = Number(pageValue);
+    if (!Number.isSafeInteger(page) || page < 1 || page > 1000000)
+      throw new SalesError("Choose a valid customer activity page.");
+    return transaction(db, () => {
+      if (!db.prepare("SELECT id FROM customers WHERE id=?").get(customerId))
+        throw new SalesError("Customer not found.", 404);
+      const opportunities = db
+        .prepare(
+          projection +
+            " WHERE o.customer_id=? ORDER BY o.updated_at DESC,o.id LIMIT 25 OFFSET ?",
+        )
+        .all(customerId, (page - 1) * 25);
+      const total = db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM _sales_opportunities WHERE customer_id=?",
+        )
+        .get(customerId).n;
+      const openActivities = db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM _sales_activities a JOIN _sales_opportunities o ON o.id=a.opportunity_id WHERE o.customer_id=? AND a.status='open'",
+        )
+        .get(customerId).n;
+      return {
+        customerId,
+        opportunities,
+        total,
+        openActivities,
+        page,
+        pageSize: 25,
+      };
+    });
+  }
   return {
+    customerContext,
+    opportunity,
     pipelines: () =>
       db
         .prepare("SELECT id FROM _sales_pipelines ORDER BY created_at,id")

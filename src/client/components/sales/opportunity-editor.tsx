@@ -14,6 +14,8 @@ import { TextField } from "../ui/input";
 import { Select } from "../ui/select";
 import { DialogTitle } from "../ui/dialog";
 import { Badge, Notice, Sheet, Textarea } from "../ui/surfaces";
+import { ActivityPanel } from "./activities";
+import type { SalesMutation } from "../../sales-types";
 import { MoveForm } from "./move-form";
 export function OpportunityEditor({
   row,
@@ -27,6 +29,7 @@ export function OpportunityEditor({
   save,
   move,
   addNote,
+  mutate,
 }: {
   row: Opportunity | null;
   pipeline: SalesPipeline;
@@ -38,6 +41,7 @@ export function OpportunityEditor({
   close(): void;
   save(id: string | null, data: unknown): Promise<boolean>;
   move(row: Opportunity, stage: string, reason: string): Promise<boolean>;
+  mutate: SalesMutation;
   addNote(row: Opportunity, content: string): Promise<boolean>;
 }) {
   const [title, setTitle] = useState(row?.title || ""),
@@ -407,8 +411,16 @@ export function OpportunityEditor({
               move={move}
             />
           </section>
+          <ActivityPanel
+            row={row}
+            options={options}
+            admin={admin}
+            disabled={disabled || busy}
+            error={error}
+            mutate={mutate}
+          />
           <section class="sales-details">
-            <h3>Activity</h3>
+            <h3>History and notes</h3>
             <p class="workspace-help">
               Internal notes stay in your workspace. No customer message is
               sent.
@@ -468,7 +480,9 @@ export function OpportunityEditor({
                         ? `${before.stage_name} → ${after.stage_name}`
                         : item.action === "create"
                           ? "Opportunity created"
-                          : "Opportunity updated"}
+                          : item.action === "activity"
+                            ? `Follow-up ${after.action}: ${after.title} (${after.status})`
+                            : "Opportunity updated"}
                     </strong>
                     <small>
                       {named(item.actor_id)} · {dateLabel(item.created_at)}

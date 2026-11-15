@@ -1,10 +1,17 @@
+import { createActivities } from "./activities.mjs";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createSalesService } from "./service.mjs";
 import { SalesError } from "./domain.mjs";
-export function createSales({ storage, currentUser, owners }) {
+export function createSales({ storage, currentUser, owners, resolveMessage }) {
   const service = createSalesService({ storage, owners }),
     app = new Hono();
+  const activities = createActivities({
+    storage,
+    sales: service,
+    owners,
+    resolveMessage,
+  });
   app.use(
     "*",
     bodyLimit({
@@ -65,6 +72,9 @@ export function createSales({ storage, currentUser, owners }) {
       pipeline: service.savePipeline(check(c), c.req.param("id"), data),
     });
   });
+  app.get("/customers/:id/context", (c) =>
+    c.json(service.customerContext(c.req.param("id"), c.req.query("page"))),
+  );
   app.get("/options", (c) => c.json(service.options(c.req.query())));
   app.get("/opportunities", (c) => c.json(service.list(c.req.query())));
   app.get("/opportunities/:id", (c) =>
@@ -94,6 +104,30 @@ export function createSales({ storage, currentUser, owners }) {
     return c.json(
       { opportunity: service.note(check(c), c.req.param("id"), data) },
       201,
+    );
+  });
+  app.get("/activities/reminders", (c) =>
+    c.json(activities.reminders(check(c))),
+  );
+  app.get("/activities", (c) =>
+    c.json(activities.list(check(c), c.req.query())),
+  );
+  app.post("/opportunities/:id/activities", async (c) => {
+    const data = await body(c);
+    return c.json(
+      activities.save(check(c), c.req.param("id"), null, data),
+      201,
+    );
+  });
+  app.put("/opportunities/:id/activities/:activityId", async (c) => {
+    const data = await body(c);
+    return c.json(
+      activities.save(
+        check(c),
+        c.req.param("id"),
+        c.req.param("activityId"),
+        data,
+      ),
     );
   });
   return { app, service };

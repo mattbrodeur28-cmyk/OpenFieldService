@@ -38,6 +38,7 @@ import {
   Checkbox,
   Table,
 } from "./ui/surfaces";
+import { DispatchHours } from "./dispatch-hours";
 import { Tooltip } from "./ui/tooltip";
 
 type DispatchJob = Job & {
@@ -45,6 +46,9 @@ type DispatchJob = Job & {
   equipment_name?: string;
   equipment_serial?: string;
   dispatch_override?: number;
+  is_emergency: number;
+  work_category: "unspecified" | "on_demand" | "quoted" | "pm";
+  outside_service_hours?: boolean;
 };
 type Resource = Technician & {
   dispatch_team: string;
@@ -54,6 +58,15 @@ type Resource = Technician & {
   availability: { available: boolean; start: number; end: number } | null;
 };
 type Board = {
+  operatingHours: {
+    enabled: boolean;
+    version: number;
+    open: boolean;
+    start: number;
+    end: number;
+    label: string;
+    exception: boolean;
+  };
   date: string;
   timeZone: string;
   now: string;
@@ -108,6 +121,8 @@ function AssignmentForm({
     duration: number,
     override?: boolean,
     reason?: string,
+    emergency?: boolean,
+    workCategory?: string,
   ): Promise<boolean>;
   close(): void;
   canOverride: boolean;
@@ -118,6 +133,7 @@ function AssignmentForm({
     [time, setTime] = useState(job.scheduled_time || "09:00"),
     [duration, setDuration] = useState(job.duration),
     [override, setOverride] = useState(false),
+    [workCategory, setWorkCategory] = useState(job.work_category),
     [reason, setReason] = useState("");
   return (
     <Sheet close={close}>
@@ -149,6 +165,8 @@ function AssignmentForm({
             duration,
             override,
             reason,
+            workCategory === "on_demand",
+            workCategory,
           ).then((ok) => {
             if (ok) close();
           });
@@ -194,7 +212,7 @@ function AssignmentForm({
           disabled={busy}
         />
         <TextField
-          label="Duration (minutes)"
+          label="Estimated slot duration (minutes)"
           type="number"
           min={15}
           max={1440}
@@ -203,10 +221,28 @@ function AssignmentForm({
           onInput={(e) => setDuration(Number(e.currentTarget.value))}
           disabled={busy}
         />
+        <Select
+          label="Work category"
+          value={workCategory}
+          disabled={busy}
+          onValueChange={(v) =>
+            setWorkCategory(v as DispatchJob["work_category"])
+          }
+          options={[
+            { value: "unspecified", label: "Unclassified" },
+            { value: "on_demand", label: "On-Demand · Emergency / T&M" },
+            { value: "quoted", label: "Quoted Work / Project" },
+            { value: "pm", label: "PM · Planned Maintenance" },
+          ]}
+        />
+        <p class="workspace-help">
+          Normal calls must fit company service hours. After-hours emergencies
+          need an administrator override with a reason.
+        </p>
         {canOverride && (
           <>
             <Checkbox
-              label="Override overlap or declared availability"
+              label="Approve emergency hours, overlap or declared availability override"
               checked={override}
               onChange={(e) => setOverride(e.currentTarget.checked)}
               disabled={busy}
@@ -392,6 +428,7 @@ export function Dispatcher() {
     [resourceState, setResourceState] = useState("active"),
     [view, setView] = useState("gantt"),
     [editing, setEditing] = useState<DispatchJob | null>(null),
+    [hoursOpen, setHoursOpen] = useState(false),
     [editingResource, setEditingResource] = useState<Resource | null>(null),
     [drag, setDrag] = useState<Drag | null>(null),
     [now, setNow] = useState(new Date());
@@ -514,6 +551,8 @@ export function Dispatcher() {
     duration: number,
     override = false,
     reason = "",
+    emergency = Boolean(job.is_emergency),
+    workCategory = job.work_category,
   ) {
     if (user.role === "viewer" || connectivity.readOnly || busy) return false;
     setBusy(true);
@@ -528,6 +567,8 @@ export function Dispatcher() {
         expectedVersion: job.schedule_version,
         override,
         reason,
+        emergency,
+        workCategory,
       });
       await refreshRef.current();
       setNotice(job.identifier + " assignment saved.");
@@ -820,6 +861,31 @@ export function Dispatcher() {
           Schedule changes are disabled until live access returns.
         </Notice>
       )}
+      <div class="dispatch-toolbar">
+        <p class="workspace-help">
+          {board.operatingHours.enabled
+            ? board.operatingHours.open
+              ? `Service hours: ${clockOf(board.operatingHours.start)}–${board.operatingHours.end === 1440 ? "24:00" : clockOf(board.operatingHours.end)}`
+              : "Closed for normal calls"
+            : "Company service hours are not enforced"}{" "}
+          · {board.operatingHours.label} · {board.timeZone}
+        </p>
+        {admin && (
+          <Button disabled={!canWrite} onClick={() => setHoursOpen(true)}>
+            Service hours
+          </Button>
+        )}
+        <Badge
+          tone={
+            board.jobs.some((j) => j.outside_service_hours)
+              ? "warning"
+              : "neutral"
+          }
+        >
+          {board.jobs.filter((j) => j.outside_service_hours).length} after-hours
+          appointments
+        </Badge>
+      </div>
       <div class="dispatch-metrics">
         <div>
           <Clock3 size={17} />
@@ -1139,6 +1205,37 @@ export function Dispatcher() {
                         "--hour-width": hourWidth + "px",
                       }}
                     >
+                      {board.operatingHours.enabled &&
+                        (!board.operatingHours.open ? (
+                          <div
+                            class="dispatch-service-closed"
+                            style={{ left: 0, width: hourWidth * 24 }}
+                            aria-label="Outside company service hours"
+                          />
+                        ) : (
+                          <>
+                            <div
+                              class="dispatch-service-closed"
+                              style={{
+                                left: 0,
+                                width:
+                                  (board.operatingHours.start / 60) * hourWidth,
+                              }}
+                              aria-label="Before company service hours"
+                            />
+                            <div
+                              class="dispatch-service-closed"
+                              style={{
+                                left:
+                                  (board.operatingHours.end / 60) * hourWidth,
+                                width:
+                                  ((1440 - board.operatingHours.end) / 60) *
+                                  hourWidth,
+                              }}
+                              aria-label="After company service hours"
+                            />
+                          </>
+                        ))}
                       {resource.availability &&
                         (!resource.availability.available ? (
                           <div
@@ -1214,6 +1311,15 @@ export function Dispatcher() {
                                 job.customer_name
                               }
                             >
+                              {job.work_category === "pm"
+                                ? "PM · "
+                                : job.work_category === "quoted"
+                                  ? "Quoted · "
+                                  : ""}
+                              {job.is_emergency ? "On-Demand · " : ""}
+                              {job.outside_service_hours
+                                ? "After hours · "
+                                : ""}
                               {job.identifier} · {job.customer_name}
                               <small>
                                 {job.scheduled_time}–
@@ -1332,6 +1438,18 @@ export function Dispatcher() {
           </div>
         </section>
       </div>
+      {hoursOpen && (
+        <DispatchHours
+          disabled={!canWrite}
+          close={() => setHoursOpen(false)}
+          saved={async () => {
+            await refreshRef.current();
+            setNotice(
+              "Service hours saved. Existing appointments retained; review after-hours warnings.",
+            );
+          }}
+        />
+      )}
       {editing && (
         <AssignmentForm
           key={editing.id}

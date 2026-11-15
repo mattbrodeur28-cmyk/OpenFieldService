@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { useApp } from "../context";
+import { CustomerSales } from "./customer-sales";
 import { CustomerEquipment } from "./customer-equipment";
 import { StatusBadge } from "./status-badge";
 import { ArrowLeft, Trash2, Edit3, Save, X } from "lucide-preact";
@@ -109,6 +110,7 @@ export function CustomerDetail() {
             </>
           )}
 
+          <CustomerSales key={"sales-"+customer.id} customerId={customer.id}/>
           <CustomerEquipment key={customer.id} customerId={customer.id} />
 
           <div class="detail-section">

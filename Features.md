@@ -73,18 +73,20 @@ qualification remain planned work.
 | M1 | Navigation, profile/settings, HR, channels and conversational Builder | In progress | M0 |
 | M2 | Maintainable backend boundaries and operational foundations | Planned | M0; complete M1 first |
 | M3 | Salesforce-style Dispatcher app | Core implemented; accessibility qualification remains | M2 concurrency and scheduling foundation |
-| M4 | Commercial CRM, Sales pipeline and quote-to-job conversion | In progress: Sales opportunities/pipelines/Kanban | M2; existing customers/sites |
+| M4 | Commercial CRM, Sales pipeline and quote-to-job conversion | In progress: Sales opportunities, pipelines, Kanban and follow-ups | M2; existing customers/sites |
 | M5 | Contracts, maintenance agreements and renewals | Planned | M4 customer/contact model; M3 scheduling |
 | M6 | QuickBooks-backed accounting | Planned | M2 reliable integration jobs/audit; M4 mappings |
 | M7 | Controls records, commissioning and handover | Planned | M4; existing equipment foundation |
 | M11 | Commercial/construction projects, phased billing, crews and job costing | Planned | M2–M6 shared domains; project and ledger foundations |
 | M12 | Residential memberships, mobile sales/service, booking and payment workflows | Planned | M3–M6 shared domains; relevant M8 capabilities |
+| M13 | Technician workflow, actual time, timesheets and truck inventory | Planned; service categories implemented | M2, M3; shared users/jobs/materials |
+| M14 | Refrigerant Monitoring System and dashboard | Planned | M13 inventory/time/job evidence; equipment baseline |
 | M8 | Business-owner reporting and operational controls | Planned | M3–M7 business events |
 | M9 | Containers, Kubernetes and scale qualification | Planned | M2 shared-state/database work |
 | M10 | Optional extensions and broader SaaS | Planned | Proven core workflows |
 
 Milestone IDs remain stable; the table describes dependencies rather than a strict
-numeric execution order. M11/M12 are newly added business tracks and reuse shared
+numeric execution order. M11–M14 are business tracks and reuse shared
 modules instead of duplicating the M3–M8 work.
 
 Ordering can change explicitly. A narrow QuickBooks sandbox slice can precede
@@ -241,6 +243,11 @@ Changed source must invalidate a draft. Never label generated code compiled or l
   secret references/rotation and encryption-key migration procedure.
 - [ ] **ARCH-012 — Observability:** structured logs, metrics, worker/integration health,
   readiness/liveness, tracing hooks, alerts and operator dashboards.
+- [ ] **ARCH-014 — Native app integration:** one authoritative customer/site/equipment,
+  work order, user and catalog identity across apps; reverse record links, shared
+  capabilities and transactional handoffs. Snapshots preserve accepted documents;
+  projections must identify their authoritative source. See
+  [native-record contract](docs/architecture/decisions/0005-native-business-records.md).
 - [ ] **ARCH-013 — Security:** centralized capabilities, session revocation, CSRF/CORS,
   rate limits, MFA/SSO roadmap, dependency/secret scanning and disclosure process.
 
@@ -280,6 +287,18 @@ timezone, availability, concurrency and metrics. M2's broader platform work rema
   reduced motion and a narrow-screen alternate view. Desktop pointer/keyboard and
   400px dark/reduced-motion assignment/save are verified; physical touch and
   broader assistive-technology qualification remain open.
+- [x] **DISPATCH-011 — Company service hours:** admin-managed weekly hours and dated
+  exceptions/holidays in the schedule timezone; 24-hour board, closed-time shading,
+  retained existing work and after-hours warnings. Normal calls cannot bypass hours;
+  On-Demand emergency/T&M needs deliberate admin override/reason after hours.
+- [x] **DISPATCH-012 — Shared work categories:** existing job identity with native
+  service classification: On-Demand (emergency/T&M), Quoted Work / Project and PM;
+  old jobs remain Unclassified until deliberately categorized. Classification does
+  not itself create an accepted quote, active agreement or accounting transaction.
+- [ ] **DISPATCH-013 — Estimated versus actual:** scheduling uses an estimated slot;
+  submitted/approved technician reports provide actual visit intervals and labor.
+  Completed board slots use actual intervals with the original estimate retained.
+  Keep elapsed time, per-person labor and billable hours separate (TECH-005/006).
 - [ ] **DISPATCH-010 — Later:** maps, geocoding, routing, travel estimates, shifts,
   breaks, skills, multi-tech and multi-visit jobs; optional provider credentials.
 
@@ -327,8 +346,9 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
 - [x] **SALES-003 — Kanban:** drag opportunities across stages, owner/value/date/search
   filters, stage totals and list alternative. Persist moves, reject stale versions,
   explain failed transitions and offer keyboard/form equivalents.
-- [ ] **SALES-004 — Sales activities:** calls, meetings, site surveys, tasks, follow-up
-  dates and reminders; link supported communications explicitly and preserve authors.
+- [x] **SALES-004 — Sales activities:** calls, meetings, site surveys, tasks, follow-up
+  dates and in-app reminders; explicit permission-checked Team message links and
+  preserved authors. External email/SMS/push delivery remains separate.
 - [ ] **SALES-005 — Quote generation:** build quotes from opportunities using service,
   labor and material catalog items, quantities, tax, discounts, scope, exclusions,
   alternates, validity, customer/site details and reusable business templates.
@@ -611,6 +631,108 @@ rescheduling approval, declined/pending payments, failed sync and offline recove
 Treat automated booking, financing and payroll as separately verified subfeatures,
 not prerequisites for claiming unrelated mobile or membership work complete.
 
+## M13 — Technician execution, timesheets and truck inventory
+
+Requested workflow: **1 Safety PJSA → 2 Post-work report → 3 Completion / Billing**.
+This is a server-enforced workflow over the same work order, not three separate
+apps or another copy of the job status. Detailed contract and implementation order:
+[service operating model](docs/product/service-operating-model.md).
+
+- [ ] **TECH-001 — Technician identity:** explicit active user-to-technician mapping,
+  assigned-work permissions, crew membership and delegated supervisor actions.
+  Never infer identity from matching names or expose payroll to HR by default.
+- [ ] **TECH-002 — Workflow engine:** persisted/versioned job step, allowed
+  transitions and per-category template; server checks across Dispatcher, job APIs,
+  mobile and billing. Resume drafts, show blockers, preserve legacy jobs and require
+  an audited supervisor reason for approved exceptions. Emergency is not a blanket
+  PJSA bypass; establish a deliberate field procedure.
+- [ ] **TECH-003 — Step 1 Safety/PJSA:** template version, task/site hazards, controls,
+  PPE, relevant permits/LOTO acknowledgments, participants, timestamps and evidence;
+  required answers before starting; changed conditions require reassessment. Approved
+  company templates and jurisdiction-specific review precede production enforcement.
+- [ ] **TECH-004 — Step 2 Post-work report:** findings, work performed, equipment
+  readings, deficiencies, photos, customer acknowledgment and follow-up needs;
+  actual visit times, labor entries, truck materials and RMS references. Required
+  fields vary by On-Demand, Quoted Work and PM; preserve submitted revisions.
+- [ ] **TECH-005 — Time entries:** technician/job/visit/phase IDs, UTC instants plus
+  timezone, start/finish/breaks, travel/work/nonbillable types, open timers, overlap
+  prevention, manual-entry reasons and correction history. Multi-tech elapsed visit
+  time differs from summed labor. No payroll calculation from schedule estimates.
+- [ ] **TECH-006 — Actual Dispatcher slots:** preserve estimated schedule/revisions;
+  final report establishes actual interval for completed work. Show estimate vs
+  actual/variance and historical conflicts without rewriting subsequent jobs. Support
+  cross-midnight/DST actual records; scheduling restrictions must not erase facts.
+- [ ] **TECH-007 — Timesheets:** daily/weekly views built from the same entries,
+  submission, approval/rejection, locked periods and audited adjustments. Separate
+  payroll hours, billable hours and paid/unpaid breaks; scoped accounting export.
+- [ ] **TECH-008 — Step 3 Completion/Billing:** verify PJSA/report/time/material/RMS
+  completeness and required reviews; lock approved evidence and derive reviewable
+  billing lines. On-Demand uses approved T&M, quoted work respects accepted scope
+  and changes, PM uses entitlement/coverage and approved overages. Invoice readiness
+  is separate from service completion, invoice posting and actual payment.
+- [ ] **TECH-009 — Truck inventory:** real trucks as stock locations, technician
+  custody assignments, shared material catalog, warehouse/truck transfers, receipts,
+  returns, job/phase usage, reservations, counts and reorder levels. Append movement
+  records with exact quantities; no duplicated per-truck item masters.
+- [ ] **TECH-010 — Inventory safeguards:** atomically validate availability, append
+  movement/job usage and audit; idempotent mobile submissions, no silent negative
+  stock, approval for adjustments, reversals and retained unit-cost snapshots.
+- [ ] **TECH-011 — Mobile/offline execution:** narrow-screen stepper, drafts,
+  attachments, accessibility and explicit sync/conflict state; queue writes only
+  after server idempotency and private cache protections are implemented.
+
+**Acceptance:** an assigned technician completes PJSA, records a visit with breaks,
+uses truck stock and refrigerant, submits the post-work report and timesheet; a
+supervisor approves corrections, Dispatcher shows actual versus estimate, and
+billing receives approved lines exactly once. Unauthorized cross-technician edits,
+stale approvals, repeated submissions and negative-stock races must fail safely.
+
+## M14 — Refrigerant Monitoring System (RMS)
+
+Promoted from the later-options list at the owner's request. Shared customers,
+equipment, jobs, technicians, trucks and inventory movements are prerequisites.
+This milestone supports researched EPA recordkeeping, not an automatic compliance
+claim. Verify current federal/state requirements and applicability before release.
+
+- [ ] **RMS-001 — Regulatory requirements:** dated source matrix for Section 608,
+  applicable AIM Act requirements and relevant state rules; equipment/refrigerant/
+  charge/operation applicability, required fields, retention, deadlines and report
+  formats. Version rules by effective date; obtain domain review before compliance
+  assertions. Start with [EPA recordkeeping](https://www.epa.gov/section608/recordkeeping-and-reporting-requirements-stationary-refrigeration).
+- [ ] **RMS-002 — Refrigerants and cylinders:** controlled refrigerant catalog, virgin/
+  recovered/reclaimed status, cylinder IDs, tare/capacity/units, custody/location,
+  supplier/reclaimer documents and technician certification references. Distinguish
+  refrigerant contents from the reusable cylinder asset; prohibit unintended mixing.
+- [ ] **RMS-003 — Equipment baseline:** refrigerant type, full charge, circuit and
+  equipment classification, verified source/date and change history on the existing
+  equipment record. Missing/unknown charge must not produce a fabricated leak rate.
+- [ ] **RMS-004 — Field events:** purchases, transfers, additions, recovery, returns,
+  reclamation and disposal linked to job/equipment/technician/cylinder/truck; exact
+  mass and units, event time, reason and evidence. Distinguish recovered mass,
+  inventory shrinkage, refrigerant additions and calculated emissions.
+- [ ] **RMS-005 — Ledger and reconciliation:** atomic balanced transfers, quantity
+  bounds, cylinder reconciliation, adjustments/reversals, idempotency and approved
+  corrections. Reuse inventory movements; do not count a job usage and its cylinder
+  withdrawal twice or treat recovered refrigerant as purchased stock.
+- [ ] **RMS-006 — Leak service workflow:** applicable leak-rate method, source
+  additions/charge/date window, inspections, repair/verification events, deadlines
+  and missing-data states; retain calculation inputs and rule version. No universal
+  hardcoded threshold or invented statutory deadline.
+- [ ] **RMS-007 — Business dashboard:** stock by refrigerant/truck/cylinder, additions/
+  recovery trends, unresolved balances, equipment histories, due follow-ups and
+  reviewed compliance tasks. Drill through every KPI to underlying events; display
+  units/date range/coverage and distinguish unknown from zero.
+- [ ] **RMS-008 — Exports and permissions:** customer service records, inventory
+  reconciliation and researched regulatory exports, retained versions/evidence,
+  technician/supervisor/accounting roles and audit. Regulatory submission remains a
+  separate authorized action; generating a report is not filing it.
+
+**Acceptance:** trace a purchased cylinder through truck transfer, measured service
+addition/recovery and reclaimer return, reconcile mass, reproduce equipment history
+and dashboard totals, and export the applicable reviewed record set. Test unit
+conversions, duplicate/offline events, cross-job references, corrections and missing
+charge data. Jurisdiction-specific compliance qualification remains explicit.
+
 ## M8 — Empower the business owner
 
 - [ ] **BIZ-001 — Dashboard:** dispatch, pipeline, overdue work, quote approvals,
@@ -664,7 +786,7 @@ shared-state and concurrency testing. A backup job is not proof of restoration.
 - [ ] Additional CRM providers after object ownership/sync behavior is proven.
 - [ ] Social publishing after explicit authorization, provider approval, reviewed
   target/content selection and uncertain-delivery handling.
-- [ ] Refrigeration/refrigerant records with researched jurisdiction-specific
+- [ ] Additional refrigeration workflows beyond M14, with researched jurisdiction-specific
   requirements; distinguish recordkeeping from compliance claims.
 - [ ] Customer email/SMS with consent, templates, delivery status and provider costs.
 - [ ] Multi-company SaaS only after tenant isolation covers data, jobs, credentials,
@@ -709,8 +831,13 @@ enterprise documentation set already exists. Current guides:
 
 ## Next checkpoint
 
-Finish and verify M1. Then select the first M2 service/concurrency slice needed by
-M3 Dispatcher: job versus appointment model, schedule timezone and transactional
-conflict policy. Plan the first QuickBooks sandbox slice after agreeing mapping,
-ownership and reliable execution rules. Attach release evidence per feature rather
-than prematurely marking a whole milestone complete.
+Deliver the current Sales follow-up/native customer-link and service-hours/category
+increment with its migration, permission and browser evidence. Next, establish
+TECH-001 identity mapping and TECH-002/003 safety workflow, followed by actual work
+reports/time entries and final Dispatcher slots (TECH-004–007 / DISPATCH-013).
+Continue Sales quote versions/accepted conversion (SALES-005–009) with native job
+links, then PM entitlements and reviewed billing. Build truck stock before RMS
+ledger/dashboard. ARCH-003/005/006 remain prerequisites for shared PostgreSQL,
+reliable external writes and multi-replica Kubernetes; do not mark M2 complete from
+these single-instance modules. QuickBooks sandbox work follows reviewed mapping
+and idempotent export design. Attach evidence to each feature as it is delivered.

@@ -120,3 +120,37 @@ Use one application instance with persistent local storage. Multi-replica Kubern
 PostgreSQL, queues, audit retention and tenant isolation remain roadmap items.
 Rollback after production writes requires maintenance and a verified matching
 backup; do not delete Sales tables to make a checksum mismatch disappear.
+
+## Follow-ups and native customer context
+
+GET `/activities?opportunityId=&assignee=me/all/USER_ID&status=open/done/cancelled/all&page=1`
+returns 50 records ordered by due time, total/page/pageSize and server `now`. Optional
+`dueBefore` is an offset-bearing timestamp. GET `/activities/reminders` returns up
+to 50 of the current user's open reminders due, plus the full count. UI refreshes
+reminders each minute/on focus; there is no email/SMS/push/background delivery.
+
+POST `/opportunities/:id/activities` and PUT
+`/opportunities/:id/activities/:activityId` accept strict JSON: `kind`
+(call/meeting/site_survey/task), `title`, `details`, `assigneeId`, `dueAt`,
+`reminderAt`, `status` (open/done/cancelled), `outcome`, `messageId` (UUID or null).
+Creation requires `expectedOpportunityVersion`; update requires `expectedVersion`
+for the activity. Reminder must be no later than due time. Timestamps must include
+an offset and are stored as canonical UTC. Completion/cancellation requires a
+three-character outcome/reason. Completion retains actor/time; reopening clears
+current completion fields but preserves prior audit. No hard-delete endpoint.
+
+Owner/Admin can assign active writers. Members can create for their own opportunity,
+assign themselves, and edit their own/assigned activities; HR adds no Sales powers.
+An existing other assignee may be retained. Each save increments the opportunity
+version and commits activity, opportunity history and audit atomically. Stale
+versions return 409; close/reopen to review instead of replaying blindly.
+
+A newly linked message must be readable through collaboration permissions. Only
+team/message IDs are stored; message text is not projected into Sales. Changing
+team membership changes message read access, not historical Sales evidence. Links
+open the team's existing screen; only its recent 100 messages are available there.
+
+GET `/customers/:id/context?page=1` joins the original customer to 25 opportunities
+across pipelines and the count of open follow-ups. Customer detail consumes this
+projection; `/sales/:opportunityId` opens the original opportunity. No customer copy
+is created. Company-wide Sales read visibility still applies.

@@ -1,4 +1,6 @@
-import { createHash } from "node:crypto";
+import { installServiceWork } from "../service/work.mjs";
+import { migrate } from "../platform/sqlite.mjs";
+import { hoursMigration } from "./hours.mjs";
 const minutes = (alias) =>
   `(CAST(substr(${alias}.scheduled_time,1,2) AS INTEGER)*60+CAST(substr(${alias}.scheduled_time,4,2) AS INTEGER))`;
 const signature = `(NEW.technician_id || '|' || NEW.scheduled_date || '|' || NEW.scheduled_time || '|' || NEW.duration)`;
@@ -42,36 +44,31 @@ END;
 
 /** One serialized, checksummed module migration. Never rebuild or reset populated job tables. */
 export function installDispatch(db) {
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    db.exec(
-      "CREATE TABLE IF NOT EXISTS _dispatch_schema_migrations(version INTEGER PRIMARY KEY,checksum TEXT NOT NULL,applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
-    );
-    const checksum = createHash("sha256").update(migration).digest("hex");
-    const applied = db
-      .prepare(
-        "SELECT checksum FROM _dispatch_schema_migrations WHERE version=1",
-      )
-      .get();
-    if (applied && applied.checksum !== checksum)
-      throw new Error(
-        "Dispatcher migration checksum differs; restore the reviewed migration before startup.",
-      );
-    if (!applied) {
-      db.exec(migration);
-      db.prepare(
-        "INSERT INTO _dispatch_schema_migrations(version,checksum) VALUES(1,?)",
-      ).run(checksum);
-    }
-    db.exec("COMMIT");
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
+  installServiceWork(db);
+  migrate(db, "_dispatch_schema_migrations", [
+    { version: 1, sql: migration },
+    { version: 2, sql: hoursMigration },
+    {
+      version: 3,
+      sql: `
+INSERT INTO _service_work(job_id,category,updated_by) SELECT job_id,'on_demand','migration' FROM _dispatch_job_state WHERE is_emergency=1;
+CREATE TRIGGER _dispatch_work_category_insert AFTER INSERT ON _service_work BEGIN
+ UPDATE _dispatch_job_state SET is_emergency=(NEW.category='on_demand') WHERE job_id=NEW.job_id;
+ UPDATE jobs SET updated_at=CURRENT_TIMESTAMP WHERE id=NEW.job_id;
+END;
+CREATE TRIGGER _dispatch_work_category_update AFTER UPDATE OF category ON _service_work BEGIN
+ UPDATE _dispatch_job_state SET is_emergency=(NEW.category='on_demand') WHERE job_id=NEW.job_id;
+ UPDATE jobs SET updated_at=CURRENT_TIMESTAMP WHERE id=NEW.job_id;
+END;
+`,
+    },
+  ]);
 }
 export { transaction } from "../platform/sqlite.mjs";
 export function dispatchError(error) {
   const messages = {
+    DISPATCH_SERVICE_HOURS:
+      "Outside company service hours. Use an emergency designation and an Owner/Admin override with a reason, or choose an allowed time.",
     DISPATCH_OVERLAP: "This technician already has overlapping work.",
     DISPATCH_AVAILABILITY:
       "This assignment is outside the technician’s declared availability.",

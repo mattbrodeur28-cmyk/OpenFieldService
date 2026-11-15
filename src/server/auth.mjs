@@ -231,5 +231,9 @@ export function createAuth({ filename, env = process.env }) {
     if (!input || typeof input.content !== 'string' || !input.content.trim() || input.content.length > 8000) return c.json({ error: 'Enter a message of up to 8,000 characters.' }, 400);
     const id = randomUUID(); db.prepare('INSERT INTO team_messages(id,team_id,user_id,content) VALUES(?,?,?,?)').run(id, team.id, c.get('user').id, input.content); return c.json({ id }, 201);
   });
-  return { app, guard, salesOwners: () => db.prepare("SELECT id,name FROM users WHERE active=1 AND role IN ('owner','admin','member') ORDER BY name LIMIT 501").all(), currentUser: c => testMode ? c.get('user') : userFor(c), close: () => db.close() };
+  return { app, guard, salesMessageReference: (user,messageId) => {
+    const message=db.prepare('SELECT m.team_id FROM team_messages m JOIN teams t ON t.id=m.team_id WHERE m.id=? AND t.archived=0').get(messageId);
+    if(!message||(!admin(user)&&!db.prepare('SELECT 1 FROM team_members WHERE team_id=? AND user_id=?').get(message.team_id,user.id)))return null;
+    return {teamId:message.team_id};
+  }, salesOwners: () => db.prepare("SELECT id,name FROM users WHERE active=1 AND role IN ('owner','admin','member') ORDER BY name LIMIT 501").all(), currentUser: c => testMode ? c.get('user') : userFor(c), close: () => db.close() };
 }

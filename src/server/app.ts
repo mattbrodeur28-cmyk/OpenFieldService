@@ -9,6 +9,7 @@ export function createApp<E extends Env & { Bindings: DBEnv }>(options: { title:
   } });
   app.onError((error, c) => {
     const conflicts: Record<string, string> = {
+      DISPATCH_SERVICE_HOURS: 'Outside company service hours. Schedule within service hours or use an approved emergency assignment in Dispatcher.',
       DISPATCH_OVERLAP: 'This technician already has overlapping work.',
       DISPATCH_AVAILABILITY: 'This assignment is outside declared availability.',
       DISPATCH_CLOSED: 'Completed or cancelled jobs cannot be rescheduled.',

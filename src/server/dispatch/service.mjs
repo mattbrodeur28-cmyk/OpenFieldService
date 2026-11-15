@@ -1,3 +1,5 @@
+import { setWorkCategory, workCategories } from "../service/work.mjs";
+import { createOperatingHours } from "./hours.mjs";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { streamSSE } from "hono/streaming";
@@ -9,8 +11,11 @@ import {
   zonedDay,
 } from "./time.mjs";
 const activeStatuses = ["scheduled", "confirmed", "in_progress"];
-const admin = (user) => user && ["owner", "admin"].includes(user.role);
-const projection = `SELECT j.*,c.name AS customer_name,c.phone AS customer_phone,t.name AS technician_name,t.color AS technician_color,a.name AS equipment_name,a.serial_number AS equipment_serial,st.name AS service_type_name,ds.version AS schedule_version,ds.managed AS dispatch_managed FROM jobs j JOIN customers c ON c.id=j.customer_id LEFT JOIN technicians t ON t.id=j.technician_id LEFT JOIN assets a ON a.id=j.asset_id LEFT JOIN service_types st ON st.id=j.service_type_id JOIN _dispatch_job_state ds ON ds.job_id=j.id`;
+const admin = (user) =>
+  user?.active &&
+  !user.mustChangePassword &&
+  ["owner", "admin"].includes(user.role);
+const projection = `SELECT j.*,c.name AS customer_name,c.phone AS customer_phone,t.name AS technician_name,t.color AS technician_color,a.name AS equipment_name,a.serial_number AS equipment_serial,st.name AS service_type_name,ds.version AS schedule_version,ds.managed AS dispatch_managed,ds.is_emergency,COALESCE(sw.category,'unspecified') AS work_category FROM jobs j JOIN customers c ON c.id=j.customer_id LEFT JOIN technicians t ON t.id=j.technician_id LEFT JOIN assets a ON a.id=j.asset_id LEFT JOIN service_types st ON st.id=j.service_type_id JOIN _dispatch_job_state ds ON ds.job_id=j.id LEFT JOIN _service_work sw ON sw.job_id=j.id`;
 function scheduleRecord(job) {
   return Object.fromEntries(
     [
@@ -21,12 +26,15 @@ function scheduleRecord(job) {
       "duration",
       "status",
       "schedule_version",
+      "is_emergency",
+      "work_category",
     ].map((key) => [key, job[key]]),
   );
 }
 export function createDispatcher({ storage, env = process.env, currentUser }) {
   const db = storage.database;
   installDispatch(db);
+  const operating = createOperatingHours(db);
   storage.schedulingState = (id) =>
     db
       .prepare("SELECT version,managed FROM _dispatch_job_state WHERE job_id=?")
@@ -157,13 +165,18 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
             ` WHERE ${where} ORDER BY (j.technician_id IS NOT NULL),CASE j.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 ELSE 2 END,j.scheduled_date,j.scheduled_time,j.identifier LIMIT 25 OFFSET ?`,
         )
         .all(...statuses, search, (page - 1) * 25);
+      const operatingHours = operating.forDate(date);
       return {
+        operatingHours,
         date,
         timeZone,
         now: new Date().toISOString(),
         revision: revision(),
         resources,
-        jobs,
+        jobs: jobs.map((job) => ({
+          ...job,
+          outside_service_hours: operating.outside(job, operatingHours),
+        })),
         pipeline,
         pipelineTotal: total,
         page,
@@ -183,7 +196,7 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
   app.put("/assignments/:id", async (c) => {
     const data = await input(c),
       user = actor(c);
-    if (!user || user.mustChangePassword || user.role === "viewer")
+    if (!user?.active || user.mustChangePassword || user.role === "viewer")
       return c.json({ error: "Your permissions changed. Sign in again." }, 403);
     if (
       !data ||
@@ -195,7 +208,10 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
       !Number.isSafeInteger(data.expectedVersion) ||
       data.expectedVersion < 0 ||
       !(data.technicianId === null || typeof data.technicianId === "string") ||
-      (data.override !== undefined && typeof data.override !== "boolean")
+      (data.override !== undefined && typeof data.override !== "boolean") ||
+      (data.emergency !== undefined && typeof data.emergency !== "boolean") ||
+      (data.workCategory !== undefined &&
+        !workCategories.includes(data.workCategory))
     )
       return c.json(
         {
@@ -255,13 +271,32 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
           .get(data.technicianId)
       )
         return { status: 400, error: "Choose an active technician." };
+      const category =
+        data.workCategory ??
+        (data.emergency === true
+          ? "on_demand"
+          : data.emergency === false && before.work_category === "on_demand"
+            ? "unspecified"
+            : before.work_category);
+      if (
+        data.workCategory !== undefined &&
+        data.emergency !== undefined &&
+        data.emergency !== (category === "on_demand")
+      )
+        return {
+          status: 400,
+          error:
+            "On-Demand is the emergency/T&M category. Choose a consistent work category.",
+        };
+      setWorkCategory(db, user, before.id, category);
+      const emergency = category === "on_demand";
       const signature =
         data.override && data.technicianId
           ? `${data.technicianId}|${data.date}|${data.time}|${data.duration}`
           : "";
       db.prepare(
-        "UPDATE _dispatch_job_state SET managed=1,override_signature=? WHERE job_id=?",
-      ).run(signature, before.id);
+        "UPDATE _dispatch_job_state SET managed=1,override_signature=?,is_emergency=? WHERE job_id=?",
+      ).run(signature, Number(emergency), before.id);
       db.prepare(
         "UPDATE jobs SET technician_id=?,scheduled_date=?,scheduled_time=?,duration=?,updated_at=datetime('now') WHERE id=?",
       ).run(data.technicianId, data.date, data.time, data.duration, before.id);
@@ -389,6 +424,17 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
     });
     const { status, ...response } = result;
     return c.json(response, status);
+  });
+  app.get("/operating-hours", (c) =>
+    c.json({ ...operating.configuration(), timeZone }),
+  );
+  app.put("/operating-hours", async (c) => {
+    const data = await input(c),
+      user = actor(c);
+    if (!admin(user))
+      return c.json({ error: "Owner or administrator access required." }, 403);
+    const { status, ...result } = operating.save(user, data);
+    return c.json(result, status);
   });
   app.get("/audit", (c) => {
     if (!admin(actor(c)))

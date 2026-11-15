@@ -47,3 +47,11 @@ those changes; do not bypass these limits with multiple writable replicas.
 Use [the ADR template](decisions/template.md) for runtime, database, API, identity,
 provider or UI decisions. Record alternatives, consequences, migration/rollback,
 validation and revisit triggers. [ADR-0001](decisions/0001-ui-system.md) sets the UI direction.
+
+## Native app contract
+
+[ADR-0005](decisions/0005-native-business-records.md) defines shared records, module
+ownership, projections and transaction boundaries. Service work classification lives
+in `src/server/service/work.mjs` and references existing jobs. The
+[service operating model](../product/service-operating-model.md) defines On-Demand,
+Quoted Work and PM, plus planned PJSA/report/billing, actual time, truck stock and RMS.

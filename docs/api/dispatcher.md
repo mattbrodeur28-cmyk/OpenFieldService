@@ -83,3 +83,36 @@ Metrics are sums/counts of visible active jobs/resources. Scheduled hours sum jo
 minutes and include approved overlaps. Overlap count counts jobs involved, not
 conflict pairs. Pipeline count reflects current pipeline filters and can include
 work outside the selected board date. These are operational measures, not revenue.
+
+## Company service hours and work categories
+
+GET `/operating-hours` returns `enabled`, `version`, seven `weekly` entries
+`{weekday,open,start,end}` (Sunday=0, minutes from midnight), up to 100 dated
+`exceptions` `{date,label,open,start,end}` and schedule timezone. Owner/Admin PUT
+accepts the same editable fields plus `expectedVersion` (not `version/timeZone`).
+Every weekday appears once; each date has at most one exception. Dates override
+weekly hours. Intervals must have start < end within 0–1440; split overnight
+coverage into separate days. Invalid configuration returns 400, stale 409.
+
+Hours are opt-in for compatibility. Suggested defaults are Mon–Fri 08:00–17:00,
+weekends closed, with enforcement initially disabled. All board hours remain
+visible; enabled closed periods are shaded. Changing hours does not move existing
+jobs; `outside_service_hours` flags them for review and a count covers all assigned
+appointments in the board snapshot, including inactive/completed records.
+
+Assignments optionally accept `workCategory`: unspecified/on_demand/quoted/pm.
+On-Demand is the owner's emergency/T&M category. `emergency` is retained for API
+compatibility and must agree with an explicit category. Service owns `_service_work`,
+linked to the existing job; Dispatcher emergency metadata is a maintained projection.
+Category changes update schedule versions and have service audit. Quoted/PM labels
+do not fabricate accepted quote/agreement evidence or change billing automatically.
+
+Normal active assignments outside hours fail 409 through both Dispatcher and legacy
+job writes. After-hours On-Demand requires Owner/Admin `override:true` and a
+10–1000 character `reason`. The approval is bound to exact technician/date/time/
+duration and does not waive stale versions, closed jobs, inactive resources or DST
+validation. Overlap/availability exceptions use the same deliberate approval.
+A later move needs fresh approval. Unassigned pipeline work has no occupied slot.
+
+`duration` remains estimated slot minutes. Actual report time, timesheets and
+completion gates are planned in TECH-001–011, not implemented by this settings change.

@@ -1563,3 +1563,5 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 @media(max-width:767px) { .sales-metrics { grid-template-columns:1fr; gap:10px; }.sales-metrics>div { padding:16px; }.sales-metrics strong { font-size:22px; }.sales-header-actions { width:100%; }.sales-filters>.ui-field { flex:1; min-width:130px; }.sales-search { flex-basis:100%; }.sales-kanban { max-height:65vh; }.sales-column { width:270px; min-width:270px; }.sales-form-grid { grid-template-columns:1fr; }.sales-pagination { flex-wrap:wrap; }.sales-form .btn,.sales-header .btn { min-height:44px; } }
 @media(hover:hover) { .sales-opportunity { transition:border-color .12s ease; } }
 @media(prefers-reduced-motion:reduce) { .sales-opportunity { transition:none; } }
+
+.dispatch-service-closed{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,transparent,transparent 7px,color-mix(in srgb,var(--muted-foreground,#888) 10%,transparent) 7px,color-mix(in srgb,var(--muted-foreground,#888) 10%,transparent) 8px);pointer-events:none;}

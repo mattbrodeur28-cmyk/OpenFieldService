@@ -21,7 +21,7 @@ test('local accounts protect all APIs, enforce roles, isolate chats and preserve
   const storage = openStorage(join(directory, 'service.sqlite'));
   const auth = createAuth({ filename, env });
   const workspace = createWorkspace({ filename, storage, root: new URL('../', import.meta.url).pathname, env, fetcher: async () => Response.json({ message: { content: 'Service answer' } }) });
-  const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.salesOwners});
+  const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.salesOwners,resolveMessage:auth.salesMessageReference});
   const app = new Hono(); app.use('/api/*', auth.guard); app.route('/api/auth', auth.app); app.route('/api/workspace', workspace.app);app.route('/api/sales',sales.app);
   app.get('/api/public/company', c => workspace.publicCompany(c));
   app.get('/api/jobs', c => c.json({ jobs: [] })); app.post('/api/jobs', c => c.json({ ok: true }));
@@ -95,6 +95,11 @@ test('local accounts protect all APIs, enforce roles, isolate chats and preserve
     await request('/auth/teams/' + createdTeam.id + '/members', { cookie: member.cookie, method: 'PUT', body: { userIds: [viewer.user.id] }, expected: 403 });
     await request('/auth/teams/' + createdTeam.id + '/messages', { cookie: member.cookie, method: 'POST', body: { content: 'Controls handover ready.' }, expected: 201 });
     assert.equal((await request('/auth/teams/' + createdTeam.id, { cookie: ownerCookie })).data.messages[0].content, 'Controls handover ready.');
+    const linkedMessage=(await request('/auth/teams/'+createdTeam.id,{cookie:member.cookie})).data.messages[0];
+    const followup={kind:'call',title:'Follow up on handover',details:'',assigneeId:member.user.id,dueAt:'2026-11-20T12:00:00Z',reminderAt:'2026-11-20T11:00:00Z',status:'open',outcome:'',messageId:linkedMessage.id,expectedOpportunityVersion:0};
+    const linkedActivity=(await request('/sales/opportunities/'+createdSales.data.opportunity.id+'/activities',{cookie:member.cookie,method:'POST',body:followup,expected:201})).data.activity;
+    assert.equal(linkedActivity.team_id,createdTeam.id);
+    assert.ok(!JSON.stringify(linkedActivity).includes('Controls handover ready.'));
     // HR can administer people without receiving configuration, Builder or message access.
     const hr = await createUser('hr@example.test', 'member');
     await request('/auth/users/' + hr.user.id, { cookie: ownerCookie, method: 'PUT', body: { name: 'HR', role: 'member', active: true, hr: true } });
@@ -107,6 +112,9 @@ test('local accounts protect all APIs, enforce roles, isolate chats and preserve
     await request('/workspace/builder/files', { cookie: hr.cookie, expected: 403 });
     const privateTeam = (await request('/auth/teams/' + createdTeam.id, { cookie: hr.cookie })).data;
     assert.equal(privateTeam.canReadMessages, false); assert.deepEqual(privateTeam.messages, []);
+    const hrOpportunity=(await request('/sales/opportunities',{cookie:hr.cookie,method:'POST',body:{...opportunity,ownerId:hr.user.id},expected:201})).data.opportunity;
+    await request('/sales/opportunities/'+hrOpportunity.id+'/activities',{cookie:hr.cookie,method:'POST',body:{...followup,assigneeId:hr.user.id},expected:403});
+
     await request('/auth/teams/' + createdTeam.id + '/messages', { cookie: hr.cookie, method: 'POST', body: { content: 'Cannot post without membership' }, expected: 403 });
     for (const protectedUser of [owner, administrator.user, hr.user]) {
       await request('/auth/users/' + protectedUser.id, { cookie: hr.cookie, method: 'PUT', body: { name: 'Changed', role: 'viewer', active: false }, expected: 403 });

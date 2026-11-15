@@ -1,3 +1,4 @@
+import { activitySchema } from "./activity-schema.mjs";
 import { migrate } from "../platform/sqlite.mjs";
 const sql = `
 CREATE TABLE _sales_settings(id INTEGER PRIMARY KEY CHECK(id=1),currency TEXT NOT NULL DEFAULT 'USD');
@@ -13,7 +14,10 @@ CREATE TABLE _sales_notes(id TEXT PRIMARY KEY,opportunity_id TEXT NOT NULL REFER
 CREATE INDEX _sales_notes_opportunity ON _sales_notes(opportunity_id,created_at);
 `;
 export function installSales(db) {
-  migrate(db, "_sales_schema_migrations", [{ version: 1, sql }]);
+  migrate(db, "_sales_schema_migrations", [
+    { version: 1, sql },
+    { version: 2, sql: activitySchema },
+  ]);
 }
 export const projection = `SELECT o.*,c.name AS customer_name,s.name AS stage_name,s.kind AS stage_kind,p.name AS pipeline_name FROM _sales_opportunities o JOIN _sales_stages s ON s.id=o.stage_id JOIN _sales_pipelines p ON p.id=o.pipeline_id LEFT JOIN customers c ON c.id=o.customer_id`;
 export function audit(db, user, type, id, action, before, after, reason = "") {

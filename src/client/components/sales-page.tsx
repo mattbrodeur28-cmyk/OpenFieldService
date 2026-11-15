@@ -20,6 +20,7 @@ import type {
 import { salesMoney, salesMinor } from "../sales-types";
 import { dateLabel } from "../sales-format";
 import { PipelineEditor } from "./sales/pipeline-editor";
+import { FollowUpInbox, ReminderSummary } from "./sales/activities";
 import { OpportunityEditor } from "./sales/opportunity-editor";
 import { MoveForm } from "./sales/move-form";
 import { Button } from "./ui/button";
@@ -40,7 +41,7 @@ const emptyOptions: SalesOptions = {
   sites: [],
   assets: [],
 };
-export function SalesPage() {
+export function SalesPage({ opportunityId }: { opportunityId: string | null }) {
   const { user } = useAccount(),
     connectivity = useConnectivity(),
     admin = isAdministrator(user);
@@ -187,6 +188,25 @@ export function SalesPage() {
       window.removeEventListener("online", poll);
     };
   }, []);
+  useEffect(() => {
+    if (!opportunityId) return;
+    let live = true;
+    void accountRequest<{ opportunity: Opportunity }>(
+      "/api/sales/opportunities/" + opportunityId,
+    )
+      .then((result) => {
+        if (live) {
+          setPipelineId(result.opportunity.pipeline_id);
+          setEditor(result.opportunity);
+        }
+      })
+      .catch((e) => {
+        if (live) setError(e.message);
+      });
+    return () => {
+      live = false;
+    };
+  }, [opportunityId]);
   async function mutate(
     path: string,
     method: string,
@@ -593,16 +613,32 @@ export function SalesPage() {
           options={[
             { value: "board", label: "Kanban board" },
             { value: "list", label: "Opportunity list" },
+            { value: "activities", label: "Follow-ups" },
           ]}
         />
       </div>
+      <ReminderSummary reload={notice} open={() => setView("activities")} />
       <div class="sales-board-help">
         <span>
           Drag a card to change its stage, or open it to use Move stage.
         </span>
         <span>Won is reserved for quote conversion.</span>
       </div>
-      {view === "board" ? (
+      {view === "activities" ? (
+        <FollowUpInbox
+          open={(id) => {
+            setError("");
+            void accountRequest<{ opportunity: Opportunity }>(
+              "/api/sales/opportunities/" + id,
+            )
+              .then((result) => {
+                setPipelineId(result.opportunity.pipeline_id);
+                setEditor(result.opportunity);
+              })
+              .catch((e) => setError(e.message));
+          }}
+        />
+      ) : view === "board" ? (
         <div
           class="sales-kanban"
           ref={boardRef}
@@ -709,6 +745,7 @@ export function SalesPage() {
           error={error}
           close={() => setEditor(null)}
           save={save}
+          mutate={mutate}
           move={move}
           addNote={(row, content) =>
             mutate(

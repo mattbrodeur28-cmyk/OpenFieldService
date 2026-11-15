@@ -79,6 +79,8 @@ export function TeamChannel({ id }: { id: string }) {
     };
   }, [id]);
   useEffect(() => {
+    const linked = window.location.hash.startsWith("#message-") ? document.getElementById(window.location.hash.slice(1)) : null;
+    if (linked) { linked.scrollIntoView({ block: "center" }); return; }
     if (nearBottom.current && scroller.current)
       scroller.current.scrollTop = scroller.current.scrollHeight;
   }, [messages.length]);
@@ -240,6 +242,7 @@ export function TeamChannel({ id }: { id: string }) {
                     </div>
                   )}
                   <article
+                    id={"message-" + item.id}
                     class={`channel-message ${own ? "own" : ""} ${grouped ? "grouped" : ""}`}
                   >
                     <span class="channel-avatar" aria-hidden="true">

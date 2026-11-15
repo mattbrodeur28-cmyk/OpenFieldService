@@ -355,3 +355,10 @@ This project is part of the [OpenClaw](https://github.com/openclaw/openclaw) eco
 ## License
 
 [MIT](LICENSE)
+
+Native platform integration is defined in [ADR-0005](docs/architecture/decisions/0005-native-business-records.md).
+Sales follow-ups and customer reverse links use existing records; Dispatcher supports
+weekly service hours, dated exceptions and audited On-Demand emergency overrides.
+[Service operating model](docs/product/service-operating-model.md) separates
+On-Demand/T&M, Quoted Work and PM, with planned technician PJSA/report/billing,
+actual time, timesheets, truck stock and RMS milestones in Features.md.

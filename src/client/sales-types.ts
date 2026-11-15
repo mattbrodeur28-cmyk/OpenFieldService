@@ -95,3 +95,37 @@ export function salesMinor(value: string) {
     throw new Error("Expected value must be at most $10,000,000.");
   return minor;
 }
+
+export interface SalesActivity {
+  id: string;
+  opportunity_id: string;
+  opportunity_title: string;
+  opportunity_owner_id: string;
+  kind: "call" | "meeting" | "site_survey" | "task";
+  title: string;
+  details: string;
+  assignee_id: string;
+  due_at: string;
+  reminder_at: string;
+  status: "open" | "done" | "cancelled";
+  outcome: string;
+  message_id: string | null;
+  team_id: string | null;
+  version: number;
+  created_by: string;
+  completed_by: string | null;
+  completed_at: string | null;
+}
+export interface SalesActivityList {
+  activities: SalesActivity[];
+  total: number;
+  page: number;
+  pageSize: number;
+  now: string;
+}
+export type SalesMutation = (
+  path: string,
+  method: string,
+  data: unknown,
+  message: string,
+) => Promise<boolean>;

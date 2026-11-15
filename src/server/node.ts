@@ -22,7 +22,7 @@ const integrations = createIntegrations({ filename: resolve(dirname(process.env.
 const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite"), storage, root, integrationRead: integrations.read });
 const auth = createAuth({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
 const dispatcher = createDispatcher({ storage, currentUser: auth.currentUser });
-const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.salesOwners});
+const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.salesOwners,resolveMessage:auth.salesMessageReference});
 const app = new Hono();
 app.use("/api/*", auth.guard);
 app.route("/api/auth", auth.app);

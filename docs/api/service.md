@@ -153,3 +153,53 @@ and validate backups before upgrade. Rollback after applying new migrations requ
 restoring matching pre-upgrade databases AND application revision; older binaries
 intentionally refuse newer module ledgers. Local migration/tests do not qualify
 Debian/LXC or Kubernetes deployment.
+
+
+## Weekly timesheets
+
+GET `/timesheets/options` returns technicians available to the actor, current company
+timezone and canReview. Owner/Admin may select any retained technician (max500);
+other eligible mapped writers receive only their active mapped technician. HR does
+not receive access to other technicians' time through its people-administration flag.
+
+GET `/timesheets?technicianId=UUID&weekStart=YYYY-MM-DD` requires a Monday local
+calendar date. Reads native report labor, never schedule estimates. Max1,000 active
+entries/week; rejected report revisions excluded. Returns UTC period boundaries,
+pinned company timezone, source token, entries, totals, sheet state/version,
+submissions/reviews (latest50), correction events (latest50) and submission blockers.
+The daily UI groups entries by start date; overnight entries retain both instants.
+Break placement/pay treatment is not inferred from a total break duration.
+
+POST `/timesheets/submit` accepts `{technicianId,weekStart,expectedVersion,
+sourceToken,delegationReason?}`. Reports must be supervisor-approved; no empty,
+source-stale, already submitted/approved, cross-week or overlapping retained period
+submission. Admin submission for another technician requires reason>=10chars.
+Immutable snapshots pin the exact source entry IDs/data and revision. Submitted and
+approved periods block additional labor insertion or ledger-state changes in SQL.
+Rejected periods unlock for correction. Report labor crossing a Monday boundary must
+be explicitly split with break allocation before report submission; visits can still
+cross that boundary. Historical unsplit evidence requires reviewed correction.
+
+POST `/timesheets/review` takes `{technicianId,weekStart,expectedVersion,
+submissionId,decision,notes}`; Owner/Admin only, notes10–2,000chars, decision
+approved|rejected. Approval checks the unchanged source token. Rejection remains
+possible when source details changed. Both review and version/state commit together.
+Timesheet review is distinct from job report approval, billing approval and payroll.
+
+POST `/timesheets/reopen` accepts `{technicianId,weekStart,expectedVersion,reason,
+acknowledgeExternalReview:true}`; Owner/Admin only, reason10–2,000chars. Only an
+approved current version may reopen. Retains immutable previous approval/submission,
+appends attributed correction event and returns the period for a new submission and
+review. It does not reverse external payroll, billing or accounting exports.
+
+GET `/timesheets/export?technicianId=UUID&weekStart=YYYY-MM-DD` downloads no-store CSV
+only for currently approved periods and authorized actors. Data comes from the
+approved immutable submission, including source/job/technician UUIDs, UTC interval,
+worked/break/requested billable minutes and work type. Formula-like cells are escaped.
+Later job renaming does not rewrite the exported historical snapshot. Export is not
+payroll calculation, payment instruction or transmission to an accounting provider.
+
+Checked additive `_service_timesheet_migrations` v1 periods/submissions/reviews/SQL
+locks, v2 retained correction events. Never edit applied SQL. Use matched application
+and database backups for rollback. Wage/overtime rules, paid/unpaid break policy,
+crew/phase identity, non-job labor and payroll-provider qualification remain open.

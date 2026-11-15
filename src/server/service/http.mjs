@@ -1,3 +1,4 @@
+import { createTimesheets } from "./timesheets.mjs";
 import { createCompanySettings } from "./company.mjs";
 import { mountExecution } from "./execution-http.mjs";
 import { Hono } from "hono";
@@ -49,6 +50,14 @@ export function createService({ storage, currentUser, people }) {
         },
         409,
       );
+    if (String(error.message).includes("SERVICE_TIMESHEET_LOCKED"))
+      return c.json(
+        {
+          error:
+            "This time falls in a submitted or approved timesheet. Return the timesheet for correction before recording additional labor.",
+        },
+        409,
+      );
     console.error("Service identity request failed:", error.name);
     return c.json(
       { error: "The technician identity operation could not be completed." },
@@ -86,5 +95,38 @@ export function createService({ storage, currentUser, people }) {
     check,
     people,
   });
-  return { app, service, execution, company };
+  const timesheets = createTimesheets({ storage, identity: service, company });
+  app.get("/timesheets/options", (c) => c.json(timesheets.options(check(c))));
+  app.get("/timesheets", (c) =>
+    c.json(
+      timesheets.detail(check(c), {
+        technicianId: c.req.query("technicianId"),
+        weekStart: c.req.query("weekStart"),
+      }),
+    ),
+  );
+  for (const action of ["submit", "review", "reopen"])
+    app.post("/timesheets/" + action, async (c) => {
+      let data;
+      try {
+        data = await c.req.json();
+      } catch {
+        throw new ServiceIdentityError("Send a valid JSON request.");
+      }
+      return c.json(timesheets[action](check(c), data));
+    });
+  app.get("/timesheets/export", (c) => {
+    const result = timesheets.exportCsv(check(c), {
+      technicianId: c.req.query("technicianId"),
+      weekStart: c.req.query("weekStart"),
+    });
+    return new Response(result.csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${result.filename}"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  });
+  return { app, service, execution, company, timesheets };
 }

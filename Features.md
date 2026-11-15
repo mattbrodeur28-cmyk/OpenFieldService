@@ -79,7 +79,7 @@ qualification remain planned work.
 | M7 | Controls records, commissioning and handover | Planned | M4; existing equipment foundation |
 | M11 | Commercial/construction projects, phased billing, crews and job costing | Planned | M2–M6 shared domains; project and ledger foundations |
 | M12 | Residential memberships, mobile sales/service, booking and payment workflows | Planned | M3–M6 shared domains; relevant M8 capabilities |
-| M13 | Technician workflow, actual time, timesheets and truck inventory | In progress; PJSA/report/actual-time pilot implemented | M2, M3; shared users/jobs/materials |
+| M13 | Technician workflow, actual time, timesheets and truck inventory | In progress; PJSA/report/actual-time and timesheet pilots implemented | M2, M3; shared users/jobs/materials |
 | M14 | Refrigerant Monitoring System and dashboard | Planned | M13 inventory/time/job evidence; equipment baseline |
 | M8 | Business-owner reporting and operational controls | Planned | M3–M7 business events |
 | M9 | Containers, Kubernetes and scale qualification | Planned | M2 shared-state/database work |
@@ -181,6 +181,15 @@ future business modules remain UI-006 work. UI-008/UX-006 and DISPATCH-009 retai
 physical touch, screen-reader and broader responsive/theme qualification work.
 See [the current release evidence](docs/releases/2026-11-14-dispatcher.md) and
 [UI guide](docs/development/ui-system.md) for sources, decisions and exact scope.
+
+- [ ] **UI-009 — Timesheet layout polish:** make the Timesheets page feel cohesive
+  with Dispatcher and shared business screens. Group Previous / selected week / Next
+  into one aligned navigation control; match control heights and spacing. Separate
+  the approval/status badge from the Daily View dropdown so state and filtering have
+  clear, consistent placement. Revisit summary density and submission/review actions.
+  Owner feedback (2026-11-15): the current page works but its buttons and status/filter
+  arrangement do not flow together. Validate desktop, narrow screens and keyboard
+  focus in the real browser before closing this item. **Planned; not completed.**
 
 ### Team channels
 
@@ -684,6 +693,10 @@ apps or another copy of the job status. Detailed contract and implementation ord
 - [ ] **TECH-007 — Timesheets:** daily/weekly views built from the same entries,
   submission, approval/rejection, locked periods and audited adjustments. Separate
   payroll hours, billable hours and paid/unpaid breaks; scoped accounting export.
+  Implemented pilot: weekly/daily start-date views, retained source snapshots,
+  submission and supervisor review, locked periods, audited administrator reopening
+  and scoped CSV of approved source entries. No wage/overtime/pay-treatment engine
+  or payroll-provider posting is claimed. Timesheet visual polish is UI-009.
 - [ ] **TECH-008 — Step 3 Completion/Billing:** verify PJSA/report/time/material/RMS
   completeness and required reviews; lock approved evidence and derive reviewable
   billing lines. On-Demand uses approved T&M, quoted work respects accepted scope

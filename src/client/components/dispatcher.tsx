@@ -13,6 +13,8 @@ import {
   ArrowRight,
   Users,
   AlertTriangle,
+  SlidersHorizontal,
+  PanelLeft,
 } from "lucide-preact";
 import { accountRequest, useAccount, isAdministrator } from "../auth";
 import { useConnectivity } from "../hooks/use-connectivity";
@@ -500,6 +502,8 @@ export function Dispatcher() {
     [view, setView] = useState("gantt"),
     [editing, setEditing] = useState<DispatchJob | null>(null),
     [hoursOpen, setHoursOpen] = useState(false),
+    [filtersOpen, setFiltersOpen] = useState(false),
+    [pipelineOpen, setPipelineOpen] = useState(true),
     [editingResource, setEditingResource] = useState<Resource | null>(null),
     [drag, setDrag] = useState<Drag | null>(null),
     [now, setNow] = useState(new Date());
@@ -895,9 +899,29 @@ export function Dispatcher() {
     <div class="page dispatcher-page">
       <div class="dispatch-title">
         <div>
-          <span class="dispatch-eyebrow">Operations</span>
           <h1>Dispatcher</h1>
-          <p>Plan the day. Keep your field team moving.</p>
+        </div>
+        <div class="dispatch-metrics">
+          <div>
+            <Clock3 size={17} />
+            <strong>{(scheduledMinutes / 60).toFixed(1)}h</strong>
+            <span>scheduled</span>
+          </div>
+          <div>
+            <Users size={17} />
+            <strong>{resources.length}</strong>
+            <span>technicians</span>
+          </div>
+          <div>
+            <CalendarDays size={17} />
+            <strong>{board.pipelineTotal}</strong>
+            <span>in pipeline</span>
+          </div>
+          <div>
+            <AlertTriangle size={17} />
+            <strong>{overlaps.size}</strong>
+            <span>overlapping</span>
+          </div>
         </div>
         <Badge
           tone={
@@ -933,53 +957,13 @@ export function Dispatcher() {
         </Notice>
       )}
       <div class="dispatch-toolbar">
-        <p class="workspace-help">
-          {board.operatingHours.enabled
-            ? board.operatingHours.open
-              ? `Service hours: ${clockOf(board.operatingHours.start)}–${board.operatingHours.end === 1440 ? "24:00" : clockOf(board.operatingHours.end)}`
-              : "Closed for normal calls"
-            : "Company service hours are not enforced"}{" "}
-          · {board.operatingHours.label}
-        </p>
-        {admin && (
-          <Button disabled={!canWrite} onClick={() => setHoursOpen(true)}>
-            Service hours
-          </Button>
-        )}
-        <Badge
-          tone={
-            board.jobs.some((j) => j.outside_service_hours)
-              ? "warning"
-              : "neutral"
-          }
+        <Button
+          aria-expanded={pipelineOpen}
+          aria-controls="dispatch-work-pipeline"
+          onClick={() => setPipelineOpen(!pipelineOpen)}
         >
-          {board.jobs.filter((j) => j.outside_service_hours).length} after-hours
-          appointments
-        </Badge>
-      </div>
-      <div class="dispatch-metrics">
-        <div>
-          <Clock3 size={17} />
-          <strong>{(scheduledMinutes / 60).toFixed(1)}h</strong>
-          <span>Scheduled · visible active work</span>
-        </div>
-        <div>
-          <Users size={17} />
-          <strong>{resources.length}</strong>
-          <span>Visible technicians</span>
-        </div>
-        <div>
-          <CalendarDays size={17} />
-          <strong>{board.pipelineTotal}</strong>
-          <span>Pipeline · current filters</span>
-        </div>
-        <div>
-          <AlertTriangle size={17} />
-          <strong>{overlaps.size}</strong>
-          <span>Overlapping jobs · visible</span>
-        </div>
-      </div>
-      <div class="dispatch-toolbar">
+          <PanelLeft size={15} /> Pipeline
+        </Button>
         <div class="dispatch-date-controls">
           <Button
             size="icon"
@@ -1040,8 +1024,37 @@ export function Dispatcher() {
           }))}
         />
       </div>
-      <div class="dispatch-layout">
-        <aside class="dispatch-pipeline">
+      <div class="dispatch-status-strip">
+        <p class="workspace-help">
+          {board.operatingHours.enabled
+            ? board.operatingHours.open
+              ? `Service hours: ${clockOf(board.operatingHours.start)}–${board.operatingHours.end === 1440 ? "24:00" : clockOf(board.operatingHours.end)}`
+              : "Closed for normal calls"
+            : "Company service hours are not enforced"}{" "}
+          · {board.operatingHours.label}
+        </p>
+        {admin && (
+          <Button disabled={!canWrite} onClick={() => setHoursOpen(true)}>
+            Service hours
+          </Button>
+        )}
+        <Badge
+          tone={
+            board.jobs.some((j) => j.outside_service_hours)
+              ? "warning"
+              : "neutral"
+          }
+        >
+          {board.jobs.filter((j) => j.outside_service_hours).length} after-hours
+          appointments
+        </Badge>
+      </div>
+      <div class={`dispatch-layout ${pipelineOpen ? "" : "pipeline-hidden"}`}>
+        <aside
+          id="dispatch-work-pipeline"
+          class="dispatch-pipeline"
+          hidden={!pipelineOpen}
+        >
           <header>
             <h2>Work pipeline</h2>
             <Badge>{board.pipelineTotal}</Badge>
@@ -1130,24 +1143,26 @@ export function Dispatcher() {
               </EmptyState>
             )}
           </div>
-          <footer>
-            <Button
-              disabled={page <= 1 || busy}
-              onClick={() => setPage(page - 1)}
-            >
-              Previous
-            </Button>
-            <span>
-              Page {page} of{" "}
-              {Math.max(1, Math.ceil(board.pipelineTotal / board.pageSize))}
-            </span>
-            <Button
-              disabled={page * board.pageSize >= board.pipelineTotal || busy}
-              onClick={() => setPage(page + 1)}
-            >
-              Next
-            </Button>
-          </footer>
+          {(board.pipelineTotal > board.pageSize || page > 1) && (
+            <footer>
+              <Button
+                disabled={page <= 1 || busy}
+                onClick={() => setPage(page - 1)}
+              >
+                Previous
+              </Button>
+              <span>
+                Page {page} of{" "}
+                {Math.max(1, Math.ceil(board.pipelineTotal / board.pageSize))}
+              </span>
+              <Button
+                disabled={page * board.pageSize >= board.pipelineTotal || busy}
+                onClick={() => setPage(page + 1)}
+              >
+                Next
+              </Button>
+            </footer>
+          )}
         </aside>
         <section class="dispatch-board" aria-label="Technician schedule">
           <div class="dispatch-resource-filters">
@@ -1169,6 +1184,30 @@ export function Dispatcher() {
                 { value: "all", label: "All technicians" },
               ]}
             />
+            <Button
+              aria-expanded={filtersOpen}
+              aria-controls="dispatch-advanced-filters"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+            >
+              <SlidersHorizontal size={15} /> Filters
+              {[team, territory, skill].filter((v) => v !== "all").length
+                ? ` (${[team, territory, skill].filter((v) => v !== "all").length})`
+                : ""}
+            </Button>
+            <details class="dispatch-help">
+              <summary>How to schedule</summary>
+              <p>
+                Drag anywhere on a job to assign or move it. Stretch its right
+                edge to resize. Use Assign/Edit for keyboard or touch. Completed
+                and cancelled jobs are locked.
+              </p>
+            </details>
+          </div>
+          <div
+            id="dispatch-advanced-filters"
+            class="dispatch-advanced-filters"
+            hidden={!filtersOpen}
+          >
             <Select
               label="Team / crew"
               value={team}
@@ -1192,12 +1231,16 @@ export function Dispatcher() {
                   .map((value) => ({ value: "value:" + value, label: value })),
               ]}
             />
+            <Button
+              onClick={() => {
+                setTeam("all");
+                setTerritory("all");
+                setSkill("all");
+              }}
+            >
+              Clear filters
+            </Button>
           </div>
-          <p class="dispatch-help">
-            Drag a job card to assign or move work; stretch its right edge to
-            resize. Use Assign/Edit for keyboard or touch. Completed and
-            cancelled jobs are locked.
-          </p>
           {view === "gantt" ? (
             <div
               class="dispatch-scroll"
@@ -1226,7 +1269,7 @@ export function Dispatcher() {
                     (job) => job.technician_id === resource.id,
                   ),
                   layout = layoutAppointments(jobs),
-                  height = Math.max(92, layout.lanes * 58 + 20),
+                  height = Math.max(80, layout.lanes * 58 + 20),
                   work = jobs
                     .filter(active)
                     .reduce((sum, job) => sum + job.duration, 0);

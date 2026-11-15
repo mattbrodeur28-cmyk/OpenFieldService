@@ -1,3 +1,5 @@
+import { createDayBounds } from "../platform/day-bounds.mjs";
+import { zonedDay } from "../dispatch/time.mjs";
 import { createActualSlots } from "./actual-slots.mjs";
 import { randomUUID } from "node:crypto";
 import { transaction } from "../platform/sqlite.mjs";
@@ -21,6 +23,7 @@ export function createPostWork({
   clock = () => new Date(),
 }) {
   const db = storage.database;
+  const dayBounds = createDayBounds();
   storage.actualAppointments = createActualSlots(db);
   const state = (id) => {
     const row = db
@@ -103,6 +106,20 @@ export function createPostWork({
         );
       if (submit) {
         validateReport(data.report, actor.technicianId, clock());
+        for (const entry of data.report.entries) {
+          const zone = storage.companyTimeZone?.() || data.report.timeZone;
+          const day = zonedDay(zone, new Date(entry.startAt));
+          const date = new Date(day + "T00:00:00Z");
+          const daysToMonday = (8 - date.getUTCDay()) % 7 || 7;
+          const nextMonday = new Date(date.getTime() + daysToMonday * 86400000)
+            .toISOString()
+            .slice(0, 10);
+          if (Date.parse(entry.endAt) > dayBounds(nextMonday, zone)[0])
+            fail(
+              "Split labor entries at the Monday timesheet boundary and assign actual break minutes to each entry before submitting. The visit itself can cross the boundary.",
+              409,
+            );
+        }
         const safetyTime = db
           .prepare(
             "SELECT submitted_at FROM _service_safety_submissions WHERE id=?",

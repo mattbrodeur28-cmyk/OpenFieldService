@@ -12,6 +12,7 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "schedule", path: "/schedule", label: "Schedule", icon: CalendarDays },
   { view: "jobs", path: "/jobs", label: "Jobs", icon: Briefcase },
   { view: "customers", path: "/customers", label: "Customers", icon: Users },
+  { view: "timesheets", path: "/timesheets", label: "Timesheets", icon: CalendarClock },
   { view: "technicians", path: "/technicians", label: "Technicians", icon: Wrench },
   { view: "invoices", path: "/invoices", label: "Invoices", icon: FileText },
   { view: "materials", path: "/materials", label: "Materials", icon: Package },
@@ -30,7 +31,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
 
   const active = (view: View) => currentView === view || (currentView === "assets" && view === "customers");
   const colors: Partial<Record<View, string>> = {
-    sales: "cyan", dispatcher: "blue", schedule: "pink", jobs: "purple", customers: "blue", technicians: "pink",
+    timesheets: "blue", sales: "cyan", dispatcher: "blue", schedule: "pink", jobs: "purple", customers: "blue", technicians: "pink",
     invoices: "purple", materials: "cyan", services: "purple",
   };
   const navItem = (item: typeof navItems[number]) => {

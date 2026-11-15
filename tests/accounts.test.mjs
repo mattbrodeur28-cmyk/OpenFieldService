@@ -7,6 +7,8 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { createAuth } from '../src/server/auth.mjs';
 import { createWorkspace } from '../src/server/workspace.mjs';
+import { createService } from '../src/server/service/http.mjs';
+import { randomUUID } from 'node:crypto';
 import { createSales } from '../src/server/sales/http.mjs';
 import { openStorage } from '../src/server/sqlite.mjs';
 
@@ -21,8 +23,9 @@ test('local accounts protect all APIs, enforce roles, isolate chats and preserve
   const storage = openStorage(join(directory, 'service.sqlite'));
   const auth = createAuth({ filename, env });
   const workspace = createWorkspace({ filename, storage, root: new URL('../', import.meta.url).pathname, env, fetcher: async () => Response.json({ message: { content: 'Service answer' } }) });
-  const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.salesOwners,resolveMessage:auth.salesMessageReference});
-  const app = new Hono(); app.use('/api/*', auth.guard); app.route('/api/auth', auth.app); app.route('/api/workspace', workspace.app);app.route('/api/sales',sales.app);
+  const serviceIdentity=createService({storage,currentUser:auth.currentUser,people:auth.activeWriters});
+  const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.activeWriters,resolveMessage:auth.salesMessageReference});
+  const app = new Hono(); app.use('/api/*', auth.guard); app.route('/api/auth', auth.app); app.route('/api/workspace', workspace.app);app.route('/api/sales',sales.app);app.route('/api/service',serviceIdentity.app);
   app.get('/api/public/company', c => workspace.publicCompany(c));
   app.get('/api/jobs', c => c.json({ jobs: [] })); app.post('/api/jobs', c => c.json({ ok: true }));
   let ownerCookie;
@@ -61,6 +64,10 @@ test('local accounts protect all APIs, enforce roles, isolate chats and preserve
       return { user: created.data.user, cookie: changed.cookie };
     }
     const member = await createUser('member@example.test', 'member');
+    const linkedTechnician=randomUUID();storage.database.prepare('INSERT INTO technicians(id,name) VALUES(?,?)').run(linkedTechnician,'Authenticated field technician');
+    await request('/service/technician-users',{cookie:member.cookie,expected:403});
+    await request('/service/technician-users/'+linkedTechnician,{cookie:ownerCookie,method:'PUT',body:{userId:member.user.id,expectedVersion:0}});
+    assert.equal((await request('/service/my-technician',{cookie:member.cookie})).data.technician.technician_id,linkedTechnician);
     const viewer = await createUser('viewer@example.test', 'viewer');
     const administrator = await createUser('admin@example.test', 'admin');
     const salesSetup = await request('/sales/pipelines', {cookie:member.cookie});
@@ -106,6 +113,8 @@ test('local accounts protect all APIs, enforce roles, isolate chats and preserve
     await request('/jobs', { cookie: hr.cookie, expected: 401 });
     hr.cookie = (await request('/auth/login', { method: 'POST', body: { email: 'hr@example.test', password: permanentPassword } })).cookie;
     const hrSession = (await request('/auth/session', { cookie: hr.cookie })).data.user;
+    await request('/service/technician-users',{cookie:hr.cookie,expected:403});
+    await request('/service/technician-users/'+linkedTechnician,{cookie:hr.cookie,method:'PUT',body:{userId:hr.user.id,expectedVersion:1},expected:403});
     assert.equal(hrSession.hr, true);
     await request('/auth/users', { cookie: hr.cookie });
     await request('/workspace/configuration', { cookie: hr.cookie, expected: 403 });

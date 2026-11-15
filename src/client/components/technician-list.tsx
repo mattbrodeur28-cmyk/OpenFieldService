@@ -1,9 +1,16 @@
+import {TechnicianAccounts} from "./technician-accounts";
+import {useAccount,isAdministrator} from "../auth";
+import {useConnectivity} from "../hooks/use-connectivity";
+import {Button} from "./ui/button";
 import { useState } from "preact/hooks";
 import { useApp } from "../context";
 import { CreateTechnician } from "./create-technician";
 import { Plus, Trash2, Edit3 } from "lucide-preact";
 
 export function TechnicianList() {
+  const {user}=useAccount();
+  const {readOnly}=useConnectivity();
+  const [accountsOpen,setAccountsOpen]=useState(false);
   const { technicians, updateTechnician, deleteTechnician, isAgent } = useApp();
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -23,6 +30,7 @@ export function TechnicianList() {
     <div class="page">
       <div class="page-header">
         <h1>Technicians</h1>
+        {isAdministrator(user)&&<Button disabled={readOnly} onClick={()=>setAccountsOpen(true)}>Link user accounts</Button>}
         <button class="btn btn-primary" onClick={() => setShowCreate(true)}>
           <Plus size={16} /> Add Technician
         </button>
@@ -105,6 +113,7 @@ export function TechnicianList() {
         )}
       </div>
 
+      {accountsOpen&&<TechnicianAccounts disabled={readOnly} close={()=>setAccountsOpen(false)}/>}
       {showCreate && <CreateTechnician onClose={() => setShowCreate(false)} />}
     </div>
   );

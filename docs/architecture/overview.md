@@ -55,3 +55,8 @@ ownership, projections and transaction boundaries. Service work classification l
 in `src/server/service/work.mjs` and references existing jobs. The
 [service operating model](../product/service-operating-model.md) defines On-Demand,
 Quoted Work and PM, plus planned PJSA/report/billing, actual time, truck stock and RMS.
+
+Technician account links live in `src/server/service/identity.mjs`, exposed by thin
+`service/http.mjs` routes. Identity's `activeWriters` contract supplies eligible IDs
+and names to both Sales and service modules; service identity does not read auth
+tables or match display names. See [service API](../api/service.md).

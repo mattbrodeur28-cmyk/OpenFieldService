@@ -641,6 +641,9 @@ apps or another copy of the job status. Detailed contract and implementation ord
 - [ ] **TECH-001 — Technician identity:** explicit active user-to-technician mapping,
   assigned-work permissions, crew membership and delegated supervisor actions.
   Never infer identity from matching names or expose payroll to HR by default.
+  The explicit admin-managed account link and execution-author guard are implemented;
+  legacy job-screen scoping and crew/delegation workflows remain open. See
+  [service identity contract](docs/api/service.md).
 - [ ] **TECH-002 — Workflow engine:** persisted/versioned job step, allowed
   transitions and per-category template; server checks across Dispatcher, job APIs,
   mobile and billing. Resume drafts, show blockers, preserve legacy jobs and require

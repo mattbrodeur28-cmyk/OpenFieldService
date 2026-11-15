@@ -1,3 +1,7 @@
+import { businessModules } from '../business-modules';
+import { ModuleOverview } from './module-overview';
+import { StockInventoryPage } from './inventory-page';
+import { useAccount } from '../auth';
 import { useEffect, useState } from "preact/hooks";
 import { accountRequest } from "../auth";
 import { useApp } from "../context";
@@ -33,7 +37,7 @@ const money = (cents: number) =>
   }).format(cents / 100);
 const tone = (state: string) =>
   state === "overdue" ? "danger" : state === "due" ? "warning" : "neutral";
-export function FleetPage() {
+export function FleetVehicles() {
   const { navigate } = useApp(),
     { readOnly } = useConnectivity();
   const [list, setList] = useState<FleetList | null>(null),
@@ -214,7 +218,7 @@ export function FleetPage() {
             <div class="inventory-toolbar">
               <Button
                 onClick={() =>
-                  navigate("/inventory/" + detail.vehicle.location_id)
+                  navigate("/fleet/" + detail.vehicle.location_id)
                 }
               >
                 Vehicle inventory
@@ -772,4 +776,15 @@ function ServiceForm({
       </form>
     </Sheet>
   );
+}
+
+export function FleetPage({section}:{section?:string|null}) {
+  const {user}=useAccount();
+  if(user.role==='viewer')return <div class="page"><h1>Fleet</h1><p>You do not have access to Fleet.</p></div>;
+  if(!section)return <ModuleOverview module={businessModules.fleet}/>;
+  if(section==='vehicles')return <FleetVehicles/>;
+  if(section==='inventory')return <StockInventoryPage locationKind="truck"/>;
+  if(section==='gps')return <div class="page"><div class="page-header"><h1>GPS</h1><span class="badge badge-muted">Planned</span></div><p>Live tracking is not connected. GPS ingestion, source configuration, and the dispatch map are planned.</p></div>;
+  if(/^[0-9a-f-]{36}$/i.test(section))return <StockInventoryPage key={section} locationId={section} locationKind="truck"/>;
+  return <ModuleOverview module={businessModules.fleet}/>;
 }

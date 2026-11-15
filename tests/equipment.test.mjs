@@ -96,6 +96,18 @@ test("equipment lifecycle remains optional and preserves history across moves", 
     await api("GET", `/api/customers/${customer.id}/assets?page=0`, undefined, 400);
     await api("GET", `/api/assets/${missingId}`, undefined, 404);
   });
+  await t.test("equipment search is scoped to the selected native customer location", async () => {
+    const southern = await api("POST", `/api/customers/${customer.id}/assets`, {name:"South pump",serial_number:"SP-001",site_id:second.id},201);
+    const north = await api("GET", `/api/customers/${customer.id}/assets?siteId=${first.id}`);
+    assert.equal(north.total,1);
+    assert.equal(north.assets[0].id,asset.id);
+    const south = await api("GET", `/api/customers/${customer.id}/assets?siteId=${second.id}&search=pump&limit=1&page=1`);
+    assert.equal(south.total,1);
+    assert.equal(south.assets[0].id,southern.id);
+    assert.equal((await api("GET", `/api/customers/${customer.id}/assets?siteId=${first.id}&search=pump`)).total,0);
+    await api("GET", `/api/customers/${customer.id}/assets?siteId=${foreign.id}`,undefined,400);
+    await api("GET", `/api/customers/${customer.id}/assets?siteId=invalid`,undefined,400);
+  });
   await t.test("linked jobs snapshot the site address and reject cross-customer links", async () => {
     job = await api("POST", "/api/jobs", { customer_id: customer.id, asset_id: asset.id, scheduled_date: "2026-09-15", notes: "Inspect vibration" }, 201);
     assert.equal(job.asset_id, asset.id);

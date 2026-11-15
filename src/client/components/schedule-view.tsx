@@ -1,3 +1,4 @@
+import {useAccount} from '../auth';
 import { useApp } from "../context";
 import { useState } from "preact/hooks";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-preact";
@@ -7,34 +8,38 @@ import { useConnectivity } from "../hooks/use-connectivity";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function ScheduleView() {
+export function ScheduleView({embedded=false,allowCreate=true,title="Schedule",hideHeading=false,selectedDate,onDateChange,todayDate}:{embedded?:boolean;allowCreate?:boolean;title?:string;hideHeading?:boolean;selectedDate?:string;onDateChange?:(date:string)=>void;todayDate?:string}={}) {
+  const {user}=useAccount();
+  const canCreate=allowCreate && user.role!=="viewer";
   const { scheduleJobs, scheduleStart, scheduleEnd, setScheduleRange, navigate } = useApp();
   const { readOnly } = useConnectivity();
   const [createDate, setCreateDate] = useState<string | null>(null);
 
   const days = daysInRange(scheduleStart, scheduleEnd);
-  const todayStr = calendarDate(new Date());
+  const todayStr = todayDate || calendarDate(new Date());
 
   const shiftWeek = (delta: number) => {
     const start = new Date(scheduleStart + "T00:00:00");
     start.setDate(start.getDate() + delta * 7);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
-    setScheduleRange(calendarDate(start), calendarDate(end));
+    if(onDateChange){const selected=new Date((selectedDate || scheduleStart)+"T00:00:00");selected.setDate(selected.getDate()+delta*7);onDateChange(calendarDate(selected));}
+    else setScheduleRange(calendarDate(start), calendarDate(end));
   };
 
   const goToday = () => {
-    setScheduleRange(...weekRange());
+    if(onDateChange)onDateChange(todayStr);
+    else setScheduleRange(...weekRange(new Date(todayStr+"T00:00:00")));
   };
 
   return (
-    <div class="page">
-      <div class="page-header">
-        <h1>Schedule</h1>
-        <button class="btn btn-primary" disabled={readOnly} onClick={() => setCreateDate(todayStr >= scheduleStart && todayStr <= scheduleEnd ? todayStr : scheduleStart)}>
+    <div class={embedded ? "section schedule-overview" : "page"}>
+      {!hideHeading && <div class="page-header">
+        {embedded ? <h2>{title}</h2> : <h1>{title}</h1>}
+        {canCreate && <button class="btn btn-primary" disabled={readOnly} onClick={() => setCreateDate(todayStr >= scheduleStart && todayStr <= scheduleEnd ? todayStr : scheduleStart)}>
           <Plus size={16} /> New job
-        </button>
-      </div>
+        </button>}
+      </div>}
       <div class="toolbar schedule-toolbar">
         <div class="page-header-right">
           <button class="btn" disabled={readOnly} onClick={goToday}>Today</button>
@@ -56,8 +61,10 @@ export function ScheduleView() {
           return (
             <div key={day} class={`schedule-day ${isToday ? "today" : ""}`}>
               <div class="schedule-day-header">
+                {onDateChange && <button type="button" class={`schedule-select-day ${selectedDate===day?"selected":""}`} aria-label={`Show dispatch for ${day}`} aria-pressed={selectedDate===day} onClick={()=>onDateChange(day)}>{DAY_NAMES[dateObj.getDay()]} {dateObj.getDate()}</button>}
+                {!onDateChange && <>
                 <span class="schedule-day-name">{DAY_NAMES[dateObj.getDay()]}</span>
-                <span class={`schedule-day-num ${isToday ? "today" : ""}`}>{dateObj.getDate()}</span>
+                <span class={`schedule-day-num ${isToday ? "today" : ""}`}>{dateObj.getDate()}</span></>}
               </div>
               <div class="schedule-day-jobs">
                 {dayJobs.map((job) => (
@@ -77,14 +84,14 @@ export function ScheduleView() {
                   <div class="schedule-empty">No jobs</div>
                 )}
               </div>
-              <button class="btn btn-ghost schedule-add-job" disabled={readOnly} aria-label={`Add job on ${dateObj.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`} onClick={() => setCreateDate(day)}>
+              {canCreate && <button class="btn btn-ghost schedule-add-job" disabled={readOnly} aria-label={`Add job on ${dateObj.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`} onClick={() => setCreateDate(day)}>
                 <Plus size={14} /> Add job
-              </button>
+              </button>}
             </div>
           );
         })}
       </div>
-      {createDate !== null && <CreateJob initialDate={createDate} onClose={() => setCreateDate(null)} onCreated={(job) => {
+      {canCreate && createDate !== null && <CreateJob initialDate={createDate} onClose={() => setCreateDate(null)} onCreated={(job) => {
         if (job.scheduled_date < scheduleStart || job.scheduled_date > scheduleEnd) {
           setScheduleRange(...weekRange(new Date(job.scheduled_date + "T00:00:00")));
         }

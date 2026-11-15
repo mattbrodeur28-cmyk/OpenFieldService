@@ -1,3 +1,5 @@
+import { businessModules } from '../business-modules';
+import { ModuleOverview } from './module-overview';
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import type { JSX } from "preact";
 import {
@@ -41,7 +43,7 @@ const emptyOptions: SalesOptions = {
   sites: [],
   assets: [],
 };
-export function SalesPage({ opportunityId }: { opportunityId: string | null }) {
+function SalesWorkspace({ opportunityId }: { opportunityId: string | null }) {
   const { user } = useAccount(),
     connectivity = useConnectivity(),
     admin = isAdministrator(user);
@@ -802,4 +804,10 @@ export function SalesPage({ opportunityId }: { opportunityId: string | null }) {
       )}
     </div>
   );
+}
+
+export function SalesPage({opportunityId}:{opportunityId:string|null}) {
+  if(!opportunityId)return <ModuleOverview module={businessModules.sales}/>;
+  if(opportunityId==='quotes')return <div class="page"><div class="page-header"><h1>Quotes</h1><span class="badge badge-muted">Planned</span></div><p>The quote workbench, customer proposals, and acceptance workflow are planned. Estimate calculation and billing profiles are available in the backend; saved customer quotes are not yet implemented.</p></div>;
+  return <SalesWorkspace opportunityId={opportunityId==='pipeline'?null:opportunityId}/>;
 }

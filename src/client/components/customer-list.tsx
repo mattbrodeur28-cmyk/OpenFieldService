@@ -1,4 +1,6 @@
 import { useState } from "preact/hooks";
+import { useAccount } from "../auth";
+import { useConnectivity } from "../hooks/use-connectivity";
 import { useApp } from "../context";
 import { CreateCustomer } from "./create-customer";
 import { Pagination } from "./pagination";
@@ -9,13 +11,16 @@ export function CustomerList() {
     customers, customersPag, setCustomersPage, customersSearch, setCustomersSearch,
     navigate, deleteCustomer, isAgent,
   } = useApp();
+  const {user}=useAccount();
+  const {readOnly}=useConnectivity();
+  const canWrite=user.role!=="viewer"&&user.active&&!user.mustChangePassword;
   const [showCreate, setShowCreate] = useState(false);
 
   return (
     <div class="page">
       <div class="page-header">
         <h1>Customers</h1>
-        <button class="btn btn-primary" onClick={() => setShowCreate(true)}>
+        <button class="btn btn-primary" disabled={!canWrite||readOnly} onClick={() => setShowCreate(true)}>
           <Plus size={16} /> New Customer
         </button>
       </div>
@@ -36,7 +41,7 @@ export function CustomerList() {
         {customers.length === 0 ? (
           <div class="empty-state">
             <p>{customersSearch ? "No customers match your search." : "Add a customer to start scheduling service."}</p>
-            <button class="btn" onClick={() => customersSearch ? setCustomersSearch("") : setShowCreate(true)}>
+            <button class="btn" disabled={!customersSearch&&(!canWrite||readOnly)} onClick={() => customersSearch ? setCustomersSearch("") : setShowCreate(true)}>
               {customersSearch ? "Clear search" : "Add your first customer"}
             </button>
           </div>

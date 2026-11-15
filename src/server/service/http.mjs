@@ -1,4 +1,6 @@
 import { createDocumentModule } from "../documents/http.mjs";
+import { createCrmService } from "../crm/service.mjs";
+import { mountCrm } from "../crm/http.mjs";
 import { mountPurchasing } from "../purchasing/http.mjs";
 import { mountFleet } from "../fleet/http.mjs";
 import { mountInventory } from "../inventory/http.mjs";
@@ -175,6 +177,9 @@ export function createService({ storage, currentUser, people }) {
     check,
   });
   purchasing = mountPurchasing(app, { storage, inventory, check });
+  // CRM-001: contacts, roles and billing links hang off the existing customer/site records.
+  const crm = createCrmService({ storage });
+  mountCrm(app, { crm, check });
   const documents = createDocumentModule({
     storage,
     identity: service,
@@ -191,5 +196,6 @@ export function createService({ storage, currentUser, people }) {
     inventory,
     fleet,
     purchasing,
+    crm,
   };
 }

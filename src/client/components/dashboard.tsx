@@ -1,13 +1,10 @@
 import { AnimatedNumber } from "./ui/animated-number";
-import { StatusBadge } from "./status-badge";
+import { ScheduleView } from "./schedule-view";
 import { useApp } from "../context";
 import { Briefcase, Users, CalendarCheck, DollarSign, Clock, CheckCircle, FileText, AlertCircle } from "lucide-preact";
 
 export function Dashboard() {
-  const { stats, navigate, jobs } = useApp();
-
-  const todayStr = new Date().toISOString().split("T")[0];
-  const todayJobs = jobs.filter((j) => j.scheduled_date === todayStr && j.status !== "cancelled");
+  const { stats, navigate } = useApp();
 
   return (
     <div class="page">
@@ -92,46 +89,7 @@ export function Dashboard() {
         )}
       </div>
 
-      {todayJobs.length > 0 && (
-        <div class="section">
-          <h2 class="section-title">Today's Schedule</h2>
-          <div class="table-scroll">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Job</th>
-                  <th>Customer</th>
-                  <th>Technician</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {todayJobs.map((job) => (
-                  <tr key={job.id} class="table-row clickable" onClick={() => navigate(`/jobs/${job.id}`)}>
-                    <td class="text-muted">{job.scheduled_time}</td>
-                    <td><span class="identifier">{job.identifier}</span></td>
-                    <td>{job.customer_name}</td>
-                    <td>
-                      {job.technician_name ? (
-                        <span class="tech-pill" style={{ borderColor: job.technician_color || "var(--text-muted)" }}>
-                          <span class="tech-dot" style={{ background: job.technician_color || "var(--text-muted)" }} />
-                          {job.technician_name}
-                        </span>
-                      ) : (
-                        <span class="text-muted">Unassigned</span>
-                      )}
-                    </td>
-                    <td>
-                      <StatusBadge status={job.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <ScheduleView embedded allowCreate={false} title="Weekly overview" />
     </div>
   );
 }

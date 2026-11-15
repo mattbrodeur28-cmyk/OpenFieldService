@@ -1630,3 +1630,29 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .inventory-toolbar {display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0;}.inventory-toolbar .ui-field{margin:0;min-width:220px;max-width:380px;}.inventory-page .table td{vertical-align:top;}.inventory-page .table td:last-child .ui-button{margin:2px 5px 2px 0;}
 
 .purchase-line{border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:grid;gap:12px;min-width:0}.purchase-line legend{padding:0 6px;font-weight:600}.purchase-line-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}@media(max-width:480px){.purchase-line-values{grid-template-columns:1fr}}
+
+/* CRM-001 contacts: role chips, per-contact actions and the add/edit form. */
+.contact-roles,.contact-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
+.contact-archived{opacity:.65}
+.contact-form{margin-top:16px;max-width:640px}
+.contact-form h4{margin:0 0 12px}
+.contact-preferences{border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin:12px 0;display:flex;flex-wrap:wrap;gap:10px 18px}
+.contact-preferences legend{padding:0 6px;font-weight:600}
+.contact-preferences label{display:inline-flex;align-items:center;gap:6px}
+@media(max-width:480px){.contact-preferences{flex-direction:column;gap:8px}.contact-actions .btn{min-height:44px}}
+
+/* CRM-002 Customer 360: account tiles and two-column summary. */
+.c360-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,120px),1fr));gap:10px;margin:14px 0}
+.c360-tile{display:flex;flex-direction:column;gap:2px;padding:12px;border:1px solid var(--border);border-radius:var(--radius);min-width:0}
+.c360-value{font-size:1.25rem;font-weight:600;overflow-wrap:anywhere}
+.c360-label{font-size:.8rem;color:var(--text-muted, #6b7280)}
+.c360-columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;margin-top:8px}
+.c360-columns h4{margin:0 0 8px}
+.c360-list{margin:0;padding-left:18px;display:grid;gap:6px}
+.c360-link{background:none;border:0;padding:0;font:inherit;color:var(--accent,#2563eb);cursor:pointer;text-align:left;text-decoration:underline}
+
+.crm-contact-fields {border:0;padding:16px 0;display:grid;gap:16px;min-width:0}.crm-contact-fields .contact-preferences{margin:0}.crm-contact-fields .ui-check input{width:auto}.ui-sheet .contact-actions{gap:10px;margin-top:18px}
+
+.crm-account-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0 24px;align-items:end}.crm-account-form>.ui-check{align-self:center}.crm-account-form>.btn{justify-self:start}.crm-account-form+.c360-list{margin-top:12px}@media(max-width:640px){.crm-account-form{grid-template-columns:minmax(0,1fr)}}
+
+.location-selector{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.equipment-location{padding:18px;border:1px solid var(--border);border-radius:var(--radius);display:grid;gap:16px;margin-top:16px}.equipment-location-details p{margin-top:8px}@media(max-width:640px){.location-selector{grid-template-columns:minmax(0,1fr)}}

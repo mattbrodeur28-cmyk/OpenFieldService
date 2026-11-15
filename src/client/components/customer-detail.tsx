@@ -1,6 +1,9 @@
 import { useState } from "preact/hooks";
 import { useApp } from "../context";
 import { CustomerSales } from "./customer-sales";
+import { CustomerContacts } from "./customer-contacts";
+import { CustomerRelationships } from "./customer-relationships";
+import { CustomerOverview } from "./customer-overview";
 import { CustomerEquipment } from "./customer-equipment";
 import { StatusBadge } from "./status-badge";
 import { ArrowLeft, Trash2, Edit3, Save, X } from "lucide-preact";
@@ -110,6 +113,9 @@ export function CustomerDetail() {
             </>
           )}
 
+          <CustomerOverview key={"overview-"+customer.id} customerId={customer.id} />
+          <CustomerRelationships key={"relationships-"+customer.id} customerId={customer.id}/>
+          <CustomerContacts key={"contacts-"+customer.id} customerId={customer.id} />
           <CustomerSales key={"sales-"+customer.id} customerId={customer.id}/>
           <CustomerEquipment key={customer.id} customerId={customer.id} />
 

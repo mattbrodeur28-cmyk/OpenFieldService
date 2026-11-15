@@ -96,14 +96,15 @@ equipmentApp.openapi(createRoute({
 });
 
 equipmentApp.openapi(createRoute({
-  method: "get", path: "/api/customers/{id}/assets", request: { params, query: pagination },
+  method: "get", path: "/api/customers/{id}/assets", request: { params, query: pagination.extend({ siteId: id.optional() }) },
   responses: { 200: { description: "Customer equipment, 50 per page", content: json(z.object({ assets: z.array(assetSchema), total: z.number().int() })) }, ...errors },
 }), async (c) => {
   const { id } = c.req.valid("param");
-  const { page, search } = c.req.valid("query");
+  const { page, search, siteId } = c.req.valid("query");
   if (!await get("SELECT id FROM customers WHERE id = ?", [id])) return c.json({ error: "Customer not found" }, 404);
-  const where = " WHERE a.customer_id = ? AND (a.name LIKE ? OR a.serial_number LIKE ? OR a.model LIKE ?)";
-  const values = [id, ...Array(3).fill(`%${search}%`)];
+  if(siteId && !await get("SELECT id FROM sites WHERE id=? AND customer_id=?",[siteId,id]))return c.json({error:"Location must belong to this customer"},400);
+  const where = " WHERE a.customer_id = ? AND (a.name LIKE ? OR a.serial_number LIKE ? OR a.model LIKE ?)" + (siteId ? " AND a.site_id=?" : "");
+  const values = [id, ...Array(3).fill(`%${search}%`), ...(siteId ? [siteId] : [])];
   const total = await get<{ n: number }>("SELECT COUNT(*) AS n FROM assets a" + where, values);
   return c.json({ assets: await query<Asset>(assetSelect + where + " ORDER BY a.name, a.id LIMIT 50 OFFSET ?", [...values, (page - 1) * 50]), total: total!.n }, 200);
 });

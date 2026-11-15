@@ -1,24 +1,21 @@
+import { useNavigationDisclosures } from '../hooks/use-navigation-disclosures';
+import { businessModules, type BusinessModule } from '../business-modules';
 import { Avatar } from './ui/surfaces';
 import { useEffect, useState } from "preact/hooks";
 import { ProfilePopup, type ProfileSection } from "./profile-popup";
 import { useApp } from "../context";
-import { useAccount, isAdministrator } from "../auth";
-import { ShoppingCart, Truck, TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
+import { useAccount, isAdministrator, canManagePeople } from "../auth";
+import { Wallet, ContactRound, ShoppingCart, Truck, TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, CalendarDays, FileText, Package } from "lucide-preact";
 import type { View } from "../types";
 
 const navItems: { view: View; path: string; label: string; icon: typeof LayoutDashboard }[] = [
   { view: "dashboard", path: "/", label: "Dashboard", icon: LayoutDashboard },
   { view: "dispatcher", path: "/dispatcher", label: "Dispatcher", icon: CalendarClock },
-  { view: "schedule", path: "/schedule", label: "Schedule", icon: CalendarDays },
   { view: "jobs", path: "/jobs", label: "Jobs", icon: Briefcase },
   { view: "customers", path: "/customers", label: "Customers", icon: Users },
   { view: "timesheets", path: "/timesheets", label: "Timesheets", icon: CalendarClock },
   { view: "technicians", path: "/technicians", label: "Technicians", icon: Wrench },
-  { view: "invoices", path: "/invoices", label: "Invoices", icon: FileText },
-  { view: "purchasing", path: "/purchasing", label: "Purchasing", icon: ShoppingCart },
-  { view: "fleet", path: "/fleet", label: "Fleet", icon: Truck },
   { view: "inventory", path: "/inventory", label: "Inventory", icon: Package },
-  { view: "materials", path: "/materials", label: "Materials", icon: Package },
   { view: "services", path: "/services", label: "Service types", icon: Settings },
 ];
 
@@ -30,9 +27,10 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
   useEffect(() => { const mapped: Partial<Record<View, ProfileSection>> = { settings: 'settings', integrations: 'integrations', environment: 'environment', users: 'administration' }; if (mapped[currentView]) setProfileSection(mapped[currentView]!); }, [currentView]);
   function closeProfile() { setProfileSection(null); if (['settings', 'integrations', 'environment', 'users'].includes(currentView)) navigate('/'); }
 
-  const [appsExpanded, setAppsExpanded] = useState(true);
+  const {expanded:expandedModules,toggle:toggleModule}=useNavigationDisclosures(user.id);
+  const appsExpanded=expandedModules.fieldService;
 
-  const active = (view: View) => currentView === view || (currentView === "assets" && view === "customers");
+  const active = (view: View) => currentView === view || (["schedule","calendar"].includes(currentView) && view==="dispatcher") || (currentView==="materials" && view==="inventory") || (currentView === "assets" && view === "customers") || (["purchasing", "invoices"].includes(currentView) && view === "finance");
   const colors: Partial<Record<View, string>> = {
     timesheets: "blue", sales: "cyan", dispatcher: "blue", schedule: "pink", jobs: "purple", customers: "blue", technicians: "pink",
     invoices: "purple", materials: "cyan", services: "purple",
@@ -48,6 +46,25 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
       <span class="workspace-nav-label">{item.label}</span>
       {count > 0 && <span class="sidebar-badge">{count}</span>}
     </button>;
+  };
+
+  const moduleGroup = (module: BusinessModule, Icon: typeof LayoutDashboard) => {
+    const expanded = collapsed || expandedModules[module.view];
+    const selected = active(module.view);
+    return <div class="workspace-module" key={module.view}>
+      <div class="workspace-module-heading">
+        <button type="button" class={`sidebar-item workspace-app-toggle ${selected ? 'active' : ''}`} title={`${module.label} overview`} aria-current={selected && !currentId && currentView===module.view ? 'page' : undefined} onClick={() => navigate('/'+module.view)}>
+          <Icon size={14} aria-hidden="true"/><span class="workspace-nav-label">{module.label}</span>
+        </button>
+        {!collapsed && <button type="button" class="btn-icon workspace-module-disclosure" aria-label={`${expanded ? 'Collapse' : 'Expand'} ${module.label}`} aria-expanded={!!expanded} aria-controls={`${module.view}-pages`} onClick={() => toggleModule(module.view)}><ChevronDown size={14} class={`workspace-chevron ${expanded ? '' : 'closed'}`} aria-hidden="true"/></button>}
+      </div>
+      <div id={`${module.view}-pages`} class="workspace-app-pages" hidden={!expanded}>
+        {[{key:'overview',label:'Overview',path:'/'+module.view},...module.pages].map(page=>{
+          const pageActive = selected && (page.key==='overview' ? !currentId && currentView===module.view : currentView===page.key || (currentView===module.view && currentId===page.key));
+          return <button type="button" key={page.key} title={page.label} class={`sidebar-item ${pageActive?'active':''}`} aria-current={pageActive?'page':undefined} onClick={()=>navigate(page.path)}><span class="workspace-nav-label">{page.label}</span></button>;
+        })}
+      </div>
+    </div>;
   };
 
   return (
@@ -71,15 +88,18 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
         <div class="sidebar-section-title">Apps</div>
         <button class="sidebar-item workspace-app-toggle" title="Field Service"
           aria-expanded={collapsed || appsExpanded} aria-controls="field-service-pages"
-          onClick={() => setAppsExpanded(!appsExpanded)} disabled={collapsed}>
+          onClick={() => toggleModule("fieldService")} disabled={collapsed}>
           <CalendarClock size={14} class="workspace-app-symbol" aria-hidden="true" />
           <span class="workspace-nav-label">Field Service</span>
           <ChevronDown size={14} class={`workspace-chevron ${appsExpanded ? "" : "closed"}`} aria-hidden="true" />
         </button>
         <div id="field-service-pages" class="workspace-app-pages" hidden={!collapsed && !appsExpanded}>
-          {navItems.slice(1).filter(item=>item.view!=="purchasing"||canManage).filter(item=>!["inventory","fleet"].includes(item.view)||user.role!=="viewer").map(navItem)}
+          {navItems.slice(1).filter(item=>item.view!=="purchasing"||canManage).map(navItem)}
         </div>
-        {navItem({view:"sales",path:"/sales",label:"Sales",icon:TrendingUp})}
+        {moduleGroup(businessModules.sales, TrendingUp)}
+        {user.role !== "viewer" && moduleGroup(businessModules.fleet, Truck)}
+        {canManagePeople(user) && moduleGroup(businessModules.hr, ContactRound)}
+        {canManage && moduleGroup(businessModules.finance, Wallet)}
         {canManage && navItem({ view: "builder", path: "/builder", label: "App builder", icon: Code2 })}
         {navItem({ view: "knowledge", path: "/knowledge", label: "Knowledge", icon: BookOpen })}
         {canManage && navItem({ view: "website", path: "/website", label: "Website", icon: Globe })}

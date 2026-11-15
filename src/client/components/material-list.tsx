@@ -1,9 +1,14 @@
+import {useConnectivity} from "../hooks/use-connectivity";
+import {useAccount} from "../auth";
 import {accountRequest} from "../auth";
 import { useEffect, useState } from "preact/hooks";
 import { useApp } from "../context";
 import { Plus, Trash2, Edit3 } from "lucide-preact";
 
 export function MaterialList() {
+  const {user}=useAccount();
+  const {readOnly}=useConnectivity();
+  const canWrite=user.role!=="viewer" && !readOnly;
   const { materials, addMaterial, updateMaterial, deleteMaterial, isAgent, setError, navigate } = useApp();
   const [managed,setManaged]=useState<string[]>([]);
   useEffect(()=>{let live=true;void accountRequest<{managedMaterialIds:string[]}>("/api/service/inventory").then(o=>{if(live)setManaged(o.managedMaterialIds);}).catch(()=>{});return()=>{live=false;};},[]);
@@ -32,18 +37,18 @@ export function MaterialList() {
   return (
     <div class="page">
       <div class="page-header">
-        <h1>Materials & Inventory</h1>
-        <button class="btn btn-primary" onClick={() => setShowCreate(true)}>
+        <h1>Material catalog</h1>
+        <button disabled={!canWrite} class="btn btn-primary" onClick={() => setShowCreate(true)}>
           <Plus size={16} /> Add Material
         </button>
       </div>
 
-      <p class="workspace-help">Tracked quantities come from warehouse and truck movements. <button class="btn" onClick={()=>navigate("/inventory")}>Open Inventory</button></p>
+      <p class="workspace-help">Tracked quantities come from warehouse and truck movements. Reference cost is separate from the company weighted-average stock cost.</p>
       <div class="table-scroll">
         {materials.length === 0 && !showCreate ? (
           <div class="empty-state">
             <p>No materials yet</p>
-            <button class="btn" onClick={() => setShowCreate(true)}>
+            <button disabled={!canWrite} class="btn" onClick={() => setShowCreate(true)}>
               Add your first material
             </button>
           </div>
@@ -53,7 +58,7 @@ export function MaterialList() {
               <tr>
                 <th>Name</th>
                 <th>Unit</th>
-                <th>Unit Cost</th>
+                <th>Reference cost</th>
                 <th>In Stock</th>
                 <th>Actions</th>
               </tr>
@@ -96,9 +101,9 @@ export function MaterialList() {
                       <td>{m.in_stock}</td>
                       <td>
                         <div class="action-btns">
-                          <button class="btn-icon" onClick={() => startEdit(m)}><Edit3 size={14} /></button>
+                          <button disabled={!canWrite} class="btn-icon" onClick={() => startEdit(m)}><Edit3 size={14} /></button>
                           {isAgent && (
-                            <button class="btn-icon danger" onClick={() => deleteMaterial(m.id)}><Trash2 size={14} /></button>
+                            <button disabled={!canWrite} class="btn-icon danger" onClick={() => deleteMaterial(m.id)}><Trash2 size={14} /></button>
                           )}
                         </div>
                       </td>

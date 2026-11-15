@@ -12,7 +12,7 @@ const STATUSES: { value: string; label: string }[] = [
   { value: "cancelled", label: "Cancelled" },
 ];
 
-export function InvoiceList() {
+export function InvoiceList({ title = "Invoices" }: { title?: string } = {}) {
   const {
     invoices, invoicesPag, setInvoicesPage, invoicesStatusFilter, setInvoicesStatusFilter,
     navigate, deleteInvoice, isAgent,
@@ -21,7 +21,7 @@ export function InvoiceList() {
   return (
     <div class="page">
       <div class="page-header">
-        <h1>Invoices</h1>
+        <h1>{title}</h1>
       </div>
 
       <div class="toolbar">

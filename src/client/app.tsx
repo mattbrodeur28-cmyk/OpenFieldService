@@ -1,3 +1,4 @@
+import { BusinessSection } from "./components/business-section";
 import {PurchasingPage} from "./components/purchasing-page";
 import {FleetPage} from "./components/fleet-page";
 import {InventoryPage} from "./components/inventory-page";
@@ -67,8 +68,8 @@ export function App() {
   const renderMain = () => {
     if (view === "sales") return <SalesPage opportunityId={id} />;
     if (view === "inventory") return <InventoryPage locationId={id}/>;
-    if (view === "fleet") return <FleetPage/>;
-    if (view === "purchasing") return <PurchasingPage orderId={id}/>;
+    if (view === "fleet") return <FleetPage section={id}/>;
+    if (["hr", "finance", "purchasing", "invoices"].includes(view)) return <BusinessSection view={view} id={id} invoiceDetail={view === "invoices" && !!id && !!appState.selectedInvoice}/>;
     if (view === "timesheets") return <Timesheets />;
     if (view === "dispatcher") return <Dispatcher />;
     if (view === "team" && id) return <TeamChannel key={id} id={id} />;
@@ -84,16 +85,19 @@ export function App() {
         {detailError && <button class="btn" onClick={() => navigate("/schedule")}>Back to schedule</button>}
       </div></div>;
     }
-    if (view === "customers" && id && appState.selectedCustomer) return <CustomerDetail />;
+    if (view === "customers" && id) {
+      if(appState.selectedCustomer?.id===id)return <CustomerDetail key={id}/>;
+      return <div class="page"><p role={detailError?'alert':'status'}>{detailError||'Loading account…'}</p><button class="btn" onClick={()=>navigate("/customers")}>Back to accounts</button></div>;
+    }
     if (view === "invoices" && id && appState.selectedInvoice) return <InvoiceDetail />;
     switch (view) {
       case "calendar":
-      case "schedule": return <ScheduleView />;
+      case "schedule": return <Dispatcher />;
       case "jobs": return <JobList />;
       case "customers": return <CustomerList />;
       case "technicians": return <TechnicianList />;
       case "services": return <ServiceTypeList />;
-      case "materials": return <MaterialList />;
+      case "materials": return <InventoryPage initialTab="catalog" />;
       case "invoices": return <InvoiceList />;
       default: return <Dashboard />;
     }

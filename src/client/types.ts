@@ -1,4 +1,4 @@
-export type View = "purchasing" | "fleet" | "inventory" | "timesheets" | "sales" | "dispatcher" | "calendar" | "team" | "users" | "website" | "environment" | "chat" | "knowledge" | "integrations" | "builder" | "settings" | "assets" | "dashboard" | "schedule" | "jobs" | "customers" | "technicians" | "services" | "invoices" | "materials";
+export type View = "hr" | "finance" | "purchasing" | "fleet" | "inventory" | "timesheets" | "sales" | "dispatcher" | "calendar" | "team" | "users" | "website" | "environment" | "chat" | "knowledge" | "integrations" | "builder" | "settings" | "assets" | "dashboard" | "schedule" | "jobs" | "customers" | "technicians" | "services" | "invoices" | "materials";
 
 export type JobStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled";
 export type Priority = "low" | "normal" | "high" | "urgent";
@@ -256,6 +256,7 @@ export interface BillingLink {
 }
 
 export interface AccountSettings {
+  version:number;
   customerId: string;
   segment: "commercial" | "residential";
   accountType: "customer" | "prospect" | "vendor" | "inactive";

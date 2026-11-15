@@ -27,10 +27,10 @@ export function SiteForm({ customerId, site, onSaved, onClose }: { customerId: s
       onSaved();
     } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };
-  return <EquipmentDialog title={site ? "Edit site" : "Add site"} onClose={onClose}>
+  return <EquipmentDialog title={site ? "Edit location" : "Add location"} onClose={onClose}>
     <form onSubmit={submit}>
       <div class="form-grid">
-        <label class="form-group full-width">Site name *<input name="name" defaultValue={site?.name} required maxLength={500} autoFocus /></label>
+        <label class="form-group full-width">Location name *<input name="name" defaultValue={site?.name} required maxLength={500} autoFocus /></label>
         <label class="form-group full-width">Full address<input name="address" defaultValue={site?.address} maxLength={500} /></label>
         <label class="form-group">Contact name<input name="contact_name" defaultValue={site?.contact_name} maxLength={500} /></label>
         <label class="form-group">Contact phone<input name="contact_phone" type="tel" defaultValue={site?.contact_phone} maxLength={500} /></label>
@@ -39,12 +39,12 @@ export function SiteForm({ customerId, site, onSaved, onClose }: { customerId: s
         <label class="form-group full-width">Safety notes<textarea name="safety_notes" defaultValue={site?.safety_notes} rows={3} maxLength={5000} /></label>
         {error && <p class="equipment-error full-width" role="alert">{error}</p>}
       </div>
-      <div class="modal-footer"><button type="button" class="btn" onClick={onClose} disabled={busy}>Cancel</button><button class="btn btn-primary" disabled={busy}>{busy ? "Saving…" : "Save site"}</button></div>
+      <div class="modal-footer"><button type="button" class="btn" onClick={onClose} disabled={busy}>Cancel</button><button class="btn btn-primary" disabled={busy}>{busy ? "Saving…" : "Save location"}</button></div>
     </form>
   </EquipmentDialog>;
 }
 
-export function AssetForm({ customerId, sites, asset, onSaved, onClose }: { customerId: string; sites: Site[]; asset?: Asset; onSaved: () => void; onClose: () => void }) {
+export function AssetForm({ customerId, sites, asset, initialSiteId, onSaved, onClose }: { customerId: string; sites: Site[]; asset?: Asset; initialSiteId?:string; onSaved: () => void; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const submit = async (event: Event) => {
@@ -61,7 +61,7 @@ export function AssetForm({ customerId, sites, asset, onSaved, onClose }: { cust
       <div class="form-grid">
         <label class="form-group full-width">Equipment name *<input name="name" defaultValue={asset?.name} required maxLength={500} autoFocus placeholder="Rooftop air conditioner" /></label>
         <label class="form-group">Serial number *<input name="serial_number" defaultValue={asset?.serial_number} required maxLength={500} /></label>
-        <label class="form-group">Site *<select name="site_id" defaultValue={asset?.site_id || sites[0]?.id} required>{sites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}</select></label>
+        <label class="form-group">Location *<select name="site_id" defaultValue={asset?.site_id || initialSiteId || ""} required><option value="" disabled>Choose a location</option>{sites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}</select></label>
         <label class="form-group">Manufacturer<input name="manufacturer" defaultValue={asset?.manufacturer} maxLength={500} /></label>
         <label class="form-group">Model<input name="model" defaultValue={asset?.model} maxLength={500} /></label>
         <label class="form-group full-width">Lifecycle status<select name="status" defaultValue={asset?.status || "in_service"}><option value="in_service">In service</option><option value="out_of_service">Out of service</option><option value="retired">Retired</option></select></label>

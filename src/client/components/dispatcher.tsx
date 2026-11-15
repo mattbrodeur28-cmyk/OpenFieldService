@@ -1,3 +1,7 @@
+import { useApp } from '../context';
+import { weekRange } from '../calendar';
+import { ScheduleView } from './schedule-view';
+import { CreateJob } from './create-job';
 import { formatTimestamp } from "../time-format";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import type { JSX } from "preact";
@@ -478,6 +482,8 @@ function ResourceForm({
 }
 
 export function Dispatcher() {
+  const [creating,setCreating]=useState(false);
+  const {scheduleStart,scheduleEnd,setScheduleRange}=useApp();
   const { user } = useAccount(),
     connectivity = useConnectivity();
   const [board, setBoard] = useState<Board | null>(null),
@@ -521,6 +527,7 @@ export function Dispatcher() {
       up: (e: PointerEvent) => void;
       cancel: () => void;
     } | null>(null);
+  useEffect(()=>{if(date && (date<scheduleStart || date>scheduleEnd))setScheduleRange(...weekRange(new Date(date+"T00:00:00")));},[date,scheduleStart,scheduleEnd]);
   const canWrite =
       user.role !== "viewer" && !connectivity.readOnly && !failed && !busy,
     admin = isAdministrator(user);
@@ -897,6 +904,7 @@ export function Dispatcher() {
     isToday = board.date === dayInZone(board.timeZone, now);
   return (
     <div class="page dispatcher-page">
+      {creating && <CreateJob initialDate={board.date} onClose={()=>setCreating(false)} onCreated={job=>{if(job.scheduled_date!==date)setDate(job.scheduled_date);else void load();}}/>}
       <div class="dispatch-title">
         <div>
           <h1>Dispatcher</h1>
@@ -930,6 +938,7 @@ export function Dispatcher() {
         >
           {failed ? "Updates unavailable" : connection}
         </Badge>
+        <Button disabled={!canWrite} onClick={()=>setCreating(true)}>Add job</Button>
         <Tooltip label="Refresh the current board">
           <Button
             aria-label="Refresh dispatch board"
@@ -1049,6 +1058,7 @@ export function Dispatcher() {
           appointments
         </Badge>
       </div>
+      <div class="dispatch-weekly-schedule"><ScheduleView embedded allowCreate={false} hideHeading selectedDate={date} todayDate={dayInZone(board.timeZone,new Date())} onDateChange={next=>{setDate(next);setPage(1);}} /></div>
       <div class={`dispatch-layout ${pipelineOpen ? "" : "pipeline-hidden"}`}>
         <aside
           id="dispatch-work-pipeline"

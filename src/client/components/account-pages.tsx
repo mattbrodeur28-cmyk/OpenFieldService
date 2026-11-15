@@ -45,7 +45,7 @@ function UserRow({ item, refresh }: { item: AccountUser; refresh(): Promise<void
   </article>;
 }
 
-export function AccountPages({ view, id }: { view: View; id: string | null }) {
+export function AccountPages({ view, id, title: heading }: { view: View; id: string | null; title?: string }) {
   const { user, teams, refreshTeams } = useAccount(); const canManage = isAdministrator(user); const managePeople = canManagePeople(user);
   const [users, setUsers] = useState<AccountUser[]>([]); const [members, setMembers] = useState<AccountUser[]>([]); const [selected, setSelected] = useState<string[]>([]);
   const [team, setTeam] = useState<{ name: string; description: string } | null>(null); const [messages, setMessages] = useState<{ id: string; author: string; content: string; created_at: string }[]>([]);
@@ -71,7 +71,7 @@ export function AccountPages({ view, id }: { view: View; id: string | null }) {
   }, [view, id]);
   async function action(fn: () => Promise<void>) { setBusy(true); setError(''); setSuccess(''); try { await fn(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }
   const title = view === 'team' ? team?.name && id ? team.name : 'Teams' : view === 'users' ? 'Users' : view === 'website' ? 'Website' : view === 'environment' ? 'Environment variables' : 'Your account';
-  return <div class="page workspace-page"><div class="page-header"><h1>{title}</h1></div>
+  return <div class="page workspace-page"><div class="page-header"><h1>{heading || title}</h1></div>
     {error && <div class="workspace-error" role="alert">{error}</div>}{success && <p class="account-success" role="status">{success}</p>}
     {view === 'users' && (managePeople ? <section class="workspace-editor"><h2>Workspace users</h2><p class="workspace-help">One company workspace. Owners and admins manage access; members manage service work; viewers have read-only service access. User accounts and technician records are separate.</p>
       <div>{users.map(item => <UserRow key={item.id} item={item} refresh={loadUsers} />)}</div>

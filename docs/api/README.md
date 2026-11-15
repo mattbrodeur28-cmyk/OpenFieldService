@@ -15,6 +15,7 @@ Do not infer complete enterprise API stability from the existing contracts.
 | Private documents | `/api/documents/*`; [uploads/tags/native links](documents.md) |
 | Sales | `/api/sales/*`, `src/server/sales`; [Sales contracts and ownership](sales.md) |
 | Sales pricing | `/api/sales/billing-profiles`, `/api/sales/estimates/preview`; [profiles and calculations](sales-pricing.md) |
+| CRM accounts/contacts | `/api/service/customers/:id/contacts|billing-links|account`, `src/server/crm`; [CRM contracts](crm.md) |
 | Dispatcher | `/api/dispatch/*`, `src/server/dispatch`; [contract and scheduling rules](dispatcher.md) |
 | Session/setup/login/logout/password/profile | `/api/auth/*`, `src/server/auth.mjs`; [accounts](../../deploy/ACCOUNTS.md) |
 | Users, temporary resets, teams/members/messages | `/api/auth/users`, `/api/auth/teams`; `auth.mjs`; [permissions](../security/permissions.md) |

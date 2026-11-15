@@ -1,3 +1,5 @@
+import { MaterialList } from './material-list';
+import { useAccount } from '../auth';
 import { useEffect, useState } from "preact/hooks";
 import { accountRequest } from "../auth";
 import { useApp } from "../context";
@@ -26,7 +28,7 @@ import {
   Sheet,
   Table,
 } from "./ui/surfaces";
-export function InventoryPage({ locationId }: { locationId?: string | null }) {
+export function StockInventoryPage({ locationId, locationKind }: { locationId?: string | null; locationKind?: "truck" }) {
   const { readOnly } = useConnectivity(),
     { navigate } = useApp(),
     company = useCompanyTimeZone();
@@ -52,12 +54,13 @@ export function InventoryPage({ locationId }: { locationId?: string | null }) {
     ])
       .then(([o, c]) => {
         if (live) {
-          setOptions(o);
+          const filtered = locationKind ? {...o,locations:o.locations.filter(l=>l.kind===locationKind)} : o;
+          setOptions(filtered);
           setCatalog(c.materials);
           setSelected((current) =>
-            o.locations.some((l) => l.id === current)
+            filtered.locations.some((l) => l.id === current)
               ? current
-              : o.locations[0]?.id || "",
+              : filtered.locations[0]?.id || "",
           );
         }
       })
@@ -67,7 +70,7 @@ export function InventoryPage({ locationId }: { locationId?: string | null }) {
     return () => {
       live = false;
     };
-  }, [revision]);
+  }, [revision, locationKind]);
   useEffect(() => {
     let live = true;
     setData(null);
@@ -97,7 +100,7 @@ export function InventoryPage({ locationId }: { locationId?: string | null }) {
     <div class="page inventory-page">
       <header class="dispatch-title">
         <div>
-          <h1>Inventory</h1>
+          <h1>{locationKind ? "Truck inventory" : "Inventory"}</h1>
         </div>
         <Button onClick={() => setRevision(revision + 1)}>Refresh</Button>
         {options?.canManage && (
@@ -570,4 +573,11 @@ function ReorderForm({
       </form>
     </Sheet>
   );
+}
+
+export function InventoryPage({locationId,initialTab}:{locationId?:string|null;initialTab?:string}) {
+  const {user}=useAccount();
+  const [tab,setTab]=useState(initialTab || (user.role==='viewer'?'catalog':'stock'));
+  useEffect(()=>{setTab(initialTab || (user.role==='viewer'?'catalog':'stock'));},[initialTab,locationId,user.role]);
+  return <section class="business-section"><header class="business-section-header"><strong>Inventory</strong><nav aria-label="Inventory pages">{user.role!=='viewer'&&<button type="button" class={tab==='stock'?'active':''} onClick={()=>setTab('stock')}>Stock</button>}<button type="button" class={tab==='catalog'?'active':''} onClick={()=>setTab('catalog')}>Material catalog</button></nav></header>{tab==='catalog'?<MaterialList/>:<StockInventoryPage key={locationId||'stock'} locationId={locationId}/>}</section>;
 }

@@ -73,7 +73,7 @@ qualification remain planned work.
 | M1 | Navigation, profile/settings, HR, channels and conversational Builder | In progress | M0 |
 | M2 | Maintainable backend boundaries and operational foundations | Planned | M0; complete M1 first |
 | M3 | Salesforce-style Dispatcher app | Core implemented; accessibility qualification remains | M2 concurrency and scheduling foundation |
-| M4 | Commercial CRM, Sales pipeline and quote-to-job conversion | In progress: Sales opportunities, pipelines, Kanban and follow-ups | M2; existing customers/sites |
+| M4 | Commercial CRM, Sales pipeline and quote-to-job conversion | In progress: Sales opportunities, pipelines, Kanban, follow-ups and CRM accounts/contacts | M2; existing customers/sites |
 | M5 | Contracts, maintenance agreements and renewals | Planned | M4 customer/contact model; M3 scheduling |
 | M6 | QuickBooks-backed accounting | Planned | M2 reliable integration jobs/audit; M4 mappings |
 | M7 | Controls records, commissioning and handover | Planned | M4; existing equipment foundation |
@@ -346,10 +346,24 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
 
 ## M4 — Commercial CRM
 
-- [ ] **CRM-001 — Accounts/contacts:** companies, service/billing contacts, contact
+- [x] **CRM-001 — Accounts/contacts:** companies, service/billing contacts, contact
   roles, communication preferences, multiple buildings and billing relationships.
+  Implemented: multiple contacts per account (optionally scoped to one site), six
+  roles, per-contact email/phone/SMS usability preferences, archive/restore with
+  retained history, cross-account billing links (a different account may be invoiced
+  for a site, with PO-required flag) and account segment/type/parent classification.
+  The legacy `sites.contact_*` primary-contact fields are left untouched, so no
+  existing screen changed. Owners/Admin/Member write; Viewers read. Contact and classification updates are versioned; every write is audited in one transaction. See [CRM API](docs/api/crm.md).
+  Not implemented: per-user record visibility (no owner model yet), contact
+  import/merge (CRM-006), and any communications delivery (CRM-007).
 - [ ] **CRM-002 — Customer 360:** contacts, sites/equipment, jobs, communications,
   proposals, agreements, invoices and activity in one customer workspace.
+  Implemented: one read-only `/360` summary composing contacts (with billing/service
+  shortcuts), sites, equipment, open-job counts, recent jobs, invoice totals and open
+  Sales pipeline. Absent modules return `null` rather than failing, so "none" is
+  distinguishable from "not installed". Nothing is copied — every figure is a live
+  projection of the owning module's rows. Not implemented: communications history
+  (CRM-007), proposals, full activity, and agreements (M5), which remain pending.
 - [ ] **CRM-003 — Sales pipeline:** leads/opportunities, stages, owner, estimated
   value, close date, next action and conversion into customer/site/quote.
 - [ ] **CRM-004 — Activity:** tasks, follow-ups, notes, attachments and reminders;
@@ -1033,3 +1047,57 @@ ARCH-003/005/006 and DOC-005 remain prerequisites for shared PostgreSQL, reliabl
 external writes, shared file storage and multi-replica Kubernetes; do not mark M2
 complete from these single-instance modules. QuickBooks sandbox work follows reviewed
 mapping and idempotent export design. Attach evidence to each delivered feature.
+
+## Business app navigation — HR and Finance
+
+Requested organization (2026-11-15): Fleet, Sales, HR, and Finance are peer apps.
+HR contains **Staff, Onboarding, Documents**; payroll is not an HR tab.
+Finance contains **Invoices, Receivables, Liabilities, Purchasing (POs)**.
+
+- [x] **ORG-001 — App navigation:** HR and Finance routes and section navigation;
+  existing invoices and purchasing use their original records and URLs. Staff
+  reuses current account administration. Owner/Admin/HR can access people controls;
+  HR membership alone does not grant Finance or privileged account management.
+- [ ] **HR-001 — Staff records:** employee profile, employment status, supervisor,
+  technician/account links, and employment history. Existing workspace accounts are
+  available under Staff; they are not yet a complete employee system.
+- [ ] **HR-002 — Onboarding:** versioned checklist templates, assigned tasks, start
+  dates, acknowledgments, progress, reminders, and audited completion.
+- [ ] **HR-003 — Personnel documents:** private employee-scoped storage, explicit
+  HR authorization on upload/download, certifications/expiry, acknowledgments,
+  retention rules, and audit. Do not reuse job-document access for personnel files.
+- [ ] **FIN-001 — Receivables:** issued-invoice balances, payments/credits, aging,
+  collections notes, and reconciliation. Derive balances from native records;
+  avoid copying customer or invoice ledgers. Draft/cancelled invoices are not debt.
+- [ ] **FIN-002 — Liabilities:** supplier bills, PO/receipt matching, credits, due
+  dates, approval, and payment reconciliation. Separate committed PO spend from
+  recognized payables; avoid double-counting QuickBooks balances.
+- [ ] **FIN-003 — Finance permissions:** dedicated accounting capabilities and
+  provider mappings. Current Finance app entry and Purchasing remain Owner/Admin;
+  legacy invoice access is preserved. HR does not imply accounting permissions.
+
+Onboarding, HR Documents, Receivables, and Liabilities currently show explicit
+planned states. Navigation is not evidence these backends are implemented.
+
+### Module navigation follow-up
+
+Sales, Fleet, HR, and Finance have independently expandable sidebar groups, child
+routes, and general overview pages listing every section. Sales pipeline uses
+native opportunities/stages; Quotes remains planned. Fleet vehicles/maintenance
+and truck inventory use existing vehicles and stock locations; GPS remains planned.
+Schedule is embedded directly above the Work pipeline on Dispatcher, whose board can create native jobs. Home
+embeds the shared weekly schedule with every job-creation control suppressed.
+Materials is the native catalog inside Inventory; legacy URLs remain available.
+Customer equipment and job equipment selection use a searchable Location followed
+by a location-scoped equipment dropdown. The backend validates the location belongs
+to the requested customer; no customer, site, asset, or material copy is created.
+
+Sidebar section disclosures persist per user in this browser, survive reloads, and
+synchronize between tabs. Blocked/unavailable browser storage falls back to usable
+in-memory navigation. These preferences never grant access or configure the server.
+
+Dispatcher's embedded week has no redundant Schedule heading. Selecting a day,
+previous/next week, or Today updates the shared dispatch date and native board;
+daily board navigation keeps the visible week aligned. Work pipeline remains an
+all-date backlog so unfinished work does not disappear when navigating dates.
+The requested extra In progress column was withdrawn; existing stage filters remain.

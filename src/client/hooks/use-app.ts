@@ -1,5 +1,5 @@
 import { calendarDate, weekRange } from "../calendar";
-import { useState, useCallback, useEffect } from "preact/hooks";
+import { useState, useCallback, useEffect, useRef } from "preact/hooks";
 import { api } from "../api";
 import type {
   Job, Customer, Technician, ServiceType, Material, Invoice, Stats, PaginatedState,
@@ -300,9 +300,12 @@ export function useAppState(isAgent: boolean, navigate: (to: string) => void): A
     await Promise.all([fetchStats(), fetchLookups()]);
   }, [customersPag, customersSearch, selectedCustomer, navigate, fetchCustomers, fetchStats, fetchLookups]);
 
+  const customerRequest=useRef(0);
   const selectCustomer = useCallback(async (id: string | null) => {
+    const request=++customerRequest.current;
     if (id === null) { setSelectedCustomer(null); setSelectedCustomerJobs([]); return; }
     const res = await api<{ customer: Customer; jobs: Job[] }>("GET", `/api/customers/${id}`);
+    if(request!==customerRequest.current)return;
     setSelectedCustomer(res.customer);
     setSelectedCustomerJobs(res.jobs);
   }, []);

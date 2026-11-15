@@ -42,3 +42,5 @@ PostgreSQL and Kubernetes qualification remain planned in Features.md.
 
 - [Inventory and company cost release evidence](releases/2026-11-15-inventory.md)
 - [Fleet and Purchasing design and owner decisions](product/fleet-and-purchasing.md)
+
+- [Fleet and maintenance release evidence](releases/2026-11-15-fleet.md)

@@ -1,3 +1,4 @@
+import { mountFleet } from "../fleet/http.mjs";
 import { mountInventory } from "../inventory/http.mjs";
 import { createBilling } from "./billing.mjs";
 import { createTimesheets } from "./timesheets.mjs";
@@ -60,6 +61,8 @@ export function createService({ storage, currentUser, people }) {
         },
         409,
       );
+    if (String(error.message).includes("FLEET_REQUIRES_TRUCK"))
+      return c.json({error:"A linked vehicle must retain its truck stock location."},409);
     console.error("Service identity request failed:", error.name);
     return c.json(
       { error: "The technician identity operation could not be completed." },
@@ -144,5 +147,6 @@ export function createService({ storage, currentUser, people }) {
     return c.json(billing.save(check(c), c.req.param("id"), data));
   });
   const inventory = mountInventory(app, { storage, identity: service, check });
-  return { app, service, execution, company, timesheets, billing, inventory };
+  const fleet = mountFleet(app, { storage, identity: service, inventory, company, check });
+  return { app, service, execution, company, timesheets, billing, inventory, fleet };
 }

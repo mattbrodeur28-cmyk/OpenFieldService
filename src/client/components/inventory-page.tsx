@@ -26,13 +26,13 @@ import {
   Sheet,
   Table,
 } from "./ui/surfaces";
-export function InventoryPage() {
+export function InventoryPage({locationId}: {locationId?:string|null}) {
   const { readOnly } = useConnectivity(),
     { navigate } = useApp(),
     company = useCompanyTimeZone();
   const [options, setOptions] = useState<StockOptions | null>(null),
     [catalog, setCatalog] = useState<CatalogItem[]>([]),
-    [selected, setSelected] = useState(""),
+    [selected, setSelected] = useState(locationId||""),
     [data, setData] = useState<StockDetail | null>(null),
     [page, setPage] = useState(1),
     [revision, setRevision] = useState(0),

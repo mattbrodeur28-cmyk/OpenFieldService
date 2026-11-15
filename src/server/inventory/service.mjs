@@ -13,7 +13,10 @@ import {
 } from "./domain.mjs";
 export function createInventory({ storage, identity }) {
   const db = storage.database;
-  migrate(db, "_inventory_migrations", [{ version: 1, sql: inventorySchema }, { version: 2, sql: companyCostSchema }]);
+  migrate(db, "_inventory_migrations", [
+    { version: 1, sql: inventorySchema },
+    { version: 2, sql: companyCostSchema },
+  ]);
   const requireAdmin = (user) => {
     if (!admin(user))
       fail("Owner or administrator inventory access required.", 403);
@@ -140,7 +143,12 @@ export function createInventory({ storage, identity }) {
         canIssue: admin(user) || place.kind === "truck",
         stock: stock.map((row) => {
           const pool = companyStock(db, row.material_id);
-          return { ...row, company_unit_cost_cents: pool.quantity ? Number(proportional(pool.value, 1, pool.quantity)) : null };
+          return {
+            ...row,
+            company_unit_cost_cents: pool.quantity
+              ? Number(proportional(pool.value, 1, pool.quantity))
+              : null,
+          };
         }),
         history: history.slice(0, 100),
         historyPage: page,
@@ -148,68 +156,69 @@ export function createInventory({ storage, identity }) {
       };
     });
   }
-  function saveLocation(user, input) {
+  function saveLocationInTransaction(user, input) {
     requireAdmin(user);
     const data = parse(schemas.location, input);
-    return transaction(db, () => {
-      const before = data.id ? location(data.id) : null;
-      if ((before?.version || 0) !== data.expectedVersion)
-        fail("Location changed. Reload before saving.", 409);
-      if (
-        data.technicianId &&
-        (data.kind !== "truck" ||
-          !db
-            .prepare("SELECT 1 FROM technicians WHERE id=? AND active=1")
-            .get(data.technicianId))
-      )
-        fail("Choose an active technician for truck custody.");
-      if (
-        before &&
-        (!data.active || data.kind !== before.kind) &&
-        db
-          .prepare(
-            "SELECT 1 FROM _inventory_balances WHERE location_id=? AND quantity_milli>0",
-          )
-          .get(before.id)
-      )
-        fail(
-          "Transfer all stock before deactivating a location or changing its type.",
-          409,
-        );
-      if (
-        db
-          .prepare(
-            "SELECT id FROM _inventory_locations WHERE code=? COLLATE NOCASE AND id<>?",
-          )
-          .get(data.code, data.id || "")
-      )
-        fail("That location code is already in use.", 409);
-      const id = data.id || randomUUID();
-      if (before)
-        db.prepare(
-          "UPDATE _inventory_locations SET name=?,code=?,kind=?,technician_id=?,active=?,version=version+1 WHERE id=?",
-        ).run(
-          data.name,
-          data.code,
-          data.kind,
-          data.technicianId,
-          Number(data.active),
-          id,
-        );
-      else
-        db.prepare(
-          "INSERT INTO _inventory_locations(id,name,code,kind,technician_id,active) VALUES(?,?,?,?,?,?)",
-        ).run(
-          id,
-          data.name,
-          data.code,
-          data.kind,
-          data.technicianId,
-          Number(data.active),
-        );
-      audit(user, "location_saved", id, before, location(id), data.reason);
-      return location(id);
-    });
+    const before = data.id ? location(data.id) : null;
+    if ((before?.version || 0) !== data.expectedVersion)
+      fail("Location changed. Reload before saving.", 409);
+    if (
+      data.technicianId &&
+      (data.kind !== "truck" ||
+        !db
+          .prepare("SELECT 1 FROM technicians WHERE id=? AND active=1")
+          .get(data.technicianId))
+    )
+      fail("Choose an active technician for truck custody.");
+    if (
+      before &&
+      (!data.active || data.kind !== before.kind) &&
+      db
+        .prepare(
+          "SELECT 1 FROM _inventory_balances WHERE location_id=? AND quantity_milli>0",
+        )
+        .get(before.id)
+    )
+      fail(
+        "Transfer all stock before deactivating a location or changing its type.",
+        409,
+      );
+    if (
+      db
+        .prepare(
+          "SELECT id FROM _inventory_locations WHERE code=? COLLATE NOCASE AND id<>?",
+        )
+        .get(data.code, data.id || "")
+    )
+      fail("That location code is already in use.", 409);
+    const id = data.id || randomUUID();
+    if (before)
+      db.prepare(
+        "UPDATE _inventory_locations SET name=?,code=?,kind=?,technician_id=?,active=?,version=version+1 WHERE id=?",
+      ).run(
+        data.name,
+        data.code,
+        data.kind,
+        data.technicianId,
+        Number(data.active),
+        id,
+      );
+    else
+      db.prepare(
+        "INSERT INTO _inventory_locations(id,name,code,kind,technician_id,active) VALUES(?,?,?,?,?,?)",
+      ).run(
+        id,
+        data.name,
+        data.code,
+        data.kind,
+        data.technicianId,
+        Number(data.active),
+      );
+    audit(user, "location_saved", id, before, location(id), data.reason);
+    return location(id);
+  }
+  function saveLocation(user, input) {
+    return transaction(db, () => saveLocationInTransaction(user, input));
   }
   function adopt(user, material, opening, qty) {
     if (
@@ -451,7 +460,10 @@ export function createInventory({ storage, identity }) {
           );
         value =
           delta < 0
-            ? (() => { const pool = companyStock(db, material.id); return proportional(pool.value, qty, pool.quantity); })()
+            ? (() => {
+                const pool = companyStock(db, material.id);
+                return proportional(pool.value, qty, pool.quantity);
+              })()
             : BigInt(qty) * BigInt(data.unitCostCents);
         leg(
           data.locationId,
@@ -479,8 +491,17 @@ export function createInventory({ storage, identity }) {
             .get(original.id)
         )
           fail("This movement was already reversed.", 409);
-        if (db.prepare("SELECT id FROM _inventory_movements WHERE material_id=? ORDER BY rowid DESC LIMIT 1").get(original.material_id)?.id !== original.id)
-          fail("Later stock movements elsewhere in the company prevent direct reversal. Use a reviewed adjustment instead.", 409);
+        if (
+          db
+            .prepare(
+              "SELECT id FROM _inventory_movements WHERE material_id=? ORDER BY rowid DESC LIMIT 1",
+            )
+            .get(original.material_id)?.id !== original.id
+        )
+          fail(
+            "Later stock movements elsewhere in the company prevent direct reversal. Use a reviewed adjustment instead.",
+            409,
+          );
         material = item(original.material_id);
         qty = original.quantity_milli;
         value = BigInt(original.value_millicents);
@@ -504,13 +525,25 @@ export function createInventory({ storage, identity }) {
       }
       const pool = companyStock(db, material.id);
       let quantityDelta = legs.reduce((sum, entry) => sum + entry.delta, 0);
-      let valueDelta = kind === "transfer" ? 0n : quantityDelta < 0 ? -value : value;
+      let valueDelta =
+        kind === "transfer" ? 0n : quantityDelta < 0 ? -value : value;
       if (kind === "reversal") {
-        const original = db.prepare("SELECT * FROM _inventory_movements WHERE id=?").get(reversalOf);
+        const original = db
+          .prepare("SELECT * FROM _inventory_movements WHERE id=?")
+          .get(reversalOf);
         // Transfer values are internal and never add or remove company value.
-        valueDelta = original.kind === "transfer" ? 0n : quantityDelta < 0 ? -value : value;
+        valueDelta =
+          original.kind === "transfer"
+            ? 0n
+            : quantityDelta < 0
+              ? -value
+              : value;
       }
-      const valuation = allocateCompanyValue(pool, legs, pool.value + valueDelta);
+      const valuation = allocateCompanyValue(
+        pool,
+        legs,
+        pool.value + valueDelta,
+      );
       const id = randomUUID();
       db.prepare(
         "INSERT INTO _inventory_movements(id,request_key,request_hash,actor_id,kind,material_id,quantity_milli,value_millicents,job_id,technician_id,reason,delegation_reason,reversal_of,before_json,after_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -548,8 +581,16 @@ export function createInventory({ storage, identity }) {
         ).run(id, b.location_id, l.delta, l.value, b.version);
       }
       for (const row of valuation.extra)
-        db.prepare("UPDATE _inventory_balances SET value_millicents=?,version=? WHERE location_id=? AND material_id=?").run(row.value_millicents, row.version, row.location_id, material.id);
-      db.prepare("INSERT INTO _inventory_valuations(movement_id,method,before_json,after_json) VALUES(?,'company_weighted_average',?,?)").run(id, JSON.stringify(valuation.before), JSON.stringify(valuation.after));
+        db.prepare(
+          "UPDATE _inventory_balances SET value_millicents=?,version=? WHERE location_id=? AND material_id=?",
+        ).run(row.value_millicents, row.version, row.location_id, material.id);
+      db.prepare(
+        "INSERT INTO _inventory_valuations(movement_id,method,before_json,after_json) VALUES(?,'company_weighted_average',?,?)",
+      ).run(
+        id,
+        JSON.stringify(valuation.before),
+        JSON.stringify(valuation.after),
+      );
       let jobMaterialId = null;
       if (kind === "usage") {
         jobMaterialId = randomUUID();
@@ -639,6 +680,8 @@ export function createInventory({ storage, identity }) {
     options: (user) => transaction(db, () => options(user)),
     detail,
     saveLocation,
+    // Internal synchronous composition only; the caller owns the service DB transaction.
+    saveLocationInTransaction,
     post,
     policy,
     jobUsage: (user, id) => transaction(db, () => jobUsage(user, id)),

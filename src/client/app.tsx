@@ -1,3 +1,4 @@
+import {FleetPage} from "./components/fleet-page";
 import {InventoryPage} from "./components/inventory-page";
 import {Timesheets} from "./components/timesheets";
 import { SalesPage } from "./components/sales-page";
@@ -64,7 +65,8 @@ export function App() {
 
   const renderMain = () => {
     if (view === "sales") return <SalesPage opportunityId={id} />;
-    if (view === "inventory") return <InventoryPage/>;
+    if (view === "inventory") return <InventoryPage locationId={id}/>;
+    if (view === "fleet") return <FleetPage/>;
     if (view === "timesheets") return <Timesheets />;
     if (view === "dispatcher") return <Dispatcher />;
     if (view === "team" && id) return <TeamChannel key={id} id={id} />;

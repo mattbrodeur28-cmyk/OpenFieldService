@@ -290,3 +290,39 @@ new purchases do not reprice historical job usage. Per-location history shows st
 legs; immutable `_inventory_valuations` also retains repricing of other locations.
 Stock is not reserved; negative availability fails atomically. PO/AP/payment posting,
 vehicle tracking, offline writes and complete count sessions are not implemented.
+
+
+## Native Fleet
+
+GET `/fleet` returns accessible vehicles and in-app maintenance statuses plus company
+`today` and `canManage`. GET `/fleet/:id?page=1` returns vehicle, plans and paginated
+service history (100 plus `hasMoreHistory`). Owner/Admin sees company fleet; mapped
+active technicians see current truck custody. Viewer/inactive/HR-only elevation fails.
+
+POST `/fleet` accepts strict `{id?,expectedVersion,locationId,expectedLocationVersion,
+technicianId,fleetNumber,vin,plate,make,model,modelYear,status,distanceUnit,
+odometerTenths,reason}`. New version0; status active/out_of_service/retired, unit mi/km.
+Fleet number <=32, VIN blank or valid 17 characters, plate <=32, make <=60/model <=80,
+modelYear null or1900..2100, odometer0..100million tenths, reason10..1,000characters.
+Truck link/fleet number/nonempty VIN unique; truck location and distance unit immutable.
+Vehicle/custody versions checked together, including changes made through Inventory.
+Retirement deactivates location and fails while it has stock. Odometer cannot decrease.
+
+POST `/fleet/plans` accepts `{id,vehicleId,expectedVersion,title,dueDate,
+dueOdometerTenths,intervalDays,intervalDistanceTenths,warningDays,
+warningDistanceTenths,active,reason}`. Client UUID id with version0 creates; reuse
+conflicts rather than creating a duplicate. Dates null or real YYYY-MM-DD in2000..2100;
+choose date and/or distance. Recurrence requires a matching threshold; days1..3650,
+distance1..10million tenths; warning days0..365. Max200 plans/vehicle.
+
+POST `/fleet/services` accepts `{requestKey,vehicleId,planId,expectedVehicleVersion,
+expectedPlanVersion,serviceDate,odometerTenths,costCents,notes}`. Owner/Admin only;
+notes10..1,000characters; cost integer cents0..100million (USD). Reject future service,
+decreasing odometer, older same-plan completion, inactive/retired state or stale versions.
+Immutable service/vehicle/plan advancement commits atomically; actor-bound request key
+replay acknowledges original service, altered payload conflicts. Only recurring axes
+advance; one-time axes clear on recurring plans and non-recurring plans deactivate.
+
+Due/overdue state is calculated on reads from company date and recorded mileage.
+There is no background reminder delivery, automated odometer feed, live position API
+or map yet. Exact locations are not collected by this Fleet pilot.

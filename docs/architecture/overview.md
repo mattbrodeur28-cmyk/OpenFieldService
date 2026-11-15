@@ -16,6 +16,7 @@ prove AI/OAuth availability or workspace database health.
 | Standalone service storage | `src/server/sqlite.mjs` | `DATABASE_PATH`, default `data/openfieldservice.sqlite` |
 | Dispatcher | `src/server/dispatch/` | Checked module migration, atomic assignments, audit, durable SSE revisions |
 | Sales | `src/server/sales/`, `src/server/platform/sqlite.mjs` | Opportunities/stages, checked migrations, atomic writes/audit; [Sales API](../api/sales.md) |
+| Native Fleet and maintenance | `src/server/fleet/` | Shared truck custody/inventory, checked migration and atomic service history; live GPS planned |
 | Native inventory and company valuation | `src/server/inventory/` | Checked migrations; stock/custody/movement ledger, native job usage and atomic company repricing |
 | Identity, sessions, users, HR, teams | `src/server/auth.mjs` | `workspace.sqlite`, beside service DB |
 | AI, Knowledge, configuration, Builder | `src/server/workspace.mjs` | workspace DB; scoped proposal files |

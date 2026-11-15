@@ -81,7 +81,7 @@ qualification remain planned work.
 | M12 | Residential memberships, mobile sales/service, booking and payment workflows | Planned | M3–M6 shared domains; relevant M8 capabilities |
 | M13 | Technician workflow, actual time, timesheets and truck inventory | In progress; PJSA/report/actual-time and timesheet pilots implemented | M2, M3; shared users/jobs/materials |
 | M14 | Refrigerant Monitoring System and dashboard | Planned | M13 inventory/time/job evidence; equipment baseline |
-| M15 | Fleet, vehicle maintenance and live dispatch tracking | Planned | M13 shared stock/custody; M3 Dispatcher; authorized location feeds |
+| M15 | Fleet, vehicle maintenance and live dispatch tracking | In progress: native vehicles, stock links and in-app maintenance | M13 shared stock/custody; M3 Dispatcher; authorized location feeds |
 | M16 | Suppliers, purchase orders and receiving | Planned | M13 movement/cost ledger; M11 job/phase commitments |
 | M8 | Business-owner reporting and operational controls | Planned | M3–M7 business events |
 | M9 | Containers, Kubernetes and scale qualification | Planned | M2 shared-state/database work |
@@ -737,17 +737,21 @@ stale approvals, repeated submissions and negative-stock races must fail safely.
 
 ## M15 — Fleet and live dispatch tracking
 
-- [ ] **FLEET-001 — Vehicle register and custody:** VIN/plate, fleet number, make,
+- [x] **FLEET-001 — Vehicle register and custody:** VIN/plate, fleet number, make,
   model/year, status and service dates. Link each vehicle to one existing truck stock
   location; its technician custody is authoritative. Retain assignment history and
   prevent type changes that detach a linked vehicle from its truck inventory.
-- [ ] **FLEET-002 — Vehicle inventory:** open the same location stock, transfers,
+- [x] **FLEET-002 — Vehicle inventory:** open the same location stock, transfers,
   returns, reorder levels and job usage from the vehicle. No copied material masters
   or parallel vehicle stock counts. Changing technician custody must not move stock.
 - [ ] **FLEET-003 — Maintenance reminders:** due-by date and/or odometer intervals,
   early warning thresholds, overdue state, service completion history, expenses and
   attachments. Record odometer source/unit/time and corrections; never invent mileage.
-  Durable reminders need deduplication, delivery history and company-timezone rules.
+  Implemented pilot: due/overdue in-app reminders use company date and recorded
+  mileage; Owner/Admin records immutable service cost/odometer/completion and advances
+  recurring thresholds once. Non-recurring plans deactivate. Reminder delivery worker,
+  email/push, attachments, odometer correction and production qualification remain open.
+  See [Fleet release](docs/releases/2026-11-15-fleet.md).
 - [ ] **FLEET-004 — Location adapters:** support all three owner-selected feeds:
   self-hosted Traccar, external GPS providers/trackers and technician phone updates.
   Authenticate ingestion, map provider/device identity to vehicle UUID, retain source,
@@ -943,10 +947,10 @@ enterprise documentation set already exists. Current guides:
 
 ## Next checkpoint
 
-Publish the native inventory pilot with company-wide weighted-average cost, its
-migration/API and exact validation evidence. Next, link vehicle identity and maintenance
-(M15) to its existing truck stock location, then implement supplier/PO receiving (M16)
-as one native transaction. Real GPS feeds remain separately qualified. Continue quote
+Native inventory/company-average costing and the Fleet register/in-app maintenance
+pilot now have migration/API, automated and local-browser evidence. Next implement
+supplier/PO receiving (M16) as one native transaction and complete Fleet reminder
+delivery and tracking adapters (M15). Real GPS feeds remain separately qualified. Continue quote
 versions/accepted conversion (SALES-005–009), PM entitlements and reviewed invoice
 handoff; complete reservations/stocktake and UI-009 Timesheet polish before closing
 those tracks. Build RMS on the same job/equipment/material evidence. ARCH-003/005/006 remain prerequisites for shared PostgreSQL,

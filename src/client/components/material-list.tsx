@@ -1,9 +1,12 @@
-import { useState } from "preact/hooks";
+import {accountRequest} from "../auth";
+import { useEffect, useState } from "preact/hooks";
 import { useApp } from "../context";
 import { Plus, Trash2, Edit3 } from "lucide-preact";
 
 export function MaterialList() {
-  const { materials, addMaterial, updateMaterial, deleteMaterial, isAgent, setError } = useApp();
+  const { materials, addMaterial, updateMaterial, deleteMaterial, isAgent, setError, navigate } = useApp();
+  const [managed,setManaged]=useState<string[]>([]);
+  useEffect(()=>{let live=true;void accountRequest<{managedMaterialIds:string[]}>("/api/service/inventory").then(o=>{if(live)setManaged(o.managedMaterialIds);}).catch(()=>{});return()=>{live=false;};},[]);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", unit: "", unit_cost: 0, in_stock: 0 });
@@ -15,7 +18,7 @@ export function MaterialList() {
   };
 
   const saveEdit = async (id: string) => {
-    await updateMaterial(id, editForm);
+    await updateMaterial(id, managed.includes(id)?{name:editForm.name,unit_cost:editForm.unit_cost}:editForm);
     setEditingId(null);
   };
 
@@ -35,6 +38,7 @@ export function MaterialList() {
         </button>
       </div>
 
+      <p class="workspace-help">Tracked quantities come from warehouse and truck movements. <button class="btn" onClick={()=>navigate("/inventory")}>Open Inventory</button></p>
       <div class="table-scroll">
         {materials.length === 0 && !showCreate ? (
           <div class="empty-state">
@@ -74,12 +78,12 @@ export function MaterialList() {
                   {editingId === m.id ? (
                     <>
                       <td><input type="text" value={editForm.name} onInput={(e) => setEditForm({ ...editForm, name: (e.target as HTMLInputElement).value })} class="inline-input" /></td>
-                      <td><input type="text" value={editForm.unit} onInput={(e) => setEditForm({ ...editForm, unit: (e.target as HTMLInputElement).value })} class="inline-input" style={{ width: 60 }} /></td>
+                      <td><input type="text" disabled={managed.includes(m.id)} title={managed.includes(m.id)?"Tracked stock units require a reviewed migration":undefined} value={editForm.unit} onInput={(e) => setEditForm({ ...editForm, unit: (e.target as HTMLInputElement).value })} class="inline-input" style={{ width: 60 }} /></td>
                       <td><input type="number" step="0.01" value={editForm.unit_cost} onInput={(e) => setEditForm({ ...editForm, unit_cost: parseFloat((e.target as HTMLInputElement).value) || 0 })} class="inline-input" style={{ width: 90 }} /></td>
-                      <td><input type="number" value={editForm.in_stock} onInput={(e) => setEditForm({ ...editForm, in_stock: parseFloat((e.target as HTMLInputElement).value) || 0 })} class="inline-input" style={{ width: 80 }} /></td>
+                      <td><input type="number" disabled={managed.includes(m.id)} title={managed.includes(m.id)?"Use Inventory to move tracked stock":undefined} value={editForm.in_stock} onInput={(e) => setEditForm({ ...editForm, in_stock: parseFloat((e.target as HTMLInputElement).value) || 0 })} class="inline-input" style={{ width: 80 }} /></td>
                       <td>
                         <div class="action-btns">
-                          <button class="btn btn-sm" onClick={() => saveEdit(m.id)}>Save</button>
+                          <button class="btn btn-sm" onClick={() => saveEdit(m.id).catch(err=>setError((err as Error).message))}>Save</button>
                           <button class="btn btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
                         </div>
                       </td>

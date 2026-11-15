@@ -15,6 +15,7 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "timesheets", path: "/timesheets", label: "Timesheets", icon: CalendarClock },
   { view: "technicians", path: "/technicians", label: "Technicians", icon: Wrench },
   { view: "invoices", path: "/invoices", label: "Invoices", icon: FileText },
+  { view: "inventory", path: "/inventory", label: "Inventory", icon: Package },
   { view: "materials", path: "/materials", label: "Materials", icon: Package },
   { view: "services", path: "/services", label: "Service types", icon: Settings },
 ];
@@ -74,7 +75,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
           <ChevronDown size={14} class={`workspace-chevron ${appsExpanded ? "" : "closed"}`} aria-hidden="true" />
         </button>
         <div id="field-service-pages" class="workspace-app-pages" hidden={!collapsed && !appsExpanded}>
-          {navItems.slice(1).map(navItem)}
+          {navItems.slice(1).filter(item=>item.view!=="inventory"||user.role!=="viewer").map(navItem)}
         </div>
         {navItem({view:"sales",path:"/sales",label:"Sales",icon:TrendingUp})}
         {canManage && navItem({ view: "builder", path: "/builder", label: "App builder", icon: Code2 })}

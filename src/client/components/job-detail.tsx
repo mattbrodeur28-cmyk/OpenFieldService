@@ -207,7 +207,7 @@ export function JobDetail() {
                         <td>${jm.unit_cost.toFixed(2)}</td>
                         <td class="text-bold">${(jm.quantity * jm.unit_cost).toFixed(2)}</td>
                         {isAgent && (
-                          <td><button class="btn-icon danger" disabled={readOnly} onClick={() => deleteJobMaterial(jm.id)}><Trash2 size={12} /></button></td>
+                          <td><button class="btn-icon danger" disabled={readOnly} onClick={() => deleteJobMaterial(jm.id).catch(err=>setError((err as Error).message))}><Trash2 size={12} /></button></td>
                         )}
                       </tr>
                     ))}
@@ -224,7 +224,7 @@ export function JobDetail() {
                   ))}
                 </select>
                 <input type="number" disabled={readOnly} value={materialQty} onInput={(e) => setMaterialQty((e.target as HTMLInputElement).value)} style={{ width: 70 }} min="0.1" step="0.1" />
-                <button class="btn btn-sm" disabled={readOnly} onClick={handleAddMaterial}>Add</button>
+                <button class="btn btn-sm" disabled={readOnly} onClick={() => handleAddMaterial().catch(err => setError((err as Error).message))}>Add</button>
                 <button class="btn btn-sm" onClick={() => setShowAddMaterial(false)}>Cancel</button>
               </div>
             ) : (

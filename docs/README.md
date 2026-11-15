@@ -39,3 +39,6 @@ milestone sequence, acceptance criteria and definition of done.
 
 Complete generated workspace API contracts, versioned migrations, durable audit,
 PostgreSQL and Kubernetes qualification remain planned in Features.md.
+
+- [Inventory and company cost release evidence](releases/2026-11-15-inventory.md)
+- [Fleet and Purchasing design and owner decisions](product/fleet-and-purchasing.md)

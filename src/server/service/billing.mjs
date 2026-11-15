@@ -155,7 +155,7 @@ export function createBilling({ storage }) {
       : [];
     const rows = db
       .prepare(
-        "SELECT jm.id,jm.material_id,jm.quantity,jm.unit_cost,m.name AS material_name,m.unit FROM job_materials jm JOIN materials m ON m.id=jm.material_id WHERE jm.job_id=? ORDER BY jm.id LIMIT 201",
+        "SELECT jm.id,jm.material_id,jm.quantity,jm.unit_cost,m.name AS material_name,m.unit FROM job_materials jm JOIN materials m ON m.id=jm.material_id WHERE jm.job_id=? AND jm.quantity<>0 ORDER BY jm.id LIMIT 201",
       )
       .all(id);
     const blockers = [];

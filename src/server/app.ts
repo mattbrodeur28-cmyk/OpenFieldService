@@ -9,6 +9,9 @@ export function createApp<E extends Env & { Bindings: DBEnv }>(options: { title:
   } });
   app.onError((error, c) => {
     const conflicts: Record<string, string> = {
+      INVENTORY_MANAGED_STOCK: 'Use Inventory receipts, transfers or reviewed counts to change tracked stock.',
+      INVENTORY_MANAGED_UNIT: 'Tracked stock units cannot be changed; use a reviewed catalog migration.',
+      INVENTORY_USE_LEDGER: 'Use Inventory to issue or return tracked job materials; direct edits would bypass the stock ledger.',
       DISPATCH_SERVICE_HOURS: 'Outside company service hours. Schedule within service hours or use an approved emergency assignment in Dispatcher.',
       SERVICE_EXECUTION_CLOSED: 'Approved completed visits require a reviewed correction; their schedule and status cannot be changed here.',
       SERVICE_SAFETY_REQUIRED: 'Complete the job Safety/PJSA step before starting work.',

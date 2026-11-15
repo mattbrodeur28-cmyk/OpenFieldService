@@ -1,3 +1,4 @@
+import { JobStock } from "./job-stock";
 import { BillingPreparation } from "./billing-preparation";
 import { useState } from "preact/hooks";
 import type {
@@ -26,6 +27,7 @@ export function PostWorkPanel({
   disabled: boolean;
   run: Run;
 }) {
+  const [stockRevision, setStockRevision] = useState(0);
   const current = data.reports?.find(
     (report) => report.id === data.workflow?.current_report_id,
   );
@@ -45,6 +47,16 @@ export function PostWorkPanel({
           {data.job.equipment.serial_number} · {data.job.equipment.site_name}
         </p>
       )}
+      <JobStock
+        jobId={data.job.id}
+        canUse={
+          data.workflow?.stage === "post_work" &&
+          data.job.status === "in_progress"
+        }
+        canManage={data.canManage}
+        disabled={disabled}
+        onSaved={() => setStockRevision((n) => n + 1)}
+      />
       {data.workflow?.stage === "post_work" && data.job.equipment && (
         <ReportForm
           key={data.job.id + "-" + data.workflow.version}
@@ -83,7 +95,11 @@ export function PostWorkPanel({
         </Notice>
       )}
       {data.workflow?.service_completed === 1 && data.canManage && (
-        <BillingPreparation jobId={data.job.id} disabled={disabled} />
+        <BillingPreparation
+          key={data.job.id + "-" + stockRevision}
+          jobId={data.job.id}
+          disabled={disabled}
+        />
       )}
       {data.timeEntries && data.timeEntries.length > 0 && (
         <section class="sales-details">

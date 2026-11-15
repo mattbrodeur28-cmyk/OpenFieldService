@@ -81,6 +81,8 @@ qualification remain planned work.
 | M12 | Residential memberships, mobile sales/service, booking and payment workflows | Planned | M3–M6 shared domains; relevant M8 capabilities |
 | M13 | Technician workflow, actual time, timesheets and truck inventory | In progress; PJSA/report/actual-time and timesheet pilots implemented | M2, M3; shared users/jobs/materials |
 | M14 | Refrigerant Monitoring System and dashboard | Planned | M13 inventory/time/job evidence; equipment baseline |
+| M15 | Fleet, vehicle maintenance and live dispatch tracking | Planned | M13 shared stock/custody; M3 Dispatcher; authorized location feeds |
+| M16 | Suppliers, purchase orders and receiving | Planned | M13 movement/cost ledger; M11 job/phase commitments |
 | M8 | Business-owner reporting and operational controls | Planned | M3–M7 business events |
 | M9 | Containers, Kubernetes and scale qualification | Planned | M2 shared-state/database work |
 | M10 | Optional extensions and broader SaaS | Planned | Proven core workflows |
@@ -710,9 +712,19 @@ apps or another copy of the job status. Detailed contract and implementation ord
   custody assignments, shared material catalog, warehouse/truck transfers, receipts,
   returns, job/phase usage, reservations, counts and reorder levels. Append movement
   records with exact quantities; no duplicated per-truck item masters.
+  Implemented pilot: warehouse/truck locations, audited technician custody, opening
+  review, receipts, transfers, native job usage/partial returns and reorder levels.
+  Real vehicle records/maintenance/tracking are M15; reservations, phase coding and
+  complete stocktake workflow remain open. See [inventory release](docs/releases/2026-11-15-inventory.md).
 - [ ] **TECH-010 — Inventory safeguards:** atomically validate availability, append
   movement/job usage and audit; idempotent mobile submissions, no silent negative
   stock, approval for adjustments, reversals and retained unit-cost snapshots.
+  Implemented pilot: transaction/version checks, immutable movement/value evidence,
+  actor-bound idempotency, approved count variance, latest-only reversals and retained
+  job costs. **Company-wide perpetual weighted average** is the chosen cost method;
+  quantities remain by location and transfers do not change company value. Concurrent
+  separate-process withdrawal and injected-failure rollback checks pass. Offline
+  queue/physical stocktake qualification remain open.
 - [ ] **TECH-011 — Mobile/offline execution:** narrow-screen stepper, drafts,
   attachments, accessibility and explicit sync/conflict state; queue writes only
   after server idempotency and private cache protections are implemented.
@@ -722,6 +734,70 @@ uses truck stock and refrigerant, submits the post-work report and timesheet; a
 supervisor approves corrections, Dispatcher shows actual versus estimate, and
 billing receives approved lines exactly once. Unauthorized cross-technician edits,
 stale approvals, repeated submissions and negative-stock races must fail safely.
+
+## M15 — Fleet and live dispatch tracking
+
+- [ ] **FLEET-001 — Vehicle register and custody:** VIN/plate, fleet number, make,
+  model/year, status and service dates. Link each vehicle to one existing truck stock
+  location; its technician custody is authoritative. Retain assignment history and
+  prevent type changes that detach a linked vehicle from its truck inventory.
+- [ ] **FLEET-002 — Vehicle inventory:** open the same location stock, transfers,
+  returns, reorder levels and job usage from the vehicle. No copied material masters
+  or parallel vehicle stock counts. Changing technician custody must not move stock.
+- [ ] **FLEET-003 — Maintenance reminders:** due-by date and/or odometer intervals,
+  early warning thresholds, overdue state, service completion history, expenses and
+  attachments. Record odometer source/unit/time and corrections; never invent mileage.
+  Durable reminders need deduplication, delivery history and company-timezone rules.
+- [ ] **FLEET-004 — Location adapters:** support all three owner-selected feeds:
+  self-hosted Traccar, external GPS providers/trackers and technician phone updates.
+  Authenticate ingestion, map provider/device identity to vehicle UUID, retain source,
+  observed/received time, accuracy and stale state; reject bad coordinates/replays.
+  Define source priority so an old phone update cannot overwrite a newer GPS fix.
+- [ ] **FLEET-005 — Dispatcher live map:** authorized dispatch roles see vehicle,
+  assigned technician and linked appointment with current/stale/offline indicators.
+  Support map/list alternatives, polling or event updates and a documented self-hosted
+  tile option. No fabricated positions, public tracking links or implied routing ETA.
+- [ ] **FLEET-006 — Tracking governance and operations:** explicit work tracking
+  start/stop, device revocation, location retention/deletion and access audit; restrict
+  exact positions to authorized dispatch roles. Qualify real phone/background browser
+  limitations, provider reconnection and maintenance worker recovery before production.
+
+**Acceptance:** assign a vehicle to a technician, receive/transfer stock into its
+existing location, consume it on a native job, complete an attributed maintenance
+service, and show a real authorized feed on Dispatcher with accurate freshness.
+A provider outage must show stale state rather than leave a misleading live marker.
+
+## M16 — Purchasing, material costs and purchase orders
+
+- [ ] **PURCH-001 — Supplier records:** shared supplier UUID, contacts, terms,
+  currency, active status and material/vendor SKU mapping. Preserve existing material,
+  job and future phase IDs; do not represent a supplier as a duplicate customer.
+- [ ] **PURCH-002 — Purchase order lifecycle:** draft, approval, issued, partially
+  received, received, closed/cancelled; numbered immutable issued revisions, approval
+  permissions, expected delivery, ship-to warehouse/vehicle, job/phase allocation and
+  retained price/quantity/tax/freight terms. Keep commitments separate from actual costs.
+- [ ] **PURCH-003 — Atomic receiving:** each partial receipt references PO/line,
+  actual quantity and actual reviewed cost, then posts one inventory receipt in the
+  same database transaction. Idempotency/version/remaining-quantity checks prevent
+  double receipts. Record shortages, over-receipt approval and damaged/rejected goods.
+- [ ] **PURCH-004 — Company weighted-average costing:** extend the implemented M13
+  cost ledger, using actual accepted receipt value plus existing company stock value
+  divided by total company quantity. Transfers preserve value; returns retain original
+  usage cost; losses use current average; gains use reviewed cost. Retain exact values,
+  rounding evidence and historical job cost. Separate actual cost from selling prices.
+  Define landed-cost adjustments, vendor credits, bill variances and currency policy
+  before provider posting; do not retroactively overwrite closed job snapshots.
+- [ ] **PURCH-005 — Job costs and accounting:** trace PO → receipt → stock movement →
+  job/phase usage; reconcile ordered/received/billed balances, supplier returns and
+  credits. QuickBooks mappings/export need duplicate prevention and reconciliation;
+  operational receipt does not imply vendor bill, payment or accounting posting.
+
+**Acceptance:** approve a PO for existing materials, receive it in two deliveries at
+reviewed prices into warehouse/vehicle stock, replay a receipt safely, and show the
+new company average alongside unchanged historical job cost. PO commitments, received
+stock and supplier invoices reconcile without counting cost twice.
+
+Design and implementation sequence: [Fleet and Purchasing](docs/product/fleet-and-purchasing.md).
 
 ## M14 — Refrigerant Monitoring System (RMS)
 
@@ -867,13 +943,13 @@ enterprise documentation set already exists. Current guides:
 
 ## Next checkpoint
 
-Deliver the current Sales follow-up/native customer-link and service-hours/category
-increment with its migration, permission and browser evidence. Next, establish
-TECH-001 identity mapping and TECH-002/003 safety workflow, followed by actual work
-reports/time entries and final Dispatcher slots (TECH-004–007 / DISPATCH-013).
-Continue Sales quote versions/accepted conversion (SALES-005–009) with native job
-links, then PM entitlements and reviewed billing. Build truck stock before RMS
-ledger/dashboard. ARCH-003/005/006 remain prerequisites for shared PostgreSQL,
+Publish the native inventory pilot with company-wide weighted-average cost, its
+migration/API and exact validation evidence. Next, link vehicle identity and maintenance
+(M15) to its existing truck stock location, then implement supplier/PO receiving (M16)
+as one native transaction. Real GPS feeds remain separately qualified. Continue quote
+versions/accepted conversion (SALES-005–009), PM entitlements and reviewed invoice
+handoff; complete reservations/stocktake and UI-009 Timesheet polish before closing
+those tracks. Build RMS on the same job/equipment/material evidence. ARCH-003/005/006 remain prerequisites for shared PostgreSQL,
 reliable external writes and multi-replica Kubernetes; do not mark M2 complete from
 these single-instance modules. QuickBooks sandbox work follows reviewed mapping
 and idempotent export design. Attach evidence to each feature as it is delivered.

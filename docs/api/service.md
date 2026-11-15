@@ -237,3 +237,56 @@ atomically. `_service_billing_migrations` v1 creates drafts/audit additively.
 This is preparation, not approved billing or invoice readiness. Execution stays at
 billing review; no invoice, payment or QuickBooks posting occurs. Final material/RMS
 checks, accepted quote/PM coverage and idempotent invoice handoff remain TECH-008.
+
+
+## Native inventory
+
+All routes are below `/api/service`, authenticated and no-store. Writes require the
+standard same-origin write header; bodies are bounded to 50KB, parsed strictly, then
+current roles rechecked. Viewer/inactive/password-change accounts cannot operate.
+
+GET `/inventory` returns available locations, managed material IDs and management
+capability. GET `/inventory/locations/:id?page=1` returns balances, rounded company
+unit cost in cents, custody and 100 movement rows plus `hasMoreHistory`. Quantities
+are integer milliunits, values decimal strings of integer millicents. Max 500
+locations and 1,000 items/location in this pilot; larger scopes fail explicitly.
+GET `/jobs/:id/inventory` returns tracked usage/returned amounts/version (max 200).
+
+POST `/inventory/locations` accepts `{id?,expectedVersion,name,code,kind,technicianId,
+active,reason}`. Owner/Admin only; kind warehouse/truck; warehouse cannot have custody.
+Version 0 creates. Transfer all stock before deactivation/type change. PUT
+`/inventory/policy` accepts `{locationId,materialId,expectedVersion,reorderMilli,reason}`.
+
+POST `/inventory/movements/:kind` uses an actor-bound UUID `requestKey`, reason >=10
+characters, quantity integer 1..1e9 milliunits and optimistic source/destination
+versions. Unknown fields fail. Supported kinds:
+
+- `receipt`: materialId, locationId, quantityMilli, unitCostCents, expectedVersion,
+  opening (default false). Owner/Admin; opening must match original catalog stock.
+- `transfer`: materialId, fromLocationId, toLocationId, quantityMilli,
+  expectedFromVersion, expectedToVersion. Two distinct active accessible locations.
+- `usage`: materialId, locationId, quantityMilli, expectedVersion, jobId,
+  delegationReason (supervisor only; otherwise assigned mapped technician).
+- `return`: jobMaterialId, toLocationId, quantityMilli, expectedUsageVersion,
+  expectedToVersion, delegationReason. Cannot exceed original less returned quantity.
+- `adjustment`: materialId, locationId, countedMilli, expectedVersion, unitCostCents,
+  approved:true. Owner/Admin; variance uses current average for losses/reviewed cost
+  for gains. No-variance counts are not recorded in this pilot.
+- `reversal`: movementId. Owner/Admin; original opening/receipt/transfer/count only,
+  no subsequent same-material company movement or affected balance/policy changes.
+  Usage corrections use returns; billing corrections cannot bypass finalization.
+
+Receipt/count costs are nonnegative integer cents <=1e8. Reasons max1,000 characters.
+Quantities use at most 3 decimals through client conversion. Each movement freezes
+before/after quantity/value snapshots and company valuation evidence. All balance,
+ledger, native usage and value reallocation writes share one synchronous transaction.
+A replay with identical actor/body returns original movement/jobMaterialId; changed
+payload conflicts, revoked custody still denies access. Do not retry an uncertain
+mutation with a fresh request key. UI retains the original attempted payload/key.
+
+Company average includes every warehouse/truck. Repricing another location increments
+its version and can invalidate an open form. Returns restore original issue cost;
+new purchases do not reprice historical job usage. Per-location history shows stock
+legs; immutable `_inventory_valuations` also retains repricing of other locations.
+Stock is not reserved; negative availability fails atomically. PO/AP/payment posting,
+vehicle tracking, offline writes and complete count sessions are not implemented.

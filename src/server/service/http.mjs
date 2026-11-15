@@ -1,3 +1,4 @@
+import { mountInventory } from "../inventory/http.mjs";
 import { createBilling } from "./billing.mjs";
 import { createTimesheets } from "./timesheets.mjs";
 import { createCompanySettings } from "./company.mjs";
@@ -142,5 +143,6 @@ export function createService({ storage, currentUser, people }) {
     }
     return c.json(billing.save(check(c), c.req.param("id"), data));
   });
-  return { app, service, execution, company, timesheets, billing };
+  const inventory = mountInventory(app, { storage, identity: service, check });
+  return { app, service, execution, company, timesheets, billing, inventory };
 }

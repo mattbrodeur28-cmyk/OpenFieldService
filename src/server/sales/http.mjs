@@ -1,11 +1,23 @@
+import { createBillingProfiles } from "./billing-profiles.mjs";
 import { createActivities } from "./activities.mjs";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createSalesService } from "./service.mjs";
 import { SalesError } from "./domain.mjs";
-export function createSales({ storage, currentUser, owners, resolveMessage }) {
+export function createSales({
+  storage,
+  currentUser,
+  owners,
+  resolveMessage,
+  materialSnapshots,
+}) {
   const service = createSalesService({ storage, owners }),
     app = new Hono();
+  const billingProfiles = createBillingProfiles({
+    storage,
+    sales: service,
+    materialSnapshots,
+  });
   const activities = createActivities({
     storage,
     sales: service,
@@ -52,10 +64,23 @@ export function createSales({ storage, currentUser, owners, resolveMessage }) {
   async function body(c) {
     try {
       return await c.req.json();
-    } catch {
+    } catch (error) {
+      if (error?.name === "BodyLimitError")
+        throw new SalesError("Request too large.", 413);
       throw new SalesError("Send a valid JSON request.");
     }
   }
+  app.get("/billing-profiles", (c) =>
+    c.json(billingProfiles.list(check(c), c.req.query())),
+  );
+  app.post("/billing-profiles", async (c) => {
+    const data = await body(c);
+    return c.json(billingProfiles.save(check(c), data));
+  });
+  app.post("/estimates/preview", async (c) => {
+    const data = await body(c);
+    return c.json(billingProfiles.preview(check(c), data));
+  });
   app.get("/pipelines", (c) =>
     c.json({ pipelines: service.pipelines(), currency: "USD" }),
   );
@@ -130,5 +155,5 @@ export function createSales({ storage, currentUser, owners, resolveMessage }) {
       ),
     );
   });
-  return { app, service };
+  return { app, service, billingProfiles };
 }

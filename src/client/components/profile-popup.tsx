@@ -1,3 +1,10 @@
+import "./profile-settings.css";
+import { lazy, Suspense } from "preact/compat";
+const BillingProfileSettings = lazy(() =>
+  import("./billing-profile-settings").then((m) => ({
+    default: m.BillingProfileSettings,
+  })),
+);
 import { CompanySettings } from "./company-settings";
 import { TextField } from "./ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
@@ -252,39 +259,47 @@ export function ProfilePopup({
             )}
             {section === "settings" && (
               <>
-                <h3>Settings</h3>
-                <p class="workspace-help">
-                  Manage this device and your workspace connections.
-                </p>
-                {admin && <CompanySettings />}
-                <DeviceStorage />
-                <section class="settings-card">
-                  <h3>Integrations</h3>
-                  <p>
-                    Connect Google, Microsoft, CRM and other available services.
-                  </p>
-                  <button
-                    class="btn"
-                    onClick={() => setSection("integrations")}
-                  >
-                    Manage integrations
-                  </button>
-                </section>
-                {admin && (
+                <header class="workspace-settings-heading">
+                  <h3>Settings</h3>
+                  <p>Manage company preferences, billing and this device.</p>
+                </header>
+                <div class="workspace-settings-stack">
+                  {admin && <CompanySettings />}
+                  {admin && (
+                    <Suspense fallback={<p>Loading billing profiles…</p>}>
+                      <BillingProfileSettings />
+                    </Suspense>
+                  )}
+                  <DeviceStorage />
                   <section class="settings-card">
-                    <h3>Environment variables</h3>
+                    <h3>Integrations</h3>
                     <p>
-                      Configure the allowed AI connection settings. System and
-                      encryption settings stay on the server.
+                      Connect Google, Microsoft, CRM and other available
+                      services.
                     </p>
                     <button
                       class="btn"
-                      onClick={() => setSection("environment")}
+                      onClick={() => setSection("integrations")}
                     >
-                      Manage environment variables
+                      Manage integrations
                     </button>
                   </section>
-                )}
+                  {admin && (
+                    <section class="settings-card">
+                      <h3>Environment variables</h3>
+                      <p>
+                        Configure the allowed AI connection settings. System and
+                        encryption settings stay on the server.
+                      </p>
+                      <button
+                        class="btn"
+                        onClick={() => setSection("environment")}
+                      >
+                        Manage environment variables
+                      </button>
+                    </section>
+                  )}
+                </div>
               </>
             )}
             {section === "integrations" && (

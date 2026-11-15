@@ -1,4 +1,5 @@
 import { createService } from "./service/http.mjs";
+import { quoteMaterialSnapshots } from "./inventory/quote-pricing.mjs";
 import { createSales } from "./sales/http.mjs";
 import { createDispatcher } from "./dispatch/service.mjs";
 import { serve } from "@hono/node-server";
@@ -24,7 +25,7 @@ const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABA
 const auth = createAuth({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
 const dispatcher = createDispatcher({ storage, currentUser: auth.currentUser });
 const service = createService({storage,currentUser:auth.currentUser,people:auth.activeWriters});
-const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.activeWriters,resolveMessage:auth.salesMessageReference});
+const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.activeWriters,resolveMessage:auth.salesMessageReference,materialSnapshots:(ids: string[])=>quoteMaterialSnapshots(storage.database,ids)});
 const app = new Hono();
 app.use("/api/*", auth.guard);
 app.route("/api/auth", auth.app);

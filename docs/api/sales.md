@@ -154,3 +154,9 @@ GET `/customers/:id/context?page=1` joins the original customer to 25 opportunit
 across pipelines and the count of open follow-ups. Customer detail consumes this
 projection; `/sales/:opportunityId` opens the original opportunity. No customer copy
 is created. Company-wide Sales read visibility still applies.
+
+## Estimate pricing foundation
+
+Reviewed billing profiles in Settings and exact server-side estimate preview are
+implemented separately: [pricing contracts](sales-pricing.md). Preview is not a
+saved quote, customer offer/acceptance, invoice, conversion or stock reservation.

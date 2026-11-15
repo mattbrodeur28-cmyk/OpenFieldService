@@ -1,8 +1,10 @@
 # Sales estimating and accepted-material purchasing
 
-Owner requirements, 2026-11-15. This design is planned; current Sales offers native
-opportunities/pipelines/activities, while current Purchasing offers internal POs and
-receiving. It does not yet offer quotes, tax profiles or customer acceptance.
+Owner requirements, 2026-11-15. Implemented foundations: reviewed Settings billing
+profiles and a server-side exact estimate preview with native inventory cost snapshots.
+Current Sales also offers native opportunities/pipelines/activities; Purchasing has
+internal POs and receiving. Saved estimate workbench, quotes, customer acceptance and
+accepted-material procurement remain planned. See [pricing API](../api/sales-pricing.md).
 
 ## Estimate lines and pricing
 
@@ -25,7 +27,9 @@ versions unless explicitly included in the selected document template.
 Add effective-dated billing/tax profiles under Settings by state/jurisdiction and
 Residential/Commercial work segment. Profiles configure explicit line categories,
 rates, tax inclusion, reviewed exemptions, applicable place/date, fee treatment,
-source/reviewer notes and overrides. No default set of current legal tax rates is
+source/reviewer notes and overrides. One Labor tax category covers technicians,
+apprentices and after-hours labor. Service, permits, licensing, subcontractors, fuel and travel distance are
+non-taxable under the requested company policy; Other fees are removed. No default set of current legal tax rates is
 claimed. This is configuration design, not legal/tax guidance. Missing profile or
 unreviewed taxability must remain visible and block offering until explicitly resolved.
 

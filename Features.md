@@ -426,6 +426,12 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   line tax categories, exemptions, source/review notes, rates and overrides. No baked-in
   current legal rates or automatic state-wide taxability assumptions. Offered quotes
   retain the profile/rule/rounding snapshot; missing configuration stays unresolved.
+  Implemented foundation: admin Settings profiles with effective dates and immutable
+  attributed review versions; exact server-side estimate preview with native material
+  cost snapshots. Company policy: one Labor tax rule covers technician/apprentice/
+  after-hours; service, permits, licensing, subcontractors, fuel and travel distance
+  have no tax; Other fees removed. Saved quotes, offer/acceptance snapshots and bid workbench remain open.
+  See [Sales pricing contracts](docs/api/sales-pricing.md).
 - [ ] **SALES-015 — Bid review:** compare estimated cost, selling value, markup and
   margin; distinguish overhead/burden, allowances, exclusions, alternates and taxes.
   Require explicit review for no-charge/zero-cost lines and configured approval limits.

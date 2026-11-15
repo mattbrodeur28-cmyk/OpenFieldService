@@ -1,0 +1,34 @@
+.timesheets-page .dispatch-title { gap: 16px; align-items: flex-start; }
+.timesheets-page .dispatch-title .workspace-help { margin: 4px 0 0; }
+.timesheet-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+.timesheet-period-status { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+.timesheet-period-status > span:first-child { color: var(--text-muted); }
+.timesheet-selection-bar { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px; margin: 18px 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); }
+.timesheet-selection-bar > .ui-field { flex: 1 1 200px; max-width: 320px; margin: 0; }
+.timesheet-week-navigation { display: grid; grid-template-columns: 40px minmax(160px, 200px) 40px auto; align-items: end; gap: 6px; }
+.timesheet-week-navigation .ui-field { margin: 0; min-width: 0; }
+.timesheet-week-navigation .btn, .timesheet-week-navigation .btn-icon, .timesheet-selection-bar .ui-input, .timesheet-selection-bar .ui-select-trigger { height: 40px; min-height: 40px; }
+.timesheet-week-navigation .btn-icon { width: 40px; }
+.timesheet-entry-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 24px; }
+.timesheet-entry-heading h2 { margin: 0; font-size: 16px; }
+.timesheet-entry-heading p { margin: 4px 0 0; }
+.timesheet-entry-toolbar > .ui-field { margin: 0; min-width: 200px; }
+.timesheet-grouping-note { margin: 12px 0; line-height: 1.5; }
+.timesheets-page .timesheet-summary { gap: 10px; margin: 16px 0; }
+.timesheets-page .timesheet-summary .ui-card { padding: 16px; }
+.timesheets-page .timesheet-summary strong { font-size: 22px; }
+.timesheet-action-panel { margin-top: 20px; padding: 20px; display: grid; gap: 14px; }
+.timesheet-action-panel h2 { margin: 0; font-size: 16px; }
+.timesheet-action-panel > .btn { justify-self: start; }
+.timesheet-action-panel .ui-field { margin-bottom: 0; }
+.timesheet-review-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 767px) {
+  .timesheet-header-actions { width: 100%; justify-content: space-between; gap: 10px; }
+  .timesheet-selection-bar { padding: 12px; gap: 12px; }
+  .timesheet-selection-bar > .ui-field { max-width: none; flex-basis: 100%; }
+  .timesheet-week-navigation { width: 100%; grid-template-columns: 40px minmax(0,1fr) 40px; }
+  .timesheet-week-navigation > .btn:last-child { grid-column: 1 / -1; }
+  .timesheet-entry-toolbar > .ui-field { flex: 1 1 100%; }
+  .timesheet-action-panel { padding: 16px; }
+  .timesheet-review-actions > .btn { flex: 1 1 100%; }
+}

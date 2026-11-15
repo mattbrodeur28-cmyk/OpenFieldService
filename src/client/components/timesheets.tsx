@@ -1,3 +1,5 @@
+import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-preact";
+import "./timesheets.css";
 import { useEffect, useState } from "preact/hooks";
 import { accountRequest } from "../auth";
 import { useConnectivity } from "../hooks/use-connectivity";
@@ -173,10 +175,12 @@ export function Timesheets() {
       <header class="dispatch-title">
         <div>
           <h1>Timesheets</h1>
+          <p class="workspace-help">Recorded labor and weekly approvals</p>
         </div>
-        <Button disabled={busy} onClick={() => setReload(reload + 1)}>
-          Refresh
-        </Button>
+        <div class="timesheet-header-actions">
+          {data && <div class="timesheet-period-status" role="status"><span>Week status</span><Badge tone={data.sheet?.status === "approved" ? "success" : data.sheet?.status === "rejected" ? "warning" : "info"}>{data.sheet?.status || "Not submitted"}</Badge></div>}
+          <Button disabled={busy} onClick={() => setReload(reload + 1)}><RefreshCw size={15} aria-hidden="true" /> Refresh</Button>
+        </div>
       </header>
       <p class="workspace-help">
         Review recorded technician labor by week or day. Worked hours, breaks
@@ -190,7 +194,7 @@ export function Timesheets() {
         </EmptyState>
       )}
       {!!options?.technicians.length && (
-        <div class="timesheet-controls">
+        <div class="timesheet-selection-bar">
           <Select
             label="Technician"
             value={technician}
@@ -201,29 +205,12 @@ export function Timesheets() {
             }))}
             onValueChange={setTechnician}
           />
-          <Button
-            aria-label="Previous week"
-            disabled={busy}
-            onClick={() => setWeek(shiftDate(week, -7))}
-          >
-            Previous
-          </Button>
-          <TextField
-            label="Week beginning Monday"
-            type="date"
-            value={week}
-            disabled={busy}
-            onInput={(e) => {
-              if (e.currentTarget.value) setWeek(monday(e.currentTarget.value));
-            }}
-          />
-          <Button
-            aria-label="Next week"
-            disabled={busy}
-            onClick={() => setWeek(shiftDate(week, 7))}
-          >
-            Next
-          </Button>
+          <div class="timesheet-week-navigation" role="group" aria-label="Timesheet week">
+            <Button size="icon" aria-label="Previous week" disabled={busy || !week} onClick={() => setWeek(shiftDate(week,-7))}><ChevronLeft size={16} aria-hidden="true"/></Button>
+            <TextField label="Week beginning Monday" type="date" value={week} disabled={busy} onInput={e=>{if(e.currentTarget.value)setWeek(monday(e.currentTarget.value));}} />
+            <Button size="icon" aria-label="Next week" disabled={busy || !week} onClick={() => setWeek(shiftDate(week,7))}><ChevronRight size={16} aria-hidden="true"/></Button>
+            <Button disabled={busy || !options} onClick={()=>{if(options)setWeek(monday(dayInZone(options.timeZone)));}}>This week</Button>
+          </div>
         </div>
       )}
       {technician && !data && !error && (
@@ -231,49 +218,36 @@ export function Timesheets() {
       )}
       {data && (
         <>
-          <div class="timesheet-summary">
+          <section class="timesheet-summary" aria-label="Full week totals">
             <Card>
               <strong>{hours(data.totals.workedMinutes)} h</strong>
               <span>Recorded worked time</span>
             </Card>
             <Card>
               <strong>{data.totals.breakMinutes} min</strong>
-              <span>Recorded breaks · pay treatment not assigned</span>
+              <span>Recorded breaks</span>
             </Card>
             <Card>
               <strong>{hours(data.totals.requestedBillableMinutes)} h</strong>
-              <span>Requested billable · billing review separate</span>
+              <span>Requested billable time</span>
             </Card>
-          </div>
-          <div class="timesheet-controls">
-            <Badge
-              tone={
-                data.sheet?.status === "approved"
-                  ? "success"
-                  : data.sheet?.status === "rejected"
-                    ? "warning"
-                    : "info"
-              }
-            >
-              {data.sheet?.status || "Not submitted"}
-            </Badge>
+          </section>
+          <div class="timesheet-entry-toolbar">
+            <div class="timesheet-entry-heading"><h2>Time entries</h2><p class="workspace-help">{shown.length} {shown.length===1?"entry":"entries"} · {day==='all'?'Whole week':new Date(day+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})}</p></div>
             <Select
-              label="Daily view"
+              label="View entries"
               value={day}
               options={[
                 { value: "all", label: "Whole week" },
                 ...Array.from({ length: 7 }, (_, i) => ({
                   value: shiftDate(week, i),
-                  label: shiftDate(week, i),
+                  label: new Date(shiftDate(week,i)+"T12:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}),
                 })),
               ]}
               onValueChange={setDay}
             />
-            <span class="workspace-help">
-              Daily view groups entries by their start date; overnight entries
-              show both timestamps.
-            </span>
           </div>
+          <p class="workspace-help timesheet-grouping-note">Daily view groups entries by their start date; overnight entries show both timestamps. Totals and approval always cover the full week.</p>
           {data.blockers.map((message) => (
             <Notice key={message} tone="warning">
               {message}
@@ -290,9 +264,8 @@ export function Timesheets() {
             aria-label="Recorded time entries"
           >
             {shown.length === 0 ? (
-              <EmptyState title="No recorded labor">
-                Complete the job report and supervisor report review to record
-                time here.
+              <EmptyState title={day === "all" ? "No recorded labor this week" : "No entries for this day"}>
+                {day === "all" ? "Complete the job report and supervisor report review to record time here." : "Choose another day or Whole week to see the other recorded entries."}
               </EmptyState>
             ) : (
               shown.map((entry) => (
@@ -327,7 +300,7 @@ export function Timesheets() {
             )}
           </section>
           {(!data.sheet || data.sheet.status === "rejected") && (
-            <section class="sales-details">
+            <section class="ui-card timesheet-action-panel">
               <h2>Submit weekly time</h2>
               {data.canReview && (
                 <TextField
@@ -357,7 +330,7 @@ export function Timesheets() {
             </section>
           )}
           {data.sheet?.status === "submitted" && data.canReview && (
-            <section class="sales-details">
+            <section class="ui-card timesheet-action-panel">
               <h2>Supervisor review</h2>
               <TextField
                 label="Timesheet review notes"
@@ -373,7 +346,7 @@ export function Timesheets() {
                 disabled={busy || readOnly}
                 onChange={(e) => setConfirmed(e.currentTarget.checked)}
               />
-              <div class="timesheet-controls">
+              <div class="timesheet-review-actions">
                 <Button
                   variant="primary"
                   disabled={

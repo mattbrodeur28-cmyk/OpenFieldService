@@ -184,14 +184,20 @@ physical touch, screen-reader and broader responsive/theme qualification work.
 See [the current release evidence](docs/releases/2026-11-14-dispatcher.md) and
 [UI guide](docs/development/ui-system.md) for sources, decisions and exact scope.
 
-- [ ] **UI-009 — Timesheet layout polish:** make the Timesheets page feel cohesive
+- [x] **UI-009 — Timesheet layout polish:** make the Timesheets page feel cohesive
   with Dispatcher and shared business screens. Group Previous / selected week / Next
   into one aligned navigation control; match control heights and spacing. Separate
   the approval/status badge from the Daily View dropdown so state and filtering have
   clear, consistent placement. Revisit summary density and submission/review actions.
   Owner feedback (2026-11-15): the current page works but its buttons and status/filter
   arrangement do not flow together. Validate desktop, narrow screens and keyboard
-  focus in the real browser before closing this item. **Planned; not completed.**
+  focus in the real browser before closing this item. Implemented: aligned week
+  control group with previous/date/next and This week; week status in the header;
+  entry filtering separate from approval, compact totals, and shared review panels.
+  Verified real Chrome desktop and 400 px device emulation, keyboard daily filtering,
+  and unchanged weekly totals/status under daily selection. Physical touch and
+  screen-reader qualification remain UI-008. See
+  [Timesheets UI release](docs/releases/2026-11-15-timesheets-ui.md).
 
 ### Team channels
 

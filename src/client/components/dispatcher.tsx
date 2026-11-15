@@ -1,3 +1,4 @@
+import { formatTimestamp } from "../time-format";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import type { JSX } from "preact";
 import {
@@ -48,6 +49,24 @@ type DispatchJob = Job & {
   dispatch_override?: number;
   is_emergency: number;
   work_category: "unspecified" | "on_demand" | "quoted" | "pm";
+  schedule_kind?: "actual";
+  actual_start_at?: string;
+  actual_end_at?: string;
+  actual_elapsed_minutes?: number;
+  actual_segment_minutes?: number;
+  actual_worked_minutes?: number;
+  actual_break_minutes?: number;
+  requested_billable_minutes?: number;
+  actual_timeline_approximate?: boolean;
+  continues_before?: boolean;
+  continues_after?: boolean;
+  reportRevision?: number;
+  planned_schedule?: {
+    date: string;
+    time: string;
+    duration: number;
+    technicianId: string;
+  };
   outside_service_hours?: boolean;
 };
 type Resource = Technician & {
@@ -135,6 +154,60 @@ function AssignmentForm({
     [override, setOverride] = useState(false),
     [workCategory, setWorkCategory] = useState(job.work_category),
     [reason, setReason] = useState("");
+  if (job.schedule_kind === "actual")
+    return (
+      <Sheet close={close}>
+        <header class="dispatch-sheet-header">
+          <div>
+            <Badge tone="success">Approved actual · {job.identifier}</Badge>
+            <DialogTitle>Actual service visit</DialogTitle>
+          </div>
+          <Button size="icon" aria-label="Close actual visit" onClick={close}>
+            <X size={18} />
+          </Button>
+        </header>
+        <p>
+          {job.customer_name} · {job.technician_name}
+        </p>
+        <section class="sales-details">
+          <h3>Approved report · revision {job.reportRevision}</h3>
+          <p>
+            {formatTimestamp(job.actual_start_at!, board.timeZone)} →{" "}
+            {formatTimestamp(job.actual_end_at!, board.timeZone)}
+          </p>
+          <p>
+            {job.actual_elapsed_minutes} elapsed minutes ·{" "}
+            {job.actual_worked_minutes} worked labor minutes ·{" "}
+            {job.actual_break_minutes} break minutes
+          </p>
+          <p>
+            {job.requested_billable_minutes} requested billable minutes. Billing
+            and timesheet approval remain separate.
+          </p>
+          {(job.continues_before || job.continues_after) && (
+            <p>
+              This day shows {job.actual_segment_minutes} minutes of the visit;
+              the full interval crosses midnight.
+            </p>
+          )}
+          {job.actual_timeline_approximate && (
+            <Notice tone="warning">
+              This actual visit crosses a clock change. The 24-hour board cannot
+              show repeated or skipped clock time exactly; the timestamps and
+              elapsed minutes above remain authoritative.
+            </Notice>
+          )}
+        </section>
+        <section class="sales-details">
+          <h3>Preserved schedule estimate</h3>
+          <p>
+            {job.planned_schedule?.date} at {job.planned_schedule?.time} ·{" "}
+            {job.planned_schedule?.duration} estimated minutes
+          </p>
+        </section>
+        <a href={"/jobs/" + job.id}>Open work order and report</a>
+      </Sheet>
+    );
   return (
     <Sheet close={close}>
       <header class="dispatch-sheet-header">
@@ -150,9 +223,7 @@ function AssignmentForm({
         {job.customer_name}
         {job.equipment_name ? " · " + job.equipment_name : ""}
       </p>
-      <p class="workspace-help">
-        Times are in {board.timeZone}. Changes save to the work order.
-      </p>
+      <p class="workspace-help">Changes save to the work order.</p>
       <form
         class="dispatch-form"
         onSubmit={(e) => {
@@ -868,7 +939,7 @@ export function Dispatcher() {
               ? `Service hours: ${clockOf(board.operatingHours.start)}–${board.operatingHours.end === 1440 ? "24:00" : clockOf(board.operatingHours.end)}`
               : "Closed for normal calls"
             : "Company service hours are not enforced"}{" "}
-          · {board.operatingHours.label} · {board.timeZone}
+          · {board.operatingHours.label}
         </p>
         {admin && (
           <Button disabled={!canWrite} onClick={() => setHoursOpen(true)}>
@@ -939,7 +1010,6 @@ export function Dispatcher() {
           <Button onClick={() => setDate(dayInZone(board.timeZone))}>
             Today
           </Button>
-          <small>{board.timeZone}</small>
         </div>
         <Select
           label="Board view"
@@ -1294,7 +1364,7 @@ export function Dispatcher() {
                             "--job-color":
                               job.technician_color || "var(--info)",
                           }}
-                          title={`${job.identifier} · ${job.customer_name} · ${job.scheduled_time} · ${job.duration} min`}
+                          title={`${job.identifier} · ${job.customer_name} · ${job.scheduled_time} · ${job.duration} ${job.schedule_kind === "actual" ? "actual display" : "estimated"} min${job.actual_timeline_approximate ? " · DST: see actual timestamps" : ""}`}
                         >
                           <div>
                             {grip(job)}
@@ -1305,12 +1375,17 @@ export function Dispatcher() {
                                   setEditing(job);
                               }}
                               aria-label={
-                                "Edit " +
+                                (job.schedule_kind === "actual"
+                                  ? "View actual "
+                                  : "Edit ") +
                                 job.identifier +
                                 " " +
                                 job.customer_name
                               }
                             >
+                              {job.schedule_kind === "actual"
+                                ? "Actual · "
+                                : ""}
                               {job.work_category === "pm"
                                 ? "PM · "
                                 : job.work_category === "quoted"
@@ -1407,9 +1482,14 @@ export function Dispatcher() {
                     <td>
                       <Button
                         onClick={() => setEditing(job)}
-                        disabled={!canWrite || !active(job)}
+                        disabled={
+                          job.schedule_kind !== "actual" &&
+                          (!canWrite || !active(job))
+                        }
                       >
-                        Edit
+                        {job.schedule_kind === "actual"
+                          ? "View actual"
+                          : "Edit"}
                       </Button>
                     </td>
                   </tr>
@@ -1428,10 +1508,15 @@ export function Dispatcher() {
                   {job.identifier} · {job.customer_name}
                 </span>
                 <Button
-                  disabled={!canWrite || !active(job)}
+                  disabled={
+                    job.schedule_kind !== "actual" &&
+                    (!canWrite || !active(job))
+                  }
                   onClick={() => setEditing(job)}
                 >
-                  Edit assignment
+                  {job.schedule_kind === "actual"
+                    ? "View actual"
+                    : "Edit assignment"}
                 </Button>
               </article>
             ))}
@@ -1457,7 +1542,11 @@ export function Dispatcher() {
           board={board}
           error={error}
           busy={
-            busy || user.role === "viewer" || connectivity.readOnly || failed
+            busy ||
+            user.role === "viewer" ||
+            connectivity.readOnly ||
+            failed ||
+            (!active(editing) && editing.schedule_kind !== "actual")
           }
           save={save}
           canOverride={admin}

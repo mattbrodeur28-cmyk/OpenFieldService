@@ -1,3 +1,5 @@
+import { useCompanyTimeZone } from "../../hooks/use-company-timezone";
+import { localInput, resolveLocal, formatTimestamp } from "../../time-format";
 import { useEffect, useState } from "preact/hooks";
 import { X } from "lucide-preact";
 import { accountRequest, useAccount } from "../../auth";
@@ -19,21 +21,6 @@ const kinds = [
   { value: "site_survey", label: "Site survey" },
   { value: "task", label: "Task" },
 ];
-const local = (iso: string) => {
-  const date = new Date(iso);
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 16);
-};
-function instant(value: string) {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime()) || local(date.toISOString()) !== value)
-    throw new Error(
-      "Choose a valid local date and time. This time may fall in a daylight-saving gap.",
-    );
-  return date.toISOString();
-}
-const when = (value: string) => new Date(value).toLocaleString();
 export function ActivityPanel({
   row,
   options,
@@ -50,6 +37,9 @@ export function ActivityPanel({
   mutate: SalesMutation;
 }) {
   const { user } = useAccount();
+  const company = useCompanyTimeZone();
+  const when = (value: string) =>
+    formatTimestamp(value, company.timeZone || "UTC");
   const [data, setData] = useState<SalesActivityList | null>(null),
     [failure, setFailure] = useState(""),
     [page, setPage] = useState(1),
@@ -88,7 +78,11 @@ export function ActivityPanel({
           </p>
         </div>
         <Button
-          disabled={disabled || (!admin && row.owner_id !== user.id)}
+          disabled={
+            disabled ||
+            !company.timeZone ||
+            (!admin && row.owner_id !== user.id)
+          }
           onClick={() => setEditing("new")}
         >
           Add activity
@@ -169,7 +163,7 @@ export function ActivityPanel({
           </Button>
         </div>
       )}
-      {editing && (
+      {editing && company.timeZone && (
         <ActivityEditor
           row={row}
           activity={editing === "new" ? null : editing}
@@ -177,6 +171,7 @@ export function ActivityPanel({
           admin={admin}
           disabled={disabled}
           error={error}
+          timeZone={company.timeZone}
           close={() => setEditing(null)}
           mutate={mutate}
         />
@@ -192,6 +187,7 @@ function ActivityEditor({
   disabled,
   error,
   close,
+  timeZone,
   mutate,
 }: {
   row: Opportunity;
@@ -200,6 +196,7 @@ function ActivityEditor({
   admin: boolean;
   disabled: boolean;
   error: string;
+  timeZone: string;
   close(): void;
   mutate: SalesMutation;
 }) {
@@ -209,11 +206,15 @@ function ActivityEditor({
     [details, setDetails] = useState(activity?.details || ""),
     [assignee, setAssignee] = useState(activity?.assignee_id || user.id),
     [due, setDue] = useState(
-      local(activity?.due_at || new Date(Date.now() + 86400000).toISOString()),
+      localInput(
+        activity?.due_at || new Date(Date.now() + 86400000).toISOString(),
+        timeZone,
+      ),
     ),
     [reminder, setReminder] = useState(
-      local(
+      localInput(
         activity?.reminder_at || new Date(Date.now() + 86400000).toISOString(),
+        timeZone,
       ),
     ),
     [status, setStatus] = useState(activity?.status || "open"),
@@ -259,8 +260,12 @@ function ActivityEditor({
           setFailure("");
           let dueAt, reminderAt;
           try {
-            dueAt = instant(due);
-            reminderAt = instant(reminder);
+            dueAt = resolveLocal(due, activity?.due_at || "", timeZone);
+            reminderAt = resolveLocal(
+              reminder,
+              activity?.reminder_at || "",
+              timeZone,
+            );
             if (reminderAt > dueAt)
               throw new Error("Reminder must be at or before the due time.");
           } catch (e) {
@@ -344,10 +349,9 @@ function ActivityEditor({
           />
         </div>
         <p class="workspace-help">
-          Times use this device’s timezone (
-          {Intl.DateTimeFormat().resolvedOptions().timeZone}). Reminders appear
-          in Sales while the workspace is open; email and push delivery are not
-          enabled.
+          Reminders appear in Sales while the workspace is open; email and push
+          delivery are not enabled. Repeated daylight-saving times require a
+          different, unambiguous time.
         </p>
         <label class="ui-field">
           Activity details
@@ -432,6 +436,9 @@ function ActivityEditor({
   );
 }
 export function FollowUpInbox({ open }: { open(id: string): void }) {
+  const company = useCompanyTimeZone();
+  const when = (value: string) =>
+    formatTimestamp(value, company.timeZone || "UTC");
   const [data, setData] = useState<SalesActivityList | null>(null),
     [failure, setFailure] = useState(""),
     [assignee, setAssignee] = useState("me"),

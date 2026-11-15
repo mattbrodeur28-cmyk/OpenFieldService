@@ -1565,3 +1565,5 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 @media(prefers-reduced-motion:reduce) { .sales-opportunity { transition:none; } }
 
 .dispatch-service-closed{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,transparent,transparent 7px,color-mix(in srgb,var(--muted-foreground,#888) 10%,transparent) 7px,color-mix(in srgb,var(--muted-foreground,#888) 10%,transparent) 8px);pointer-events:none;}
+
+.execution-steps {display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.execution-steps .ui-badge {display:inline-flex;align-items:center;gap:6px}.job-execution .sales-form {max-width:760px}.job-execution h4 {margin:16px 0 8px}

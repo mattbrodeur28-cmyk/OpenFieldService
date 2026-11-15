@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { useApp } from "../context";
+import { JobExecution } from "./job-execution";
 import { JobEquipment } from "./asset-picker";
 import { StatusBadge, PriorityBadge } from "./status-badge";
 import { ArrowLeft, Trash2, Send, MapPin, Clock, DollarSign, User, Wrench, Plus, X, CheckSquare, Square, Package, FileText } from "lucide-preact";
@@ -10,7 +11,7 @@ const ALL_STATUSES: JobStatus[] = ["scheduled", "confirmed", "in_progress", "com
 
 export function JobDetail() {
   const {
-    selectedJob: job, navigate, updateJob, deleteJob,
+    selectedJob: job, navigate, updateJob, deleteJob, setError,
     addJobNote, deleteJobNote, technicianLookup, isAgent,
     addChecklistItem, toggleChecklistItem, deleteChecklistItem,
     addJobMaterial, deleteJobMaterial, materials, createInvoiceFromJob,
@@ -24,7 +25,7 @@ export function JobDetail() {
 
   if (!job) return null;
 
-  const handleStatusChange = (status: JobStatus) => updateJob(job.id, { status });
+  const handleStatusChange = (status: JobStatus) => updateJob(job.id, { status }).catch(err => setError((err as Error).message));
 
   const handleAddNote = async () => {
     if (!noteText.trim()) return;
@@ -53,10 +54,10 @@ export function JobDetail() {
           <ArrowLeft size={16} /> Back
         </button>
         <div class="page-header-right">
-          <button class="btn btn-primary" disabled={readOnly} onClick={() => createInvoiceFromJob(job.id)}>
+          <button class="btn btn-primary" disabled={readOnly} onClick={() => createInvoiceFromJob(job.id).catch(err => setError((err as Error).message))}>
             <FileText size={14} /> Create Invoice
           </button>
-          <button class="btn btn-danger" disabled={readOnly} onClick={() => deleteJob(job.id)}>
+          <button class="btn btn-danger" disabled={readOnly} onClick={() => deleteJob(job.id).catch(err => setError((err as Error).message))}>
             <Trash2 size={14} /> Delete
           </button>
         </div>
@@ -153,6 +154,7 @@ export function JobDetail() {
             </div>
           )}
 
+          <JobExecution key={"execution-"+job.id} jobId={job.id} jobVersion={job.schedule_version} equipmentId={job.asset_id}/>
           <JobEquipment key={job.id} job={job} />
 
           {/* Checklist */}
@@ -290,7 +292,7 @@ export function JobDetail() {
               value={job.technician_id || ""}
               onChange={(e) => {
                 const val = (e.target as HTMLSelectElement).value;
-                updateJob(job.id, { technician_id: val || null });
+                void updateJob(job.id, { technician_id: val || null }).catch(err => setError((err as Error).message));
               }}
             >
               <option value="">Unassigned</option>

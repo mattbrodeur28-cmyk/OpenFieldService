@@ -1,3 +1,4 @@
+import { CompanySettings } from "./company-settings";
 import { TextField } from "./ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Dialog, DialogTitle } from "./ui/dialog";
@@ -255,6 +256,7 @@ export function ProfilePopup({
                 <p class="workspace-help">
                   Manage this device and your workspace connections.
                 </p>
+                {admin && <CompanySettings />}
                 <DeviceStorage />
                 <section class="settings-card">
                   <h3>Integrations</h3>

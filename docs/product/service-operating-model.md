@@ -1,7 +1,8 @@
 # Shared service operating model
 
 Owner decisions, 2026-11-14. Status: work classification implemented in Dispatcher;
-job execution, actual-time finalization, billing, inventory and RMS are planned.
+opt-in PJSA/report/actual-time pilot and company timezone settings implemented.
+Billing handoff, full timesheets, inventory and RMS remain planned.
 Feature IDs: ARCH-014, DISPATCH-011/012/013, TECH-001–011, RMS-001–008.
 
 ## Independent dimensions
@@ -28,7 +29,11 @@ rules rather than replacing the job or inventing new parallel job statuses.
 An explicitly mapped signed-in technician acts on an assigned job/visit. A safety
 submission retains its template version, answers and acknowledgments. The server
 checks required evidence on every transition, including older API entry points.
-A report draft can be saved; submission creates a retained revision. Supervisor
+Equipment from the same customer is required before filling out Step2. A report
+draft can be saved once equipment is linked; submission creates a retained revision
+and equipment/serial/site snapshot. An accepted PJSA requires reassessment before
+changing the equipment link. Company Settings provides the default timezone; routine
+UI labels are hidden while UTC evidence and DST warnings remain explicit. Supervisor
 corrections reference a prior revision and reason rather than overwriting evidence.
 Do not immediately enforce new gates on historical jobs without migration policy.
 

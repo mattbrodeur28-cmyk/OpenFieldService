@@ -199,6 +199,12 @@ export function useAppState(isAgent: boolean, navigate: (to: string) => void): A
     setSelectedJob(res.job);
   }, []);
 
+  const refreshJob = useCallback(async (id: string) => {
+    const res = await api<{ job: Job }>("GET", `/api/jobs/${id}`);
+    setSelectedJob(current => current?.id === id ? res.job : current);
+    await Promise.all([fetchStats(), fetchSchedule(scheduleStart, scheduleEnd), fetchJobs(jobsPag, jobsSearch, jobsStatusFilter)]);
+  }, [fetchStats, fetchSchedule, scheduleStart, scheduleEnd, fetchJobs, jobsPag, jobsSearch, jobsStatusFilter]);
+
   const addJobNote = useCallback(async (jobId: string, content: string) => {
     await api("POST", `/api/jobs/${jobId}/notes`, { content });
     const res = await api<{ job: Job }>("GET", `/api/jobs/${jobId}`);
@@ -401,7 +407,7 @@ export function useAppState(isAgent: boolean, navigate: (to: string) => void): A
     navigate, isAgent, stats,
     jobs, jobsPag, setJobsPage, jobsSearch, setJobsSearch, jobsStatusFilter, setJobsStatusFilter,
     addJob, updateJob, deleteJob,
-    selectedJob, selectJob, addJobNote, deleteJobNote,
+    selectedJob, selectJob, refreshJob, addJobNote, deleteJobNote,
     addChecklistItem, toggleChecklistItem, deleteChecklistItem,
     addJobMaterial, deleteJobMaterial, createInvoiceFromJob,
     customers, customersPag, setCustomersPage, customersSearch, setCustomersSearch,

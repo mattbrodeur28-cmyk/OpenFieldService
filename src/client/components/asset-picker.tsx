@@ -22,8 +22,8 @@ export function AssetPicker({ customerId, value, onChange, initialAsset }: { cus
   }, [customerId, search, revision]);
   return <div class="equipment-picker">
     <label class="form-group">Find equipment<input type="search" disabled={!customerId} value={search} placeholder="Name, serial number, or model" onInput={(e) => setSearch(e.currentTarget.value)} /></label>
-    <label class="form-group">Equipment (optional)<select value={value ?? ""} disabled={!customerId || loading || !!error} onChange={(e) => onChange(e.currentTarget.value ? e.currentTarget.value : null)}>
-      <option value="">No equipment — customer job</option>
+    <label class="form-group">Equipment (required for Step 2)<select value={value ?? ""} disabled={!customerId || loading || !!error} onChange={(e) => onChange(e.currentTarget.value ? e.currentTarget.value : null)}>
+      <option value="">Select equipment before Step 2</option>
       {value != null && !assets.some((a) => a.id === value) && <option value={value}>{initialAsset?.id === value && initialAsset.customer_id === customerId ? `${initialAsset.name} · ${initialAsset.serial_number} · ${initialAsset.site_name}` : `Linked equipment #${value}`}</option>}
       {assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.name} · {asset.serial_number} · {asset.site_name}{asset.status === "retired" ? " (retired)" : ""}</option>)}
     </select></label>
@@ -56,7 +56,7 @@ export function JobEquipment({ job }: { job: Job }) {
       <button class="btn" disabled={busy || value === job.asset_id} onClick={save}>{busy ? "Saving…" : "Save equipment link"}</button>
       {job.asset_id != null && <button class="btn" onClick={() => navigate(`/assets/${job.asset_id}`)}>View equipment & history</button>}
     </div>
-    <p class="text-muted">Changing the equipment link keeps the job address unchanged.</p>
+    <p class="text-muted">Equipment is required for Step 2. Link it before submitting PJSA; an accepted PJSA requires safety reassessment before changing equipment. Changing this link keeps the job address unchanged.</p>
     {error && <p class="equipment-error" role="alert">{error}</p>}
   </section>;
 }

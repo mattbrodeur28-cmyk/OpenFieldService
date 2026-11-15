@@ -34,13 +34,12 @@ export function CustomerEquipment({ customerId }: { customerId: string }) {
       <button class="btn" onClick={() => setSiteForm("new")}>Add site</button>
       <button class="btn btn-primary" disabled={!sites.length || loading || !!error} onClick={() => setAssetForm(true)}>Register equipment</button>
     </div></div>
-    <p class="text-muted">Optional for equipment service. Jobs can still use the customer address without equipment.</p>
+    <p class="text-muted">Register the equipment serviced at each site. Equipment is required before filling out a job’s Step 2 post-work report.</p>
     {error ? <p class="equipment-error" role="alert">{error} <button class="btn" onClick={() => setRevision((n) => n + 1)}>Retry</button></p> : <>
       <div class="equipment-sites">{sites.map((site) => <details key={site.id} class="card equipment-card">
         <summary>{site.name}</summary>
         <p>{site.address || "No address recorded"}</p>
         <p>{[site.contact_name, site.contact_phone, site.contact_email].filter(Boolean).join(" · ")}</p>
-        <p class="text-muted">Timezone: {site.timezone}</p>
         {site.access_instructions && <p class="detail-notes"><strong>Access: </strong>{site.access_instructions}</p>}
         {site.safety_notes && <p class="detail-notes"><strong>Safety: </strong>{site.safety_notes}</p>}
         <button class="btn" onClick={() => setSiteForm(site)}>Edit site</button>

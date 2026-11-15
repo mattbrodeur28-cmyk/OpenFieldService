@@ -79,7 +79,7 @@ qualification remain planned work.
 | M7 | Controls records, commissioning and handover | Planned | M4; existing equipment foundation |
 | M11 | Commercial/construction projects, phased billing, crews and job costing | Planned | M2–M6 shared domains; project and ledger foundations |
 | M12 | Residential memberships, mobile sales/service, booking and payment workflows | Planned | M3–M6 shared domains; relevant M8 capabilities |
-| M13 | Technician workflow, actual time, timesheets and truck inventory | Planned; service categories implemented | M2, M3; shared users/jobs/materials |
+| M13 | Technician workflow, actual time, timesheets and truck inventory | In progress; PJSA/report/actual-time pilot implemented | M2, M3; shared users/jobs/materials |
 | M14 | Refrigerant Monitoring System and dashboard | Planned | M13 inventory/time/job evidence; equipment baseline |
 | M8 | Business-owner reporting and operational controls | Planned | M3–M7 business events |
 | M9 | Containers, Kubernetes and scale qualification | Planned | M2 shared-state/database work |
@@ -633,6 +633,12 @@ not prerequisites for claiming unrelated mobile or membership work complete.
 
 ## M13 — Technician execution, timesheets and truck inventory
 
+Company Settings now persists the default IANA timezone per installation. Dispatcher,
+report entry, Sales follow-ups and new sites use it; routine timezone labels are
+hidden. Existing report UTC instants and equipment evidence stay unchanged. Future
+white-label/multi-company settings require tenant-scoped storage and authorization,
+not another global environment variable. See [execution release](docs/releases/2026-11-14-technician-execution.md).
+
 Requested workflow: **1 Safety PJSA → 2 Post-work report → 3 Completion / Billing**.
 This is a server-enforced workflow over the same work order, not three separate
 apps or another copy of the job status. Detailed contract and implementation order:
@@ -647,7 +653,10 @@ apps or another copy of the job status. Detailed contract and implementation ord
 - [ ] **TECH-002 — Workflow engine:** persisted/versioned job step, allowed
   transitions and per-category template; server checks across Dispatcher, job APIs,
   mobile and billing. Resume drafts, show blockers, preserve legacy jobs and require
-  an audited supervisor reason for approved exceptions. Emergency is not a blanket
+  an audited supervisor reason for approved exceptions. Opt-in versioned enrollment,
+  immutable approved PJSA templates/submissions, report revisions, actual-time ledger
+  and supervisor completion review are implemented in standalone mode. Full billing
+  readiness and category-specific templates remain open. Emergency is not a blanket
   PJSA bypass; establish a deliberate field procedure.
 - [ ] **TECH-003 — Step 1 Safety/PJSA:** template version, task/site hazards, controls,
   PPE, relevant permits/LOTO acknowledgments, participants, timestamps and evidence;
@@ -657,6 +666,9 @@ apps or another copy of the job status. Detailed contract and implementation ord
   readings, deficiencies, photos, customer acknowledgment and follow-up needs;
   actual visit times, labor entries, truck materials and RMS references. Required
   fields vary by On-Demand, Quoted Work and PM; preserve submitted revisions.
+  Implemented: required linked customer equipment for Step 2 draft/submission, retained
+  equipment/serial/site snapshot, textual findings and immutable revisions. Photos,
+  acknowledgment and inventory/RMS references remain open.
 - [ ] **TECH-005 — Time entries:** technician/job/visit/phase IDs, UTC instants plus
   timezone, start/finish/breaks, travel/work/nonbillable types, open timers, overlap
   prevention, manual-entry reasons and correction history. Multi-tech elapsed visit
@@ -665,6 +677,10 @@ apps or another copy of the job status. Detailed contract and implementation ord
   final report establishes actual interval for completed work. Show estimate vs
   actual/variance and historical conflicts without rewriting subsequent jobs. Support
   cross-midnight/DST actual records; scheduling restrictions must not erase facts.
+  Implemented: approved actual intervals replace estimated board cards, read-only
+  evidence retains original estimates, midnight segments and explicit DST distortion
+  warnings. Browser verified on a disposable ten-minute visit; broader field and
+  multi-technician qualification remains open.
 - [ ] **TECH-007 — Timesheets:** daily/weekly views built from the same entries,
   submission, approval/rejection, locked periods and audited adjustments. Separate
   payroll hours, billable hours and paid/unpaid breaks; scoped accounting export.

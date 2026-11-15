@@ -49,7 +49,6 @@ export function AssetDetail({ id }: { id: string }) {
       {detail.asset.notes && <p class="detail-notes">{detail.asset.notes}</p>}
       <section class="detail-section"><h3>Current site</h3><p>{detail.site.name} · {detail.site.address || "No address recorded"}</p>
         <p>{[detail.site.contact_name, detail.site.contact_phone, detail.site.contact_email].filter(Boolean).join(" · ")}</p>
-        <p class="text-muted">Timezone: {detail.site.timezone}</p>
         {detail.site.access_instructions && <p class="detail-notes"><strong>Access: </strong>{detail.site.access_instructions}</p>}
         {detail.site.safety_notes && <p class="detail-notes"><strong>Safety: </strong>{detail.site.safety_notes}</p>}
       </section>

@@ -46,10 +46,12 @@ WORKSPACE_TOKEN no longer grants normal API access.
 ## Dispatcher upgrades
 
 The Dispatcher release adds module tables/triggers without resetting existing
-business records. Before using it, set `DISPATCH_TIMEZONE` privately in
-`/etc/openfieldservice.env`, for example `DISPATCH_TIMEZONE=America/New_York`.
-Use the company's actual IANA timezone. The default is UTC; changing this setting
-does not convert existing schedule values. Preserve `PUBLIC_URL` and all encryption
+business records. Open **your name → Settings → Company settings** and verify
+Company timezone before using scheduling/report entry. Initial setup uses
+`COMPANY_TIMEZONE`, then legacy `DISPATCH_TIMEZONE`, then UTC; once saved in the
+business database, Company Settings is authoritative and takes effect immediately.
+Changing it preserves existing schedule clock values rather than converting them;
+review the warning and appointments before saving. Preserve `PUBLIC_URL` and all encryption
 and provider keys. Keep a private backup of the environment file as well as both
 SQLite databases before upgrading. The full [Dispatcher rules](../docs/api/dispatcher.md)
 and [release evidence](../docs/releases/2026-11-14-dispatcher.md) describe migration,

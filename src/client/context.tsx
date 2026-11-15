@@ -39,6 +39,7 @@ export interface AppContextValue {
   // Job detail
   selectedJob: Job | null;
   selectJob: (id: string | null) => Promise<void>;
+  refreshJob: (id: string) => Promise<void>;
   addJobNote: (jobId: string, content: string) => Promise<void>;
   deleteJobNote: (noteId: string) => Promise<void>;
   addChecklistItem: (jobId: string, label: string) => Promise<void>;

@@ -1,3 +1,4 @@
+import { createCompanySettings } from "../service/company.mjs";
 import { setWorkCategory, workCategories } from "../service/work.mjs";
 import { createOperatingHours } from "./hours.mjs";
 import { Hono } from "hono";
@@ -39,12 +40,8 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
     db
       .prepare("SELECT version,managed FROM _dispatch_job_state WHERE job_id=?")
       .get(id);
-  const timeZone = env.DISPATCH_TIMEZONE || "UTC";
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone }).format();
-  } catch {
-    throw new Error("DISPATCH_TIMEZONE must be an IANA timezone.");
-  }
+  const company = createCompanySettings({ storage, env });
+  storage.companyTimeZone = company.timeZone;
   storage.validateSchedule = (job) =>
     validDate(job.scheduled_date) &&
     timeMinute(job.scheduled_time) !== null &&
@@ -56,7 +53,7 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
       job.scheduled_date,
       timeMinute(job.scheduled_time),
       job.duration,
-      timeZone,
+      company.timeZone(),
     );
   const app = new Hono();
   let stopping = false;
@@ -106,7 +103,7 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
     }
   }
   app.get("/board", (c) => {
-    const date = c.req.query("date") || zonedDay(timeZone),
+    const date = c.req.query("date") || zonedDay(company.timeZone()),
       search = (c.req.query("search") || "").slice(0, 200);
     const bucket = c.req.query("pipeline") || "all";
     const assigned = c.req.query("assignment") || "all";
@@ -140,13 +137,46 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
                   end: row.end_minute,
                 },
         }));
-      const jobs = db
+      const scheduledJobs = db
         .prepare(
           projection +
             " WHERE j.scheduled_date=? AND j.technician_id IS NOT NULL ORDER BY j.scheduled_time,j.identifier LIMIT 2001",
         )
         .all(date);
-      if (resources.length > 500 || jobs.length > 2000) return null;
+      const actual = storage.actualAppointments?.(date, company.timeZone()) || {
+        slots: [],
+        replacedJobIds: [],
+        overflow: false,
+      };
+      const replaced = new Set(actual.replacedJobIds);
+      const jobs = scheduledJobs.filter((job) => !replaced.has(job.id));
+      const byId = db.prepare(projection + " WHERE j.id=?");
+      for (const slot of actual.slots) {
+        const source = byId.get(slot.jobId);
+        if (source)
+          jobs.push({
+            ...source,
+            ...slot,
+            planned_schedule: {
+              date: source.scheduled_date,
+              time: source.scheduled_time,
+              duration: source.duration,
+              technicianId: source.technician_id,
+            },
+          });
+      }
+      jobs.sort(
+        (a, b) =>
+          a.scheduled_time.localeCompare(b.scheduled_time) ||
+          a.identifier.localeCompare(b.identifier),
+      );
+      if (
+        resources.length > 500 ||
+        scheduledJobs.length > 2000 ||
+        jobs.length > 2000 ||
+        actual.overflow
+      )
+        return null;
       const statuses =
         bucket === "open"
           ? ["scheduled", "confirmed"]
@@ -169,7 +199,7 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
       return {
         operatingHours,
         date,
-        timeZone,
+        timeZone: company.timeZone(),
         now: new Date().toISOString(),
         revision: revision(),
         resources,
@@ -223,7 +253,7 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
     const minute = timeMinute(data.time);
     if (
       minute + data.duration > 1440 ||
-      !validZonedInterval(data.date, minute, data.duration, timeZone)
+      !validZonedInterval(data.date, minute, data.duration, company.timeZone())
     )
       return c.json(
         {
@@ -426,7 +456,7 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
     return c.json(response, status);
   });
   app.get("/operating-hours", (c) =>
-    c.json({ ...operating.configuration(), timeZone }),
+    c.json({ ...operating.configuration(), timeZone: company.timeZone() }),
   );
   app.put("/operating-hours", async (c) => {
     const data = await input(c),
@@ -488,7 +518,9 @@ export function createDispatcher({ storage, env = process.env, currentUser }) {
   });
   return {
     app,
-    timeZone,
+    get timeZone() {
+      return company.timeZone();
+    },
     close() {
       stopping = true;
     },

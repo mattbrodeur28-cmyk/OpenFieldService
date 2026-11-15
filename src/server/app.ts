@@ -10,6 +10,11 @@ export function createApp<E extends Env & { Bindings: DBEnv }>(options: { title:
   app.onError((error, c) => {
     const conflicts: Record<string, string> = {
       DISPATCH_SERVICE_HOURS: 'Outside company service hours. Schedule within service hours or use an approved emergency assignment in Dispatcher.',
+      SERVICE_EXECUTION_CLOSED: 'Approved completed visits require a reviewed correction; their schedule and status cannot be changed here.',
+      SERVICE_SAFETY_REQUIRED: 'Complete the job Safety/PJSA step before starting work.',
+      SERVICE_REPORT_REQUIRED: 'Complete and review the job report before marking this work complete.',
+      SERVICE_SAFETY_REASSESS: 'Request safety reassessment before changing the technician, customer, equipment, date or location.',
+      SERVICE_BILLING_REVIEW: 'Complete the job billing review before creating an invoice.',
       DISPATCH_OVERLAP: 'This technician already has overlapping work.',
       DISPATCH_AVAILABILITY: 'This assignment is outside declared availability.',
       DISPATCH_CLOSED: 'Completed or cancelled jobs cannot be rescheduled.',

@@ -33,7 +33,7 @@ ordinary users cannot enumerate other account mappings via these endpoints.
 ## Job execution author contract
 
 `service.executionActor(user, jobId, reason)` is a reusable synchronous guard for
-forthcoming PJSA/report/time services. Call inside the same transaction as saving
+PJSA/report/time services. Call inside the same transaction as saving
 evidence. It requires an active writer, an active assigned technician, and a UUID
 mapping from the actor to that technician. It returns actor user ID and assigned
 technician ID. Equal names do not imply identity. Inactive/unassigned resources fail.
@@ -46,4 +46,110 @@ itself does not invent or submit a report. HR cannot delegate as a supervisor.
 The old job APIs remain company-wide for existing Member accounts. Mapping is not
 a least-privilege technician role or a retrofit of legacy endpoint permissions.
 TECH-001 stays open until assigned-work/crew permissions and relevant UI/API scoping
-are implemented. PJSA/report/billing gates and timesheets remain TECH-002–011.
+are implemented. The following pilot implements PJSA/report gates; full timesheet
+and billing readiness remain TECH-007/008.
+
+
+## Company timezone
+
+GET `/company` returns `{timeZone,version}` to active signed-in users. PUT is
+Owner/Admin only, with strict `{timeZone,expectedVersion,reason,
+acknowledgeScheduleTimes:true}`. IANA zone required; reason 10–1000 chars. Persisted
+business-DB setting is authoritative. First initialization uses COMPANY_TIMEZONE,
+then legacy DISPATCH_TIMEZONE, then UTC. Environment changes do not overwrite saved
+company choices. The current single-company deployment uses company_id=default;
+this is not tenant isolation. Future tenants need their own scoped rows/contracts.
+
+Changes preserve scheduled wall-clock dates/times and explicitly acknowledge their
+interpretation in the new zone. Validate all active assigned appointments (max
+10,000) in the new zone; ambiguous/gap/invalid intervals prevent save. Audit/version
+and Dispatcher SSE event commit atomically. Running processes read the DB value,
+so restart is not required. Submitted actual UTC instants remain unchanged; saved
+report drafts keep their original zone. Site edits preserve existing site zone;
+new sites inherit the company default. No public company-page field exposes this
+internal setting. HR cannot change it.
+
+## Opt-in execution pilot
+
+All paths below are under `/api/service`. GET `/safety-templates` lists up to 101
+latest approved template revisions. POST creates an approved immutable revision
+with `templateId?`, `expectedRevision`, `name`, `questions` (1–30 unique keys,
+label, kind=text|ack, required) and `approvedForUse:true`. Owner/Admin only; no
+production template is automatically approved. Starter UI questions require company
+review. Template review is not a certification of safety/legal sufficiency.
+
+GET `/jobs/:id/workflow` returns native job identity/equipment, companyTimeZone,
+workflow, pinned template, draft, accepted safety, report drafts/revisions, current
+report review, time entries and recent audit. Only mapped assigned technician or
+Owner/Admin may read execution evidence. Read limits: latest 50 report revisions,
+1,000 job time entries, 100 audit events; retained DB evidence is not deleted.
+
+POST `/jobs/:id/workflow` enrolls active assigned scheduled/confirmed work with
+`{templateId,templateRevision,expectedScheduleVersion}`. Owner/Admin only; existing
+billing records prevent retroactive enrollment. Original schedule estimate retained.
+Unenrolled legacy jobs retain their earlier behavior. Enrollment is a pilot: do not
+enroll production billing work until the separate billing handoff is implemented.
+
+PUT `/jobs/:id/safety-draft` and POST `/jobs/:id/safety-submit` take
+`{expectedVersion,answers,delegationReason?}`. Required answers and types validated;
+submission records immutable actor, technician, delegation, template and timestamp,
+and atomically moves the original job into progress. Existing status APIs and
+Dispatcher cannot bypass safety or completion gates. Accepted safety locks customer,
+equipment, assignment, date and address. POST `/jobs/:id/safety-reassess` accepts
+`{expectedVersion,reason}` (Owner/Admin, reason >=10 chars), retains prior evidence,
+invalidates drafts and returns eligible active work to Safety. Reject a submitted
+report before reassessment; completed evidence needs a future correction workflow.
+
+## Step 2 equipment, reports and actual time
+
+**Equipment is required before filling out Step 2.** PUT
+`/jobs/:id/report-draft` and POST `/jobs/:id/report-submit` reject jobs lacking
+linked equipment belonging to the same customer. SQL triggers protect direct
+inserts/updates too. The UI blocks report entry with reassessment/linking guidance.
+Submission retains equipment ID plus immutable name, serial, model/manufacturer,
+site ID/name/address snapshot. Later catalog changes do not rewrite report evidence.
+Older already-submitted reports retain their original evidence with an explicit
+missing-equipment notice; no invented backfill.
+
+Requests: `{expectedVersion,delegationReason?,lateEntryReason?,report}`. Report:
+`{timeZone,workPerformed,findings,deficiencies,followUp,visitStartAt,visitEndAt,entries}`.
+Entries (1–20 on submission) contain assigned `technicianId`, `startAt`, `endAt`,
+`breakMinutes`, `requestedBillableMinutes`, `workType` (work/travel/nonbillable),
+`notes`. Canonical ISO UTC instants are stored; explicit input offsets accepted,
+minute precision required. Company-zone UI distinguishes repeated DST occurrences
+and rejects nonexistent times. Visit <=24 real elapsed hours, finish <=now; labor
+must lie inside visit, have positive worked minutes, no overlap, breaks <elapsed,
+requested billable <=worked, and zero billable on nonbillable entries. Drafts may
+be incomplete; submission cannot. Single assigned technician currently; crew/phase
+entries and running timers remain open.
+
+Actual work before the recorded PJSA requires Owner/Admin late-entry explanation
+>=10 chars. This does not backdate PJSA. Submitted/approved labor overlaps across
+jobs fail; rejected revisions no longer reserve the interval. New report revisions
+retain previous reports, reviews and rejected ledger entries. All report/ledger/
+workflow/audit writes commit together or roll back. HTTP write body max50KB.
+
+POST `/jobs/:id/report-review` takes `{expectedVersion,reportId,decision,notes}`;
+decision approved|rejected. Owner/Admin only. Approval locks evidence, marks the
+native job completed and its report labor approved; payroll/timesheet approval is
+separate. Rejection returns Step2 for a new revision. Approval requires equipment.
+Invoice creation remains blocked pending billing readiness (stage stays review).
+No report operation posts an invoice, payment or QuickBooks transaction.
+
+Dispatcher reads approved current actual visits from these same native records.
+It replaces the original estimated card without mutating the job's scheduled date,
+time or duration. Actual cards are read-only and link to report evidence. Midnight
+segments render on both local days. On clock-change days, exact UTC/elapsed time
+is authoritative; a wall-clock distortion warning prevents equating board width
+with elapsed time. Estimated/elapsed/worked/requested billable values are distinct.
+
+## Migration and recovery
+
+Checksummed additive `_service_execution_migrations` v1 safety, v2 report/time and
+v3 required equipment. `_company_settings_migrations` v1 stores company setting and
+audit. Never edit applied SQL or delete evidence tables to bypass a mismatch. Use
+the existing two-database backup/update procedure, preserve private configuration,
+and validate backups before upgrade. Rollback after applying new migrations requires
+restoring matching pre-upgrade databases AND application revision; older binaries
+intentionally refuse newer module ledgers. Local migration/tests do not qualify
+Debian/LXC or Kubernetes deployment.

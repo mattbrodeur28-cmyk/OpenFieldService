@@ -146,7 +146,7 @@ export function DispatchHours({
           }}
         >
           <p class="workspace-help">
-            Company hours use {config.timeZone}. Technician availability applies
+            Company hours use your company settings. Technician availability applies
             separately. Existing appointments remain visible when hours change.
           </p>
           <Checkbox

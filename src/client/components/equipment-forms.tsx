@@ -1,3 +1,4 @@
+import {useCompanyTimeZone} from "../hooks/use-company-timezone";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import { api } from "../api";
@@ -13,11 +14,13 @@ export function EquipmentDialog({ title, onClose, children, busy = false }: { ti
 }
 
 export function SiteForm({ customerId, site, onSaved, onClose }: { customerId: string; site?: Site; onSaved: () => void; onClose: () => void }) {
+  const company=useCompanyTimeZone();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const submit = async (event: Event) => {
     event.preventDefault();
-    const data = Object.fromEntries(new FormData(event.currentTarget as HTMLFormElement));
+    if(!site && !company.timeZone){setError(company.error || "Company settings are still loading. Try again shortly.");return;}
+    const data = {...Object.fromEntries(new FormData(event.currentTarget as HTMLFormElement)),timezone:site?.timezone || company.timeZone!};
     setBusy(true); setError("");
     try {
       await api(site ? "PUT" : "POST", site ? `/api/sites/${site.id}` : `/api/customers/${customerId}/sites`, data);
@@ -32,7 +35,6 @@ export function SiteForm({ customerId, site, onSaved, onClose }: { customerId: s
         <label class="form-group">Contact name<input name="contact_name" defaultValue={site?.contact_name} maxLength={500} /></label>
         <label class="form-group">Contact phone<input name="contact_phone" type="tel" defaultValue={site?.contact_phone} maxLength={500} /></label>
         <label class="form-group">Contact email<input name="contact_email" type="email" defaultValue={site?.contact_email} maxLength={254} /></label>
-        <label class="form-group">Timezone<input name="timezone" defaultValue={site?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone} placeholder="Europe/Amsterdam" required maxLength={100} /></label>
         <label class="form-group full-width">Access instructions<textarea name="access_instructions" defaultValue={site?.access_instructions} rows={3} maxLength={5000} /></label>
         <label class="form-group full-width">Safety notes<textarea name="safety_notes" defaultValue={site?.safety_notes} rows={3} maxLength={5000} /></label>
         {error && <p class="equipment-error full-width" role="alert">{error}</p>}

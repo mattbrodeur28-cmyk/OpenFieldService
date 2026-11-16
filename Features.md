@@ -419,11 +419,18 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   revisions, bounded lookups, and pending-save protection. Browser qualification
   currently covers only the initial opportunity/profile/labor-entry flow; material
   selection, save/reload, history and narrow-layout checks are still pending.
-  Templates/alternates, customer offering and acceptance remain open.
+  Customer-field saved-revision document review and escaped draft HTML download
+  now omit internal costs/margin and label current native customer/location/equipment
+  identity. They do not offer or accept a quote. PDF/print/browser qualification,
+  issuer/template configuration, templates/alternates and customer acceptance remain open.
   See [internal draft API](docs/api/sales-quotes.md).
 - [ ] **SALES-006 — Quote revisions:** immutable offered versions with revision numbers,
   internal draft vs customer-visible scope, price changes, approvals, PDF/export,
   delivered/accepted/declined/expired status and retained acceptance evidence.
+  Implemented increment: an allowlisted draft document projection plus authenticated
+  HTML review copy over any saved revision; current native identity is labeled.
+  Offered identity snapshots, approval policy, PDF and delivery/acceptance remain open.
+  See [document-review evidence](docs/releases/2026-11-15-quote-documents.md).
 - [ ] **SALES-007 — Options and approvals:** present multiple priced options where
   useful; enforce discount/margin approval limits and record deliberate exceptions.
   AI may draft scope but must not invent pricing or claim customer acceptance.

@@ -149,3 +149,42 @@ export interface DraftLine {
   travelGroup: string;
   includesFuel: boolean;
 }
+
+/** Public-field projection; internal costs, profile notes and stock evidence are absent. */
+export interface CustomerQuoteDocument {
+  schemaVersion: 1;
+  kind: "draft_review";
+  identifier: string;
+  revision: number;
+  savedAt: string;
+  title: string;
+  scope: string;
+  exclusions: string;
+  validUntil: string;
+  pricingDate: string;
+  currency: "USD";
+  identityBasis: "current_native_records";
+  customer: { kind: "customer" | "prospect"; name: string; address: string; city: string; state: string; zip: string };
+  site: { name: string; address: string } | null;
+  equipment: { name: string; manufacturer: string; model: string; serialNumber: string } | null;
+  lines: {
+    description: string;
+    kind: EstimateLine["kind"];
+    quantityMilli: number;
+    headcount: number;
+    unitSellCents: number;
+    discountBasisPoints: number;
+    grossCents: number;
+    discountCents: number;
+    netCents: number;
+    taxCents: number;
+    totalCents: number;
+    taxTreatment: TaxRule["treatment"];
+    taxRateBasisPoints: number;
+  }[];
+  grossCents: number;
+  discountCents: number;
+  netCents: number;
+  taxCents: number;
+  totalCents: number;
+}

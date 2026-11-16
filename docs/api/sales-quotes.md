@@ -2,7 +2,7 @@
 
 Standalone service-database module under `/api/sales`. This increment persists
 internal quote drafts; the Sales Quotes workbench pilot is implemented with browser qualification still incomplete. There is no offering,
-customer document, customer acceptance, delivery, job conversion, or procurement
+final offered document, customer acceptance, delivery, job conversion, or procurement
 allocation command yet. A pipeline stage change is not quote acceptance.
 
 ## Access and native records
@@ -89,3 +89,44 @@ integer cents/milli quantities without truncation or exponent coercion. A price
 review is invalidated when inputs change; failed/uncertain saves retain the exact
 command in memory for retry. No client-only success, customer acceptance or stock
 reservation is inferred. Pending edits are not a durable offline draft store.
+
+## Customer-field draft document review
+
+Two authenticated, read-only endpoints project a selected saved revision:
+
+- `GET /quotes/:id/document?revision=<optional positive integer>` returns `{document}`.
+  Current revision is the default. `schemaVersion:1`, `kind:draft_review` and
+  `identityBasis:current_native_records` explicitly distinguish this review copy
+  from an offered/accepted snapshot.
+- `GET /quotes/:id/document.html?revision=...` downloads a self-contained escaped
+  UTF-8 HTML draft, named `Q-000001-r1-draft.html`. No scripts, external styles,
+  images, forms or provider requests are included. Print CSS is included; actual
+  browser printing/PDF and page-break quality are not yet qualified.
+
+Both endpoints use the same current Owner/Admin/current-opportunity-owner policy
+as internal draft reads. They are not public links, bearer capabilities or customer
+portal access. Unauthenticated401, forbidden403, invalid IDs/revision400 and absent
+quote/revision404 follow existing Sales contracts. Responses are private/no-store;
+HTML additionally sets nosniff and a restrictive sandbox/default-src CSP.
+
+`src/server/sales/quote-document.mjs` uses an explicit field allowlist. The result
+includes title/scope/exclusions/validity, quote identifier/revision, currency/pricing
+date, line descriptions/types, exact quantities/headcount, selling rates, discounts,
+net/tax/total and reviewed tax treatment/rate. It never spreads a pricing object.
+Unit costs, total costs, margin/profit, cost overrides, stock snapshots, profile
+review notes, actor IDs and private CRM/site/equipment notes are excluded. Future
+internal fields do not become public automatically.
+
+Prices and terms come from the immutable selected revision without recalculation.
+Customer name/address, location and equipment name/model/serial are a live
+projection of the opportunity's current native links in the same service transaction.
+Site/equipment lookups are customer-scoped. An opportunity without a linked customer remains a
+prospect; a missing location is explicitly unlinked. Every copy states that identity
+is current, not a frozen offered identity. Offering must later freeze those identities
+and the reviewed issuer/template; this review contract cannot stand in for that.
+
+The workbench's Document preview is available only after saving and while no edits,
+save or material refresh are pending. Historical saved revisions may be reviewed.
+The modal renders the allowlisted JSON through normal escaped Preact text; Download
+uses the authenticated attachment endpoint and the selected revision. Both paths
+remain internal review, with no acceptance, delivery, job, invoice, PO or stock effect.

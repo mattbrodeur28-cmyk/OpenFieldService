@@ -1,3 +1,4 @@
+import { customerQuoteDocument } from "../src/server/sales/quote-document.mjs";
 import { editLine, lineInput } from "../src/client/quote-input.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -570,4 +571,154 @@ test("workbench line serialization saves exact decimal input through the quote A
     lineInput(editLine(quote.estimate.lines[0])),
     cmd.estimate.lines[0],
   );
+});
+
+test("customer document allowlists saved pricing and terms, escapes HTML and never changes business state", async t => {
+  const f = fixture(t), cmd = f.command(), db = f.storage.database;
+  const customer = randomUUID(), site = randomUUID(), asset = randomUUID();
+  db.prepare("INSERT INTO customers(id,name,address,city,state,zip,notes) VALUES(?,?,?,?,?,?,?)")
+    .run(customer, 'Customer <script>alert("name")</script>', "1 Native Street", "Boston", "MA", "02101", "SECRET_CRM_NOTE");
+  db.prepare("INSERT INTO sites(id,customer_id,name,address,safety_notes,access_instructions) VALUES(?,?,?,?,?,?)")
+    .run(site, customer, "Native location", "2 Site Avenue", "SECRET_SITE_SAFETY", "SECRET_SITE_ACCESS");
+  db.prepare("INSERT INTO assets(id,customer_id,site_id,name,serial_number,manufacturer,model,notes) VALUES(?,?,?,?,?,?,?,?)")
+    .run(asset, customer, site, "Native equipment", "SERIAL-1", "Fixture manufacturer", "Model 1", "SECRET_ASSET_NOTE");
+  db.prepare("UPDATE _sales_opportunities SET customer_id=?,site_id=?,asset_id=?,notes=? WHERE id=?")
+    .run(customer, site, asset, "SECRET_OPPORTUNITY_NOTE", f.opportunity.id);
+  cmd.document.scope = 'Check <img src=x onerror="alert(1)"> & verify <script>alert(2)</script>.';
+  cmd.document.exclusions = '</style><svg onload="alert(3)">';
+  cmd.estimate.lines[0].costOverrideReason = "SECRET_COST_REASON";
+  f.quotes.save(member, cmd);
+  const counts = () => Object.fromEntries(["customers","sites","assets","materials","jobs","_sales_quotes","_sales_quote_revisions","_sales_quote_requests"]
+    .map(table => [table, db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n]));
+  const before = counts();
+  const response = await f.app.request(`/quotes/${cmd.id}/document?revision=1`);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Cache-Control"), "private, no-store");
+  const {document: doc} = await response.json();
+  assert.equal(doc.kind,"draft_review");
+  assert.equal(doc.identityBasis,"current_native_records");
+  assert.equal(doc.scope,cmd.document.scope);
+  assert.equal(doc.customer.name,'Customer <script>alert("name")</script>');
+  assert.deepEqual(doc.site,{name:"Native location",address:"2 Site Avenue"});
+  assert.equal(doc.equipment.serialNumber,"SERIAL-1");
+  assert.equal(doc.lines[0].unitSellCents,2000);
+  assert.equal(doc.lines[0].taxCents,250);
+  assert.equal(doc.totalCents,5250);
+  const forbidden = new Set(["unitCostCents","costCents","profitCents","marginBasisPoints","markupBasisPoints","materialSnapshots","profile","profileId","profileVersion","reviewNote","note","notes","actorId","requestKey","sourceVersion","costOverrideReason","travelGroup","materialId","ownerId"]);
+  const inspect = value => {
+    if (!value || typeof value !== "object") return;
+    for (const [key,item] of Object.entries(value)) { assert.ok(!forbidden.has(key),`Leaked internal field ${key}`); inspect(item); }
+  };
+  inspect(doc);
+  assert.doesNotMatch(JSON.stringify(doc), /SECRET_/);
+  const download = await f.app.request(`/quotes/${cmd.id}/document.html?revision=1`);
+  assert.equal(download.status,200);
+  assert.equal(download.headers.get("content-disposition"),'attachment; filename="Q-000001-r1-draft.html"');
+  assert.match(download.headers.get("content-type"),/^text\/html/);
+  assert.match(download.headers.get("content-security-policy"),/sandbox; default-src 'none'/);
+  assert.equal(download.headers.get("x-content-type-options"),"nosniff");
+  assert.equal(download.headers.get("cache-control"),"private, no-store");
+  const html = await download.text();
+  assert.match(html,/DRAFT · INTERNAL REVIEW COPY/);
+  assert.match(html,/\$52\.50/);
+  assert.match(html,/&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+  assert.match(html,/&lt;script&gt;alert\(2\)&lt;\/script&gt;/);
+  assert.match(html,/&lt;\/style&gt;&lt;svg onload=&quot;alert\(3\)&quot;&gt;/);
+  assert.doesNotMatch(html,/<script|<img|<svg|SECRET_|costOverrideReason|marginBasisPoints|Fixture configuration/);
+  assert.deepEqual(counts(),before);
+  assert.equal(f.quotes.detail(member,cmd.id).quote.status,"draft");
+});
+
+test("customer document preserves selected revision and inclusive tax while identifying current native relationships", async t => {
+  const f = fixture(t), cmd = f.command(), db = f.storage.database;
+  const inclusive = f.billingProfiles.save(owner, {
+    id:f.profile.id,requestKey:randomUUID(),expectedVersion:1,
+    config:{...f.profile.config,rules:f.profile.config.rules.map(rule=>({...rule,treatment:"inclusive"}))},
+  }).profile;
+  cmd.estimate.expectedProfileVersion = inclusive.version;
+  f.quotes.save(member,cmd);
+  f.quotes.save(member,{
+    ...cmd,requestKey:randomUUID(),expectedVersion:1,
+    document:{...cmd.document,scope:"Later scope"},
+    estimate:{...cmd.estimate,lines:[{...cmd.estimate.lines[0],unitSellCents:3000}]},
+  });
+  const customer = randomUUID(),site = randomUUID();
+  db.prepare("INSERT INTO customers(id,name) VALUES(?,?)").run(customer,"New native customer");
+  db.prepare("INSERT INTO sites(id,customer_id,name) VALUES(?,?,?)").run(site,customer,"New location");
+  db.prepare("UPDATE _sales_opportunities SET customer_id=?,site_id=?,version=version+1 WHERE id=?").run(customer,site,f.opportunity.id);
+  f.setCost(9999);
+  const old = f.quotes.document(member,cmd.id,{revision:"1"}).document;
+  assert.equal(old.revision,1);
+  assert.equal(old.scope,cmd.document.scope);
+  assert.equal(old.totalCents,5000);
+  assert.equal(old.taxCents,238);
+  assert.equal(old.netCents,4762);
+  assert.equal(old.lines[0].taxTreatment,"inclusive");
+  assert.equal(old.customer.name,"New native customer");
+  assert.equal(old.site.name,"New location");
+  assert.equal(old.identityBasis,"current_native_records");
+  const current = f.quotes.document(member,cmd.id).document;
+  assert.equal(current.revision,2);
+  assert.equal(current.scope,"Later scope");
+  assert.equal(current.totalCents,7500);
+  const html = await (await f.app.request(`/quotes/${cmd.id}/document.html?revision=1`)).text();
+  assert.match(html,/Revision 1/);
+  assert.match(html,/inclusive/);
+  assert.match(html,/\$50\.00/);
+  assert.doesNotMatch(html,/Later scope|\$75\.00/);
+});
+
+test("document reads and HTML downloads enforce current ownership, session and revision boundaries", async t => {
+  const f=fixture(t),cmd=f.command();f.quotes.save(member,cmd);
+  const read = (suffix="document",query="")=>f.app.request(`/quotes/${cmd.id}/${suffix}${query}`);
+  const prospect = f.quotes.document(member,cmd.id).document;
+  assert.equal(prospect.customer.kind,"prospect");
+  assert.equal(prospect.customer.name,"Fixture prospect");
+  assert.equal(prospect.site,null);
+  assert.equal(prospect.equipment,null);
+  for(const actor of [viewer,other,{...member,mustChangePassword:true}]) {
+    f.setActor(actor);
+    assert.equal((await read()).status,403);
+    assert.equal((await read("document.html")).status,403);
+  }
+  f.setActor({...member,active:false}); assert.equal((await read()).status,401);
+  f.setActor(null); assert.equal((await read("document.html")).status,401);
+  f.setActor(owner); assert.equal((await read()).status,200);
+  f.setActor(member);
+  for(const value of ["0","-1","1.2","abc","1000001"]) {
+    assert.equal((await read("document",`?revision=${value}`)).status,400);
+    assert.equal((await read("document.html",`?revision=${value}`)).status,400);
+  }
+  assert.equal((await read("document","?revision=2")).status,404);
+  assert.equal((await f.app.request(`/quotes/${randomUUID()}/document`)).status,404);
+  assert.equal((await f.app.request("/quotes/invalid/document.html")).status,400);
+  f.storage.database.prepare("UPDATE _sales_opportunities SET owner_id=? WHERE id=?").run(other.id,f.opportunity.id);
+  assert.equal((await read()).status,403);
+  assert.equal((await read("document.html")).status,403);
+  f.setActor(other);assert.equal((await read()).status,200);
+});
+
+test("document projection rejects future internal properties and does not expose foreign customer locations", t => {
+  const f=fixture(t),cmd=f.command();const saved=f.quotes.save(member,cmd).quote;
+  const privateValue="FUTURE_PRIVATE_VALUE";
+  const poisoned={...saved,futurePrivate:privateValue,document:{...saved.document,internalTerms:privateValue},estimate:{...saved.estimate,internalPricing:privateValue,lines:saved.estimate.lines.map(line=>({...line,futurePrivate:privateValue,taxRule:{...line.taxRule,privateReviewer:privateValue}}))}};
+  const doc=customerQuoteDocument(poisoned,{
+    opportunity:{prospect_name:"Prospect",futurePrivate:privateValue},
+    customer:{name:"Customer",address:"",city:"",state:"",zip:"",futurePrivate:privateValue},
+    site:{name:"Site",address:"",futurePrivate:privateValue},
+    equipment:{name:"Equipment",manufacturer:"",model:"",serial_number:"Serial",futurePrivate:privateValue},
+  });
+  assert.doesNotMatch(JSON.stringify(doc),/FUTURE_PRIVATE_VALUE/);
+  assert.deepEqual(Object.keys(doc.lines[0]).sort(),["description","kind","quantityMilli","headcount","unitSellCents","discountBasisPoints","grossCents","discountCents","netCents","taxCents","totalCents","taxTreatment","taxRateBasisPoints"].sort());
+  const db=f.storage.database, customer=randomUUID(), foreign=randomUUID(),site=randomUUID(),asset=randomUUID();
+  db.prepare("INSERT INTO customers(id,name) VALUES(?,?)").run(customer,"Linked customer");
+  db.prepare("INSERT INTO customers(id,name) VALUES(?,?)").run(foreign,"Foreign customer");
+  db.prepare("INSERT INTO sites(id,customer_id,name) VALUES(?,?,?)").run(site,foreign,"FOREIGN_SITE_SECRET");
+  db.prepare("INSERT INTO assets(id,customer_id,site_id,name,serial_number) VALUES(?,?,?,?,?)").run(asset,foreign,site,"FOREIGN_ASSET_SECRET","Secret serial");
+  // Even a legacy/inconsistent opportunity link cannot cross the native customer boundary.
+  db.prepare("UPDATE _sales_opportunities SET customer_id=?,site_id=?,asset_id=? WHERE id=?").run(customer,site,asset,f.opportunity.id);
+  const scoped=f.quotes.document(member,cmd.id).document;
+  assert.equal(scoped.customer.name,"Linked customer");
+  assert.equal(scoped.site,null);assert.equal(scoped.equipment,null);
+  assert.doesNotMatch(JSON.stringify(scoped),/FOREIGN_|Secret serial/);
 });

@@ -1,3 +1,4 @@
+import { renderCustomerQuoteHtml } from "./quote-document.mjs";
 import { createQuotes } from "./quotes.mjs";
 import { createBillingProfiles } from "./billing-profiles.mjs";
 import { createActivities } from "./activities.mjs";
@@ -81,6 +82,19 @@ export function createSales({
   app.get("/quotes/options", (c) =>
     c.json(quotes.options(check(c), c.req.query())),
   );
+  app.get("/quotes/:id/document", (c) => {
+    c.header("Cache-Control", "private, no-store");
+    c.header("X-Content-Type-Options", "nosniff");
+    return c.json(quotes.document(check(c), c.req.param("id"), c.req.query()));
+  });
+  app.get("/quotes/:id/document.html", (c) => {
+    c.header("Cache-Control", "private, no-store");
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("Content-Security-Policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'");
+    const { document } = quotes.document(check(c), c.req.param("id"), c.req.query());
+    c.header("Content-Disposition", `attachment; filename="${document.identifier}-r${document.revision}-draft.html"`);
+    return c.html(renderCustomerQuoteHtml(document));
+  });
   app.get("/quotes/:id", (c) =>
     c.json(quotes.detail(check(c), c.req.param("id"), c.req.query())),
   );

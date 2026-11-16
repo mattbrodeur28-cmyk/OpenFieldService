@@ -1,3 +1,4 @@
+import { customerQuoteDocument } from "./quote-document.mjs";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { migrate, transaction } from "../platform/sqlite.mjs";
@@ -98,6 +99,26 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
         historyPage: page,
         hasMoreHistory: history.length > 25,
       };
+    });
+  }
+
+  function document(user, id, query = {}) {
+    requireWriter(user);
+    const revision = query.revision === undefined ? undefined : parse(pageInput, query.revision);
+    return transaction(db, () => {
+      const row = head(id);
+      authorize(user, row);
+      const opportunity = sales.opportunity(row.opportunity_id);
+      const customer = opportunity.customer_id ? db.prepare(
+        "SELECT name,address,city,state,zip FROM customers WHERE id=?",
+      ).get(opportunity.customer_id) : null;
+      const site = opportunity.site_id && opportunity.customer_id ? db.prepare(
+        "SELECT name,address FROM sites WHERE id=? AND customer_id=?",
+      ).get(opportunity.site_id, opportunity.customer_id) : null;
+      const equipment = opportunity.asset_id && opportunity.customer_id ? db.prepare(
+        "SELECT name,manufacturer,model,serial_number FROM assets WHERE id=? AND customer_id=? AND (? IS NULL OR site_id=?)",
+      ).get(opportunity.asset_id, opportunity.customer_id, opportunity.site_id, opportunity.site_id) : null;
+      return { document: customerQuoteDocument(shape(row, revision), { opportunity, customer, site, equipment }) };
     });
   }
 
@@ -281,5 +302,5 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
       };
     });
   }
-  return { list, detail, save, options };
+  return { list, detail, save, options, document };
 }

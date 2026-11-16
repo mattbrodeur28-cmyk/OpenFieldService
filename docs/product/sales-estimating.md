@@ -2,7 +2,7 @@
 
 Owner requirements, 2026-11-15. Implemented foundations: reviewed Settings billing
 profiles and a server-side exact estimate preview with native inventory cost snapshots.
-Current Sales also offers native opportunities/pipelines/activities and saved internal quote draft revisions; Purchasing has internal POs and receiving. The internal workbench UI is a pilot awaiting full browser qualification. Customer offering/acceptance and accepted-material procurement remain planned. See [internal draft API](../api/sales-quotes.md). See [pricing API](../api/sales-pricing.md).
+Current Sales also offers native opportunities/pipelines/activities and saved internal quote draft revisions; Purchasing has internal POs and receiving. The internal workbench UI is a pilot awaiting full browser qualification. A customer-field document review and escaped draft HTML download are implemented; full browser qualification remains pending. Customer offering/acceptance and accepted-material procurement remain planned. See [internal draft API](../api/sales-quotes.md). See [pricing API](../api/sales-pricing.md).
 
 ## Estimate lines and pricing
 

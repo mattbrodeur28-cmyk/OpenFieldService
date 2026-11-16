@@ -1,3 +1,4 @@
+import { QuoteDocumentPreview } from "./document-preview";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { accountRequest, AccountRequestError } from "../../auth";
 import { useApp } from "../../context";
@@ -74,6 +75,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
     [dirty, setDirty] = useState(false),
     [uncertain, setUncertain] = useState(false);
   const [refreshingLines, setRefreshingLines] = useState<string[]>([]);
+  const [documentOpen, setDocumentOpen] = useState(false);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const pending = useRef<QuoteCommand | null>(null),
@@ -410,6 +412,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               Refresh
             </Button>
           )}
+          {saved && <Button disabled={busy || resourceBusy || loading || dirty || uncertain || readOnly} onClick={() => setDocumentOpen(true)}>Document preview</Button>}
           <Button
             disabled={disabled || !opportunity || !profile}
             onClick={() => void calculate()}
@@ -433,6 +436,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           </Button>
         </div>
       </header>
+      {documentOpen && saved && <QuoteDocumentPreview id={saved.id} revision={saved.revision} close={() => setDocumentOpen(false)}/>}
       <p class="workspace-help">
         Prepare an internal estimate. Offering, customer acceptance, and
         accepted-material purchasing are not available yet.

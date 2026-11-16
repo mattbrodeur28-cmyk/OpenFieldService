@@ -179,3 +179,18 @@
     padding: 14px;
   }
 }
+
+.quote-document-dialog { width: min(1120px, calc(100vw - 32px)); max-width: 1120px; }
+.quote-document h2 { font-size: 24px; margin: 16px 0 8px; }
+.quote-document h3 { font-size: 15px; margin: 24px 0 8px; }
+.quote-document p { margin: 8px 0; }
+.quote-document-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.quote-document-identity { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; margin-bottom: 16px; }
+.quote-document .table th, .quote-document .table td { text-align: right; font-variant-numeric: tabular-nums; }
+.quote-document .table th:first-child, .quote-document .table td:first-child { text-align: left; min-width: 170px; max-width: 320px; overflow-wrap: anywhere; }
+.quote-document td small { display: block; color: var(--text-muted); font-size: 11px; }
+.quote-document-totals { max-width: 340px; margin: 24px 0 24px auto; }
+.quote-document-totals > div { display: flex; justify-content: space-between; gap: 20px; padding: 8px 0; }
+.quote-document-totals dd { margin: 0; font-variant-numeric: tabular-nums; }
+.quote-document-total { border-top: 2px solid var(--border); font-size: 20px; font-weight: 600; }
+@media(max-width:640px) { .quote-document-identity { grid-template-columns: 1fr; gap: 0; } }

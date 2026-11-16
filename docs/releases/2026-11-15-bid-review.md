@@ -28,3 +28,17 @@ still pending. No live LXC/provider/Postgres/multi-replica proof is claimed. Pri
 control does not offer or accept a quote, alter lifecycle status, create work/stock/
 POs/invoices or send customer communication. SALES-007/015 remain open for full
 options/burden/allowance modeling, customer document workflow and browser gates.
+
+## Populated local upgrade evidence
+
+The existing demo process was fully stopped and the service database backed up
+before migration v3. All27 pre-existing native/Sales table counts and SHA-256
+row-content fingerprints matched afterward; FK checks were clean. Template/source
+provenance and quote records remained unchanged. No default policy or approval
+event was inserted. A temporary authenticated session read the null/unconfigured
+policy, verified no-store and the missing-quote review boundary, checked health,
+and logged out. No company limit or approval was chosen during verification.
+
+This establishes local database/runtime upgrade behavior only. Pointer/keyboard,
+nested-dialog closure, checkbox/retry interaction, device, LXC and distributed
+qualification remain open.

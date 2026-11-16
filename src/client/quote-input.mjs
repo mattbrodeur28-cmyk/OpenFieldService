@@ -66,3 +66,8 @@ export function lineInput(line) {
     includesFuel: line.includesFuel,
   };
 }
+
+/** Display names are server-owned metadata, not part of the strict save command. */
+export function templateInput(reference) {
+  return reference ? { id: reference.id, version: reference.version } : null;
+}

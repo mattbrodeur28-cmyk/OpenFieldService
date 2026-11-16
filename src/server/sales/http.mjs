@@ -78,6 +78,20 @@ export function createSales({
       throw new SalesError("Send a valid JSON request.");
     }
   }
+  const templateActor = (c) => {
+    c.header("Cache-Control", "private, no-store");
+    return check(c);
+  };
+  app.get("/quote-templates", (c) => c.json(quotes.templates.list(templateActor(c), c.req.query())));
+  app.get("/quote-templates/:id", (c) => c.json(quotes.templates.detail(templateActor(c), c.req.param("id"), c.req.query())));
+  app.post("/quote-templates", async (c) => {
+    const data = await body(c);
+    return c.json(quotes.templates.save(templateActor(c), data));
+  });
+  app.post("/quote-templates/:id/instantiate", async (c) => {
+    const data = await body(c);
+    return c.json(quotes.templates.instantiate(templateActor(c), c.req.param("id"), data));
+  });
   app.get("/quotes", (c) => c.json(quotes.list(check(c), c.req.query())));
   app.get("/quotes/options", (c) =>
     c.json(quotes.options(check(c), c.req.query())),

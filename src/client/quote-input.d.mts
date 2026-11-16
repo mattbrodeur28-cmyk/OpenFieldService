@@ -1,4 +1,4 @@
-import type { DraftLine, EstimateLine } from "./quote-types";
+import type { DraftLine, EstimateLine, TemplateReference } from "./quote-types";
 export function scaledInput(
   raw: string,
   decimals: number,
@@ -11,3 +11,5 @@ export function headcountInput(raw: string): number;
 
 export function editLine(line: EstimateLine): DraftLine;
 export function lineInput(line: DraftLine): EstimateLine;
+
+export function templateInput(reference: TemplateReference | null): Pick<TemplateReference, "id" | "version"> | null;

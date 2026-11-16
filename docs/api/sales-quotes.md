@@ -27,7 +27,8 @@ the future offering/conversion commands.
   selected saved revision (current by default), up to 25 revision metadata rows,
   historyPage and hasMoreHistory. Unknown quote/revision404. Head version and selected
   revision are distinct, so opening history does not masquerade as the editable head.
-- `POST /quotes`: strict `{id, requestKey, expectedVersion, document, estimate}`.
+- `POST /quotes`: strict `{id, requestKey, expectedVersion, document, estimate, template?}`.
+  Optional `template` is null or `{id,version}`; display names are not command fields.
   UUID IDs/keys; new draft version0, update current version. Document requires
   title1–200, scope1–12000, exclusions0–10000, validUntil real ISO date at least the
   estimate pricingDate. Estimate uses the exact preview contract in
@@ -61,7 +62,8 @@ reject revision/line/acknowledgment update/delete. A failed journal insert rolls
 all writes. No external messages, orders, or payments are sent.
 
 Additive checksummed `_sales_quote_migrations` v1 creates the head/revision/line and
-request tables. Original Sales/pricing migrations are unchanged. Standard service
+request tables. v2 adds versioned template configuration and immutable native quote
+revision/template references; v1 SQL is unchanged. See [templates](sales-quote-templates.md). Original Sales/pricing migrations are unchanged. Standard service
 SQLite online backups cover these records; restore a consistent matching backup
 for recovery. PostgreSQL, multi-replica, provider, and customer-portal qualification
 remain separate roadmap work.
@@ -130,3 +132,13 @@ save or material refresh are pending. Historical saved revisions may be reviewed
 The modal renders the allowlisted JSON through normal escaped Preact text; Download
 uses the authenticated attachment endpoint and the selected revision. Both paths
 remain internal review, with no acceptance, delivery, job, invoice, PO or stock effect.
+
+Template provenance is a starting-point reference, not approval or a guarantee that
+an estimate still matches its template after edits. Existing historical references
+survive archival and template changes; a later quote revision may explicitly detach
+the reference without rewriting earlier history. Old quote commands that omit this
+optional field retain their original request hash and replay acknowledgment.
+A failed retry after an uncertain response does not disprove the earlier write,
+even if that retry returns403/409; both quote/template clients retain the original
+command until a successful acknowledgment resolves it. Pending commands remain
+in memory, not a durable offline queue.

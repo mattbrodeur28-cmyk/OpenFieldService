@@ -1,3 +1,4 @@
+import { TemplateLibrary } from "./template-library";
 import { useEffect, useState } from "preact/hooks";
 import { accountRequest, useAccount } from "../../auth";
 import { useApp } from "../../context";
@@ -42,6 +43,7 @@ function QuoteCatalog() {
         </div>
         <div class="quote-actions">
           <Button onClick={() => setRevision(revision + 1)}>Refresh</Button>
+          <Button onClick={() => navigate("/sales/quotes/templates")}>Templates</Button>
           <Button
             variant="primary"
             disabled={readOnly}
@@ -132,6 +134,7 @@ export default function QuotesPage({ quoteId }: { quoteId?: string | null }) {
         <Notice>Internal pricing requires Sales writer access.</Notice>
       </div>
     );
+  if (quoteId === "templates") return <TemplateLibrary />;
   return quoteId ? (
     <QuoteWorkbench key={quoteId} quoteId={quoteId} />
   ) : (

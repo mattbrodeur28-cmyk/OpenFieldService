@@ -1,6 +1,8 @@
+import { commandFailureIsDefinite } from "../../command-recovery.mjs";
+import { TemplateCommandDialog } from "./template-command";
 import { QuoteDocumentPreview } from "./document-preview";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { accountRequest, AccountRequestError } from "../../auth";
+import { accountRequest, AccountRequestError, useAccount, isAdministrator } from "../../auth";
 import { useApp } from "../../context";
 import { useConnectivity } from "../../hooks/use-connectivity";
 import { useCompanyTimeZone } from "../../hooks/use-company-timezone";
@@ -11,6 +13,9 @@ import type { SalesDetail } from "../../sales-types";
 import type { BillingProfile } from "../../estimating-types";
 import type {
   DraftLine,
+  TemplateReference,
+  TemplateSummary,
+  InstantiatedTemplate,
   EstimateInput,
   EstimateResult,
   MaterialCost,
@@ -20,7 +25,7 @@ import type {
   QuoteDocument,
   QuoteOpportunity,
 } from "../../quote-types";
-import { lineInput, editLine } from "../../quote-input.mjs";
+import { lineInput, editLine, templateInput } from "../../quote-input.mjs";
 import { Button } from "../ui/button";
 import { TextField } from "../ui/input";
 import {
@@ -52,6 +57,7 @@ function freshLine(): DraftLine {
 }
 
 export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
+  const { user } = useAccount();
   const { navigate } = useApp(),
     { readOnly } = useConnectivity(),
     company = useCompanyTimeZone();
@@ -75,7 +81,9 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
     [dirty, setDirty] = useState(false),
     [uncertain, setUncertain] = useState(false);
   const [refreshingLines, setRefreshingLines] = useState<string[]>([]);
-  const [documentOpen, setDocumentOpen] = useState(false);
+  const [documentOpen, setDocumentOpen] = useState(false),
+    [publishingTemplate,setPublishingTemplate] = useState(false),
+    [template,setTemplate] = useState<TemplateReference|null>(null);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const pending = useRef<QuoteCommand | null>(null),
@@ -172,6 +180,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
       setSaved(row);
       setDetail(result);
       setDocument(row.document);
+      setTemplate(row.template??null);
       setPricingDate(row.estimate.pricingDate);
       setLines(row.estimate.lines.map(editLine));
       setPreview(row.estimate);
@@ -312,6 +321,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
   }
   async function save() {
     if (busy || resourceBusy || readOnly || historical || lockedQuote) return;
+    const recovering = uncertain && pending.current !== null;
     setError("");
     let command: QuoteCommand;
     try {
@@ -338,6 +348,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           expectedVersion: saved?.version ?? 0,
           document,
           estimate: input,
+          template: templateInput(template),
         };
         pending.current = command;
       }
@@ -367,18 +378,35 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
       } else await load();
     } catch (e) {
       if (!alive.current) return;
-      const definite =
-        e instanceof AccountRequestError &&
-        e.status !== undefined &&
-        e.status >= 400 &&
-        e.status < 500 &&
-        e.status !== 408;
+      const definite = commandFailureIsDefinite(
+        e instanceof AccountRequestError ? e.status : undefined, recovering,
+      );
       setUncertain(!definite);
       if (definite) pending.current = null;
       setError((e as Error).message);
     } finally {
       if (alive.current) setBusy(false);
     }
+  }
+  async function applyTemplate(row:TemplateSummary) {
+    if(disabled||!opportunity)return;
+    if(!window.confirm("Replace scope, exclusions and estimate lines with this template? Existing line edits will be replaced; billing rules and validity stay selected."))return;
+    const epoch=editEpoch.current;
+    setBusy(true);setError("");
+    try{
+      const result=await accountRequest<InstantiatedTemplate>(`/api/sales/quote-templates/${row.id}/instantiate`,"POST",{expectedTemplateVersion:row.version,opportunityId:opportunity.id,expectedOpportunityVersion:opportunity.version});
+      if(!alive.current)return;
+      if(editEpoch.current!==epoch)throw new Error("Quote inputs changed while loading the template. Apply it again after reviewing edits.");
+      changed();setTemplate(result.template);
+      setDocument(current=>({...current,...result.document}));
+      setLines(result.lines.map(line=>{
+        const draft=editLine({...line,unitCostCents:line.unitCostCents??0});
+        return {...draft,unitCost:line.unitCostCents===null?"":draft.unitCost};
+      }));
+      setMaterials(Object.fromEntries(result.materialSnapshots.map(item=>[item.id,item])));
+      setNotice(result.warnings.join(" "));
+    }catch(e){if(alive.current)setError((e as Error).message);}
+    finally{if(alive.current)setBusy(false);}
   }
   const profileChanged =
     !!profile &&
@@ -412,6 +440,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               Refresh
             </Button>
           )}
+          {saved && isAdministrator(user) && <Button disabled={busy||resourceBusy||loading||dirty||uncertain||readOnly} onClick={()=>setPublishingTemplate(true)}>Save as template</Button>}
           {saved && <Button disabled={busy || resourceBusy || loading || dirty || uncertain || readOnly} onClick={() => setDocumentOpen(true)}>Document preview</Button>}
           <Button
             disabled={disabled || !opportunity || !profile}
@@ -436,6 +465,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           </Button>
         </div>
       </header>
+      {publishingTemplate && saved && <TemplateCommandDialog source={{quoteId:saved.id,revision:saved.revision}} close={()=>setPublishingTemplate(false)} saved={item=>{setPublishingTemplate(false);setNotice(`Saved template ${item.config.name} v${item.version}.`);}}/>}
       {documentOpen && saved && <QuoteDocumentPreview id={saved.id} revision={saved.revision} close={() => setDocumentOpen(false)}/>}
       <p class="workspace-help">
         Prepare an internal estimate. Offering, customer acceptance, and
@@ -468,6 +498,11 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               </Button>
             </Notice>
           )}
+          {!historical && !lockedQuote && <Card class="quote-template-apply">
+            <h2>Start from a template</h2>
+            {opportunity ? <SearchPicker<TemplateSummary> key={opportunity.segment} label="Reusable quote template" endpoint={`/api/sales/quote-templates?segment=${opportunity.segment}`} selected={template?{id:template.id,label:`${template.name??"Template"} · v${template.version}`}:null} disabled={disabled} format={row=>`${row.name} · v${row.version}`} change={row=>void applyTemplate(row)}/> : <p class="workspace-help">Choose an opportunity to see templates for its work segment.</p>}
+            {template&&<Button disabled={disabled} onClick={()=>{changed();setTemplate(null);}}>Detach template reference</Button>}
+          </Card>}
           <div class="quote-layout">
             <section class="quote-form" aria-label="Quote estimate editor">
               <Card>

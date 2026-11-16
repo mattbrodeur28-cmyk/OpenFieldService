@@ -1,3 +1,5 @@
+import { quoteTemplateSchema } from "./quote-template-schema.mjs";
+import { createQuoteTemplates, templateReference } from "./quote-templates.mjs";
 import { customerQuoteDocument } from "./quote-document.mjs";
 import { createHash } from "node:crypto";
 import { z } from "zod";
@@ -30,6 +32,7 @@ const saveInput = z
     expectedVersion: version,
     document: documentInput,
     estimate: previewInput,
+    template: templateReference.nullable().optional(),
   })
   .strict()
   .refine(
@@ -41,7 +44,11 @@ const pageInput = z.coerce.number().int().min(1).max(1000000);
 /** Internal drafts only. Customer offering/acceptance is a separate command boundary. */
 export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
   const db = storage.database;
-  migrate(db, "_sales_quote_migrations", [{ version: 1, sql: quoteSchema }]);
+  migrate(db, "_sales_quote_migrations", [
+    { version: 1, sql: quoteSchema },
+    { version: 2, sql: quoteTemplateSchema },
+  ]);
+  const templates = createQuoteTemplates({ storage, sales, materialSnapshots });
 
   function head(id) {
     parse(uuid, id);
@@ -61,6 +68,7 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
       )
       .get(row.id, revision);
     if (!saved) throw new SalesError("Quote revision not found.", 404);
+    const template = db.prepare("SELECT t.template_id AS id,t.template_version AS version,json_extract(r.config_json,'$.name') AS name FROM _sales_quote_revision_templates t JOIN _sales_quote_template_revisions r ON r.template_id=t.template_id AND r.version=t.template_version WHERE t.quote_id=? AND t.quote_version=?").get(row.id,saved.version);
     return {
       id: row.id,
       number: row.number,
@@ -73,6 +81,7 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       savedAt: saved.created_at,
+      template: template ? { ...template } : null,
       document: JSON.parse(saved.document_json),
       estimate: JSON.parse(saved.pricing_json),
     };
@@ -200,6 +209,7 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
       if ((old?.version ?? 0) !== data.expectedVersion)
         throw new SalesError("Quote changed. Reload before saving.", 409);
 
+      const template = templates.referenceInTransaction(user, data.template);
       // Same service database and transaction: evidence cannot drift during save.
       const calculation = pricing.previewInTransaction(user, data.estimate);
       const snapshot = {
@@ -244,6 +254,7 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
           JSON.stringify(line),
         );
       });
+      if (template) db.prepare("INSERT INTO _sales_quote_revision_templates(quote_id,quote_version,template_id,template_version) VALUES(?,?,?,?)").run(data.id,next,template.id,template.version);
       const result = { quote: shape(head(data.id)) };
       db.prepare(
         "INSERT INTO _sales_quote_requests(request_key,actor_id,request_hash,result_json) VALUES(?,?,?,?)",
@@ -302,5 +313,5 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
       };
     });
   }
-  return { list, detail, save, options, document };
+  return { list, detail, save, options, document, templates };
 }

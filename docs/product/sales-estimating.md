@@ -20,6 +20,26 @@ and require reviewed overrides. Allow fixed amounts, per-unit amounts and role-h
 lines, scope/exclusions, allowances and alternates. Internal costs stay out of customer
 versions unless explicitly included in the selected document template.
 
+## Reusable quote templates
+
+Owners/Admins publish a reusable blueprint from a saved quote revision, with a
+separate library name/title and an attributed review note. They can revise it from
+another saved quote, archive or restore it; revisions are immutable. Review source
+wording for customer-specific details before sharing it within the company Sales
+library. Native customer/site/equipment links, tax profiles, validity dates, stock
+snapshots and material cost overrides are not copied into templates.
+
+A Sales writer applies an active, segment-matched current template to an opportunity
+they own (admins may use any). The UI confirms replacement of scope/exclusions/lines,
+refreshes native company-average material costs, creates new quote-line UUIDs and
+clears prior price review. Unknown material cost remains blank and requires review;
+non-material cost and selling defaults remain explicit estimates to review. Billing
+rules and validity stay deliberately selected on the quote. Saved revisions retain
+the starting template ID/version; this does not imply pricing/discount approval.
+
+Template history and draft persistence are implemented. Browser template flows,
+issuer/branding and customer document layout templates remain unqualified/open.
+
 ## Company Billing Settings
 
 Add effective-dated billing/tax profiles under Settings by state/jurisdiction and

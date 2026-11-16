@@ -83,6 +83,7 @@ export interface Quote {
   version: number;
   status: string;
   revision: number;
+  template: TemplateReference | null;
   actorId: string;
   savedAt: string;
   createdAt: string;
@@ -96,6 +97,7 @@ export interface QuoteCommand {
   expectedVersion: number;
   document: QuoteDocument;
   estimate: EstimateInput;
+  template?: TemplateReference | null;
 }
 export interface QuoteDetail {
   quote: Quote;
@@ -187,4 +189,22 @@ export interface CustomerQuoteDocument {
   netCents: number;
   taxCents: number;
   totalCents: number;
+}
+
+export interface TemplateReference { id: string; version: number; name?: string }
+export interface TemplateSummary { id: string; version: number; name: string; segment: string; active: boolean; updatedAt: string }
+export interface QuoteTemplate {
+  id: string; version: number; currentVersion: number; actorId: string; savedAt: string;
+  source: { quoteId: string; revision: number };
+  config: { name: string; title: string; segment: string; active: boolean; scope: string; exclusions: string; reviewNote: string;
+    lines: (Omit<EstimateLine, "id" | "costOverrideReason" | "unitCostCents"> & {sourceLineId: string; unitCostCents: number | null})[] };
+}
+export interface TemplateDetail { template: QuoteTemplate; history: {version:number;actorId:string;savedAt:string}[]; historyPage:number;hasMoreHistory:boolean }
+export interface TemplateCommand { id:string;requestKey:string;expectedVersion:number;name:string;title:string;active:boolean;reviewNote:string;source:{quoteId:string;revision:number} }
+export interface InstantiatedTemplate {
+  template: TemplateReference;
+  document: Omit<QuoteDocument,"validUntil">;
+  lines: (Omit<EstimateLine,"unitCostCents"> & {unitCostCents:number|null})[];
+  materialSnapshots: MaterialCost[];
+  warnings: string[];
 }

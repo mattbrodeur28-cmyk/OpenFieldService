@@ -194,3 +194,13 @@
 .quote-document-totals dd { margin: 0; font-variant-numeric: tabular-nums; }
 .quote-document-total { border-top: 2px solid var(--border); font-size: 20px; font-weight: 600; }
 @media(max-width:640px) { .quote-document-identity { grid-template-columns: 1fr; gap: 0; } }
+
+.quote-template-command .ui-field { display: grid; gap: 8px; margin: 16px 0; }
+.quote-template-command .quote-actions { margin-top: 20px; }
+.quote-template-filters { display: grid; grid-template-columns: minmax(180px,1fr) minmax(150px,220px); gap: 16px; margin: 20px 0; }
+.quote-template-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 16px; }
+.quote-template-grid > .ui-card, .quote-template-detail, .quote-template-apply { padding: 18px; }
+.quote-template-grid h2, .quote-template-detail h2, .quote-template-apply h2 { font-size: 17px; margin: 12px 0; }
+.quote-template-detail { margin-top: 24px; }
+.quote-template-apply { margin: 20px 0; }
+@media(max-width:640px){.quote-template-filters{grid-template-columns:1fr}}

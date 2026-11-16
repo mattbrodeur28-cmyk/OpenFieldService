@@ -1,0 +1,18 @@
+// Additive quote migration v2. Keep the already-applied v1 schema unchanged.
+export const quoteTemplateSchema = `
+CREATE TABLE _sales_quote_templates(id TEXT PRIMARY KEY,version INTEGER NOT NULL CHECK(version>0),name TEXT NOT NULL,segment TEXT NOT NULL CHECK(segment IN ('commercial','residential')),active INTEGER NOT NULL CHECK(active IN (0,1)),created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX _sales_quote_templates_catalog ON _sales_quote_templates(active,segment,name,id);
+CREATE TABLE _sales_quote_template_revisions(template_id TEXT NOT NULL REFERENCES _sales_quote_templates(id) ON DELETE RESTRICT,version INTEGER NOT NULL CHECK(version>0),actor_id TEXT NOT NULL,source_quote_id TEXT NOT NULL,source_quote_version INTEGER NOT NULL,config_json TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(template_id,version),FOREIGN KEY(source_quote_id,source_quote_version) REFERENCES _sales_quote_revisions(quote_id,version) ON DELETE RESTRICT);
+CREATE TABLE _sales_quote_template_lines(template_id TEXT NOT NULL,version INTEGER NOT NULL,position INTEGER NOT NULL,material_id TEXT REFERENCES materials(id) ON DELETE RESTRICT,source_quote_id TEXT NOT NULL,source_quote_version INTEGER NOT NULL,source_line_id TEXT NOT NULL,PRIMARY KEY(template_id,version,position),FOREIGN KEY(template_id,version) REFERENCES _sales_quote_template_revisions(template_id,version) ON DELETE RESTRICT,FOREIGN KEY(source_quote_id,source_quote_version,source_line_id) REFERENCES _sales_quote_revision_lines(quote_id,version,line_id) ON DELETE RESTRICT);
+CREATE INDEX _sales_quote_template_materials ON _sales_quote_template_lines(material_id,template_id,version);
+CREATE TABLE _sales_quote_template_requests(request_key TEXT PRIMARY KEY,actor_id TEXT NOT NULL,request_hash TEXT NOT NULL,result_json TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE _sales_quote_revision_templates(quote_id TEXT NOT NULL,quote_version INTEGER NOT NULL,template_id TEXT NOT NULL,template_version INTEGER NOT NULL,PRIMARY KEY(quote_id,quote_version),FOREIGN KEY(quote_id,quote_version) REFERENCES _sales_quote_revisions(quote_id,version) ON DELETE RESTRICT,FOREIGN KEY(template_id,template_version) REFERENCES _sales_quote_template_revisions(template_id,version) ON DELETE RESTRICT);
+CREATE TRIGGER _sales_quote_template_revisions_update BEFORE UPDATE ON _sales_quote_template_revisions BEGIN SELECT RAISE(ABORT,'QUOTE_TEMPLATE_IMMUTABLE'); END;
+CREATE TRIGGER _sales_quote_template_revisions_delete BEFORE DELETE ON _sales_quote_template_revisions BEGIN SELECT RAISE(ABORT,'QUOTE_TEMPLATE_IMMUTABLE'); END;
+CREATE TRIGGER _sales_quote_template_lines_update BEFORE UPDATE ON _sales_quote_template_lines BEGIN SELECT RAISE(ABORT,'QUOTE_TEMPLATE_IMMUTABLE'); END;
+CREATE TRIGGER _sales_quote_template_lines_delete BEFORE DELETE ON _sales_quote_template_lines BEGIN SELECT RAISE(ABORT,'QUOTE_TEMPLATE_IMMUTABLE'); END;
+CREATE TRIGGER _sales_quote_template_requests_update BEFORE UPDATE ON _sales_quote_template_requests BEGIN SELECT RAISE(ABORT,'QUOTE_TEMPLATE_IMMUTABLE'); END;
+CREATE TRIGGER _sales_quote_template_requests_delete BEFORE DELETE ON _sales_quote_template_requests BEGIN SELECT RAISE(ABORT,'QUOTE_TEMPLATE_IMMUTABLE'); END;
+CREATE TRIGGER _sales_quote_revision_templates_update BEFORE UPDATE ON _sales_quote_revision_templates BEGIN SELECT RAISE(ABORT,'QUOTE_TEMPLATE_IMMUTABLE'); END;
+CREATE TRIGGER _sales_quote_revision_templates_delete BEFORE DELETE ON _sales_quote_revision_templates BEGIN SELECT RAISE(ABORT,'QUOTE_TEMPLATE_IMMUTABLE'); END;
+`;

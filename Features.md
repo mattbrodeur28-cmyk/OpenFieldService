@@ -422,7 +422,12 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   Customer-field saved-revision document review and escaped draft HTML download
   now omit internal costs/margin and label current native customer/location/equipment
   identity. They do not offer or accept a quote. PDF/print/browser qualification,
-  issuer/template configuration, templates/alternates and customer acceptance remain open.
+  issuer configuration, alternates and customer acceptance remain open.
+  Reusable quote templates now have admin-reviewed immutable versions sourced from
+  saved quotes, searchable history/archival, fresh material costs on application,
+  and retained starting-template provenance on saved quote revisions. Applying one
+  replaces scope/lines deliberately and requires fresh price calculation. Real browser
+  template qualification remains pending. See [template API](docs/api/sales-quote-templates.md).
   See [internal draft API](docs/api/sales-quotes.md).
 - [ ] **SALES-006 — Quote revisions:** immutable offered versions with revision numbers,
   internal draft vs customer-visible scope, price changes, approvals, PDF/export,

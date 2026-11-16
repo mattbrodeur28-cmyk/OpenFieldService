@@ -29,3 +29,16 @@ not claimed. The latest browser access host was unavailable. SALES-005/006/007/0
 remain open: issuer/layout templates, alternates, approval policy, offered identities,
 PDF, explicit customer delivery/acceptance and native job/procurement handoff remain.
 No live LXC/provider/multi-replica qualification is claimed.
+
+## Populated local preview upgrade
+
+After the tested implementation was published, the local demo was stopped and
+backed up with the repository's SQLite online-backup script. Quote migration v2
+was applied on restart. Counts and SHA-256 row-content fingerprints for all22
+pre-existing native/Sales tables matched the pre-upgrade backup; FK checks were
+clean. An authenticated temporary-session read verified the template catalog,
+missing-template error boundary, no-store response and frontend route; it was
+then logged out. No quote/template/business record was created for this check.
+
+This is local runtime/database upgrade evidence, not pointer/keyboard UI, LXC,
+provider or distributed deployment proof. Browser qualification remains pending.

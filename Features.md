@@ -416,9 +416,10 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   Implemented foundation: versioned internal draft quote persistence over the exact
   estimate calculator, frozen profile/material pricing and native line references.
   A draft workbench is implemented with line editing, server price review, saved
-  revisions, bounded lookups, and pending-save protection. Browser qualification
-  currently covers only the initial opportunity/profile/labor-entry flow; material
-  selection, save/reload, history and narrow-layout checks are still pending.
+  revisions, bounded lookups, and pending-save protection. Browser qualification now covers native material search/selection with pointer and
+  keyboard, labor/material calculation, save/reload, immutable revision history,
+  and supplier-pending draft resolution. Narrow-layout and broader accessibility
+  qualification remain pending.
   Customer-field saved-revision document review and escaped draft HTML download
   now omit internal costs/margin and label current native customer/location/equipment
   identity. They do not offer or accept a quote. PDF/print/browser qualification,
@@ -428,6 +429,12 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   and retained starting-template provenance on saved quote revisions. Applying one
   replaces scope/lines deliberately and requires fresh price calculation. Real browser
   template qualification remains pending. See [template API](docs/api/sales-quote-templates.md).
+  Supplier-pending internal drafts now retain unlisted material descriptions and
+  quantities with explicitly nullable cost/selling rates, pending notes and exact
+  known subtotals. Incomplete pricing cannot be approved or exported as a customer
+  document/template; completing native material links and rates creates a new saved
+  revision. No catalog duplicate or stock movement is created by an unlisted item.
+  See [supplier-pending workflow](docs/product/supplier-pending-quotes.md).
   See [internal draft API](docs/api/sales-quotes.md).
 - [ ] **SALES-006 — Quote revisions:** immutable offered versions with revision numbers,
   internal draft vs customer-visible scope, price changes, approvals, PDF/export,
@@ -492,6 +499,14 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   receipt → job UUIDs. Track ordered/received/reserved quantities and prevent repeated
   acceptance/conversion or partial selection from ordering the same demand twice.
   Do not append silently to issued POs or automatically send a supplier order.
+
+- [x] **SALES-017 — Supplier-pending draft materials:** directly search native Inventory,
+  prepare unlisted material descriptions/quantities before supplier pricing arrives,
+  preserve unknown costs/selling rates as null, save/reload immutable working revisions,
+  and complete them through native catalog links and reviewed rates. Hard server gates
+  prevent incomplete pricing approval/customer documents/template publication. Exact
+  partial totals and real keyboard/pointer/save/reload/history/resolution evidence are
+  documented in [the release record](docs/releases/2026-11-15-supplier-pending-quotes.md).
 
 **Acceptance:** create a prospect/opportunity, move it on Kanban with pointer and
 keyboard, generate/revise/accept a quote, convert it once into a linked active job,

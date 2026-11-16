@@ -1,3 +1,4 @@
+import { hasPendingPricing } from "./estimating-domain.mjs";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { transaction } from "../platform/sqlite.mjs";
@@ -34,6 +35,7 @@ function admin(user) {
 
 /** Compare exact saved cents. Display-rounded margin must never hide a small loss. */
 export function assessBid(price, policy) {
+  if (hasPendingPricing(price)) return [{id:"quote:pricing_incomplete",kind:"pricing_incomplete",lineId:null,description:"Supplier pricing or material catalog links are pending. Complete every material line before pricing approval."}];
   if (!policy) return [{id:"policy:missing",kind:"policy_missing",lineId:null,description:"Configure and review the company pricing policy first."}];
   const flags=[];
   const flag=(id,kind,lineId,description)=>flags.push({id,kind,lineId,description});
@@ -102,7 +104,7 @@ export function createQuoteReview({ storage, sales }) {
     const flags=assessBid(price,current?.config);
     const latest=event(db.prepare("SELECT * FROM _sales_quote_review_events WHERE quote_id=? AND quote_version=? ORDER BY sequence DESC LIMIT 1").get(id,revision.version));
     const currentApproval=latest?.action==="approve"&&latest.policyVersion===current?.version&&latest.evaluationVersion===reviewEvaluationVersion;
-    const state=!current?"unconfigured":latest?.action==="revoke"?"revoked":currentApproval?"approved":flags.length?latest?.action==="approve"?"approval_stale":"approval_required":"within_policy";
+    const state=hasPendingPricing(price)?"pricing_incomplete":!current?"unconfigured":latest?.action==="revoke"?"revoked":currentApproval?"approved":flags.length?latest?.action==="approve"?"approval_stale":"approval_required":"within_policy";
     const history=db.prepare("SELECT * FROM _sales_quote_review_events WHERE quote_id=? AND quote_version=? ORDER BY sequence DESC LIMIT 26 OFFSET ?").all(id,revision.version,(page-1)*25);
     return {quoteId:id,revision:revision.version,headVersion:head.version,quoteStatus:head.status,
       evaluationVersion:reviewEvaluationVersion,policy:current?{version:current.version,minimumMarginBasisPoints:current.config.minimumMarginBasisPoints,maximumDiscountBasisPoints:current.config.maximumDiscountBasisPoints,requireApprovalForAll:current.config.requireApprovalForAll}:null,
@@ -128,6 +130,7 @@ export function createQuoteReview({ storage, sales }) {
       if (current.eventSequence!==data.expectedEventSequence) throw new SalesError("Another reviewer changed this approval. Reload the review.",409);
       if (db.prepare("SELECT 1 FROM _sales_quote_review_events WHERE id=?").get(data.id)) throw new SalesError("Review event ID already exists.",409);
       if (data.action==="approve") {
+        if (current.state === "pricing_incomplete") throw new SalesError("Complete pending supplier pricing and material links before approving this quote.",409);
         const actual=new Set(data.acknowledgedFlags),expected=current.flags.map(flag=>flag.id);
         if (actual.size!==data.acknowledgedFlags.length||actual.size!==expected.length||expected.some(flag=>!actual.has(flag))) throw new SalesError("Explicitly acknowledge every current review flag exactly once.",409);
       } else if (current.latest?.action!=="approve"||current.latest.id!==data.approvalId) throw new SalesError("Only the latest approval can be revoked.",409);

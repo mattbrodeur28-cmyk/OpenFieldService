@@ -36,13 +36,14 @@ export function editLine(line) {
     description: line.description,
     quantity: scaledText(line.quantityMilli, 3),
     headcount: String(line.headcount),
-    unitCost: scaledText(line.unitCostCents, 2),
-    unitSell: scaledText(line.unitSellCents, 2),
+    unitCost: line.unitCostCents === null ? "" : scaledText(line.unitCostCents, 2),
+    unitSell: line.unitSellCents === null ? "" : scaledText(line.unitSellCents, 2),
     discount: scaledText(line.discountBasisPoints, 2),
     materialId: line.materialId,
     costOverrideReason: line.costOverrideReason,
     travelGroup: line.travelGroup,
     includesFuel: line.includesFuel,
+    ...(line.pricingPending ? {pricingPending:true,pendingPricingNote:line.pendingPricingNote ?? ""} : {}),
   };
 }
 export function lineInput(line) {
@@ -52,8 +53,8 @@ export function lineInput(line) {
     description: line.description,
     quantityMilli: quantityInput(line.quantity),
     headcount: headcountInput(line.headcount),
-    unitCostCents: scaledInput(line.unitCost, 2, "Unit cost", 1_000_000_000),
-    unitSellCents: scaledInput(
+    unitCostCents: line.pricingPending && !line.unitCost.trim() ? null : scaledInput(line.unitCost, 2, "Unit cost", 1_000_000_000),
+    unitSellCents: line.pricingPending && !line.unitSell.trim() ? null : scaledInput(
       line.unitSell,
       2,
       "Selling price",
@@ -64,6 +65,7 @@ export function lineInput(line) {
     costOverrideReason: line.costOverrideReason,
     travelGroup: line.travelGroup,
     includesFuel: line.includesFuel,
+    ...(line.pricingPending ? {pricingPending:true,pendingPricingNote:line.pendingPricingNote ?? ""} : {}),
   };
 }
 
@@ -71,3 +73,6 @@ export function lineInput(line) {
 export function templateInput(reference) {
   return reference ? { id: reference.id, version: reference.version } : null;
 }
+
+/** Unknown money must never be formatted as a zero-dollar value. */
+export const quoteMoney = value => value === null ? "Pending" : new Intl.NumberFormat("en-US", {style:"currency",currency:"USD"}).format(value/100);

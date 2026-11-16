@@ -13,3 +13,5 @@ export function editLine(line: EstimateLine): DraftLine;
 export function lineInput(line: DraftLine): EstimateLine;
 
 export function templateInput(reference: TemplateReference | null): Pick<TemplateReference, "id" | "version"> | null;
+
+export function quoteMoney(value: number | null): string;

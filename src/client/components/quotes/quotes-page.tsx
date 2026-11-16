@@ -3,7 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { accountRequest, useAccount } from "../../auth";
 import { useApp } from "../../context";
 import { useConnectivity } from "../../hooks/use-connectivity";
-import { salesMoney } from "../../sales-types";
+import { quoteMoney as salesMoney } from "../../quote-input.mjs";
 import type { QuoteList } from "../../quote-types";
 import { Button } from "../ui/button";
 import { Badge, EmptyState, LoadingState, Notice, Table } from "../ui/surfaces";
@@ -93,7 +93,7 @@ function QuoteCatalog() {
                       </Button>
                     </td>
                     <td>{row.validUntil}</td>
-                    <td>{salesMoney(row.totalCents)}</td>
+                    <td>{salesMoney(row.totalCents)}{!row.pricingComplete && <small>Supplier pricing pending</small>}</td>
                     <td>
                       <Badge>{row.status}</Badge>
                     </td>

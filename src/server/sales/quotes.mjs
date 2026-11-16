@@ -1,3 +1,4 @@
+import { hasPendingPricing } from "./estimating-domain.mjs";
 import { quoteReviewSchema } from "./quote-review-schema.mjs";
 import { createQuoteReview } from "./quote-review.mjs";
 import { quoteTemplateSchema } from "./quote-template-schema.mjs";
@@ -121,6 +122,8 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
     return transaction(db, () => {
       const row = head(id);
       authorize(user, row);
+      const selectedQuote = shape(row, revision);
+      if (hasPendingPricing(selectedQuote.estimate)) throw new SalesError("Complete pending supplier pricing and material links before generating a customer document.",409);
       const opportunity = sales.opportunity(row.opportunity_id);
       const customer = opportunity.customer_id ? db.prepare(
         "SELECT name,address,city,state,zip FROM customers WHERE id=?",
@@ -131,7 +134,7 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
       const equipment = opportunity.asset_id && opportunity.customer_id ? db.prepare(
         "SELECT name,manufacturer,model,serial_number FROM assets WHERE id=? AND customer_id=? AND (? IS NULL OR site_id=?)",
       ).get(opportunity.asset_id, opportunity.customer_id, opportunity.site_id, opportunity.site_id) : null;
-      return { document: customerQuoteDocument(shape(row, revision), { opportunity, customer, site, equipment }) };
+      return { document: customerQuoteDocument(selectedQuote, { opportunity, customer, site, equipment }) };
     });
   }
 
@@ -173,6 +176,7 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
           validUntil: saved.document.validUntil,
           currency: saved.estimate.currency,
           totalCents: saved.estimate.totalCents,
+          pricingComplete: !hasPendingPricing(saved.estimate),
           updatedAt: saved.updatedAt,
         };
       });

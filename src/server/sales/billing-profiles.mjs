@@ -155,9 +155,10 @@ export function createBillingProfiles({
         : [];
     for (const line of materials) {
       const snapshot = snapshots.find((s) => s.id === line.materialId);
-      if (!snapshot)
+      if (!snapshot || !db.prepare("SELECT 1 FROM materials WHERE id=?").get(line.materialId))
         throw new SalesError("A material is no longer available.", 409);
       if (
+        !line.pricingPending &&
         (snapshot.unitCostCents === null ||
           snapshot.unitCostCents !== line.unitCostCents) &&
         line.costOverrideReason.length < 10

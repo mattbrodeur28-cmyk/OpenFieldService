@@ -9,7 +9,7 @@ import { Button } from "../ui/button";
 import { TextField } from "../ui/input";
 import { Select } from "../ui/select";
 import { Checkbox } from "../ui/surfaces";
-import { SearchPicker } from "./search-picker";
+import { MaterialPicker } from "./material-picker";
 
 export function QuoteLineEditor({
   line,
@@ -72,6 +72,10 @@ export function QuoteLineEditor({
     const next = value as EstimateKind;
     patch({
       kind: next,
+      description: line.description === estimateLabels[line.kind] ? estimateLabels[next] : line.description,
+      pricingPending: next === "material" ? true : undefined,
+      pendingPricingNote: undefined,
+      ...(next === "material" ? {unitCost:"",unitSell:""} : {}),
       materialId: null,
       costOverrideReason: "",
       headcount: "1",
@@ -116,37 +120,22 @@ export function QuoteLineEditor({
         />
       </div>
       {line.kind === "material" && (
-        <SearchPicker<MaterialCost>
-          label={`Material for line ${index + 1}`}
-          endpoint={
-            "/api/sales/quotes/options?kind=materials&opportunityId=" +
-            opportunityId
-          }
-          disabled={disabled || !opportunityId}
-          selected={
-            line.materialId
-              ? {
-                  id: line.materialId,
-                  label: material
-                    ? `${material.name} · ${material.unit}`
-                    : line.description || "Selected material",
-                }
-              : null
-          }
-          format={(row) => `${row.name} · ${row.unit}`}
-          change={(row) => {
-            rememberMaterial(row);
-            patch({
-              materialId: row.id,
-              description: row.name,
-              unitCost:
-                row.unitCostCents === null
-                  ? "0.00"
-                  : scaledText(row.unitCostCents, 2),
-              costOverrideReason: "",
-            });
-          }}
-        />
+        <div>
+          <MaterialPicker opportunityId={opportunityId} index={index} disabled={disabled || !opportunityId}
+            material={line.materialId ? {id:line.materialId,name:material?.name??line.description,unit:material?.unit} : undefined}
+            change={row=>{
+              rememberMaterial(row);
+              patch({materialId:row.id,description:row.name,unitCost:row.unitCostCents===null?"":scaledText(row.unitCostCents,2),costOverrideReason:"",
+                ...(row.unitCostCents===null?{pricingPending:true}:{}),});
+            }}/>
+          <Button disabled={disabled} onClick={()=>patch({materialId:null,unitCost:"",unitSell:"",costOverrideReason:"",pricingPending:true,pendingPricingNote:line.pendingPricingNote??"Awaiting supplier identification and pricing."})}>Use unlisted material</Button>
+          {!line.materialId&&<p class="workspace-help">Unlisted working item: enter its description and quantity. It is not an Inventory record; link a catalog material before final pricing.</p>}
+          <Checkbox label="Supplier pricing pending — internal draft only" checked={!!line.pricingPending} disabled={disabled}
+            onChange={event=>patch({pricingPending:event.currentTarget.checked?true:undefined,pendingPricingNote:event.currentTarget.checked?line.pendingPricingNote??"Awaiting supplier cost and selling price review.":undefined})}/>
+          {line.pricingPending&&<TextField label="Pending supplier pricing note" value={line.pendingPricingNote??""} disabled={disabled} maxLength={1000} required
+            hint="At least 10 characters. Blank cost or selling price stays unknown, not zero."
+            onInput={event=>patch({pendingPricingNote:event.currentTarget.value})}/>}
+        </div>
       )}
       <div class="quote-line-rates">
         <TextField
@@ -176,6 +165,7 @@ export function QuoteLineEditor({
           value={line.unitCost}
           disabled={disabled}
           required
+          placeholder={line.pricingPending ? "Awaiting supplier cost" : undefined}
           onInput={(e) => patch({ unitCost: e.currentTarget.value })}
         />
         <TextField
@@ -185,6 +175,7 @@ export function QuoteLineEditor({
           value={line.unitSell}
           disabled={disabled}
           required
+          placeholder={line.pricingPending ? "Selling price pending" : undefined}
           onInput={(e) => patch({ unitSell: e.currentTarget.value })}
         />
         <TextField

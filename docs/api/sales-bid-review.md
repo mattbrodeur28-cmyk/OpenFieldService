@@ -112,3 +112,8 @@ checkbox, reload, narrow-device or screen-reader behavior. Those checks remain
 pending while browser access is unavailable. Historical reviewer-name presentation,
 overhead/burden/allowance/alternate models, issuer documents, PDF, offering, explicit
 customer delivery/acceptance and job/procurement handoff remain open.
+
+## Supplier-pending drafts
+
+See [pending material pricing](sales-pending-pricing.md) for nullable internal draft
+prices, unlisted working items, partial subtotals and hard approval/export gates.

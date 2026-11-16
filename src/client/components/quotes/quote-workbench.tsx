@@ -9,7 +9,7 @@ import { useConnectivity } from "../../hooks/use-connectivity";
 import { useCompanyTimeZone } from "../../hooks/use-company-timezone";
 import { dayInZone, shiftDate } from "../../dispatch-layout.mjs";
 import { formatTimestamp } from "../../time-format";
-import { salesMoney } from "../../sales-types";
+import { quoteMoney as salesMoney } from "../../quote-input.mjs";
 import type { SalesDetail } from "../../sales-types";
 import type { BillingProfile } from "../../estimating-types";
 import type {
@@ -84,6 +84,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
   const [refreshingLines, setRefreshingLines] = useState<string[]>([]);
   const [documentOpen, setDocumentOpen] = useState(false),
     [publishingTemplate,setPublishingTemplate] = useState(false),
+    [templateRefresh,setTemplateRefresh] = useState(0),
     [template,setTemplate] = useState<TemplateReference|null>(null);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState("");
@@ -441,8 +442,8 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               Refresh
             </Button>
           )}
-          {saved && isAdministrator(user) && <Button disabled={busy||resourceBusy||loading||dirty||uncertain||readOnly} onClick={()=>setPublishingTemplate(true)}>Save as template</Button>}
-          {saved && <Button disabled={busy || resourceBusy || loading || dirty || uncertain || readOnly} onClick={() => setDocumentOpen(true)}>Document preview</Button>}
+          {saved && isAdministrator(user) && <Button disabled={busy||resourceBusy||loading||dirty||uncertain||readOnly||saved.estimate.pricingComplete===false} onClick={()=>setPublishingTemplate(true)}>Save as template</Button>}
+          {saved && <Button disabled={busy || resourceBusy || loading || dirty || uncertain || readOnly || saved.estimate.pricingComplete===false} onClick={() => setDocumentOpen(true)}>Document preview</Button>}
           <Button
             disabled={disabled || !opportunity || !profile}
             onClick={() => void calculate()}
@@ -466,7 +467,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           </Button>
         </div>
       </header>
-      {publishingTemplate && saved && <TemplateCommandDialog source={{quoteId:saved.id,revision:saved.revision}} close={()=>setPublishingTemplate(false)} saved={item=>{setPublishingTemplate(false);setNotice(`Saved template ${item.config.name} v${item.version}.`);}}/>}
+      {publishingTemplate && saved && <TemplateCommandDialog source={{quoteId:saved.id,revision:saved.revision}} close={()=>setPublishingTemplate(false)} saved={item=>{setPublishingTemplate(false);setTemplateRefresh(value=>value+1);setNotice(`Saved template ${item.config.name} v${item.version}.`);}}/>}
       {documentOpen && saved && <QuoteDocumentPreview id={saved.id} revision={saved.revision} close={() => setDocumentOpen(false)}/>}
       <p class="workspace-help">
         Prepare an internal estimate. Offering, customer acceptance, and
@@ -501,7 +502,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           )}
           {!historical && !lockedQuote && <Card class="quote-template-apply">
             <h2>Start from a template</h2>
-            {opportunity ? <SearchPicker<TemplateSummary> key={opportunity.segment} label="Reusable quote template" endpoint={`/api/sales/quote-templates?segment=${opportunity.segment}`} selected={template?{id:template.id,label:`${template.name??"Template"} · v${template.version}`}:null} disabled={disabled} format={row=>`${row.name} · v${row.version}`} change={row=>void applyTemplate(row)}/> : <p class="workspace-help">Choose an opportunity to see templates for its work segment.</p>}
+            {opportunity ? <SearchPicker<TemplateSummary> key={`${opportunity.segment}:${templateRefresh}`} label="Reusable quote template" endpoint={`/api/sales/quote-templates?segment=${opportunity.segment}`} selected={template?{id:template.id,label:`${template.name??"Template"} · v${template.version}`}:null} disabled={disabled} format={row=>`${row.name} · v${row.version}`} change={row=>void applyTemplate(row)}/> : <p class="workspace-help">Choose an opportunity to see templates for its work segment.</p>}
             {template&&<Button disabled={disabled} onClick={()=>{changed();setTemplate(null);}}>Detach template reference</Button>}
           </Card>}
           <div class="quote-layout">
@@ -729,11 +730,12 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                 </h2>
                 {preview ? (
                   <>
-                    <Badge tone="info">
-                      {savedEvidence
+                    <Badge tone={preview.pricingComplete === false ? "warning" : "info"}>
+                      {preview.pricingComplete === false ? "Supplier pricing pending" : savedEvidence
                         ? "Frozen saved evidence"
                         : "Server preview"}
                     </Badge>
+                    {preview.pricingComplete === false && <Notice tone="warning">Internal working draft: {preview.pendingLineIds?.length} material line(s) await supplier pricing or catalog links. Totals with missing inputs stay pending. Known line amounts are not a final bid.</Notice>}
                     <dl>
                       {[
                         ["Estimated cost", preview.costCents],
@@ -746,7 +748,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                       ].map(([label, value]) => (
                         <div key={String(label)}>
                           <dt>{label}</dt>
-                          <dd>{salesMoney(Number(value))}</dd>
+                          <dd>{salesMoney(value as number | null)}</dd>
                         </div>
                       ))}
                       <div>
@@ -759,6 +761,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                         </dd>
                       </div>
                     </dl>
+                    {preview.pricingComplete === false && preview.knownTotals && <details><summary>Known line amounts only — not final totals</summary><dl>{[["Known costs",preview.knownTotals.costCents],["Known selling value before tax",preview.knownTotals.netCents],["Known line totals",preview.knownTotals.totalCents]].map(([label,value])=><div key={String(label)}><dt>{label}</dt><dd>{salesMoney(value as number)}</dd></div>)}</dl></details>}
                     <p class="workspace-help">
                       Profile v{preview.profileVersion} ·{" "}
                       {preview.profile.state} · {preview.profile.segment}. Costs

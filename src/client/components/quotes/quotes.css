@@ -204,3 +204,14 @@
 .quote-template-detail { margin-top: 24px; }
 .quote-template-apply { margin: 20px 0; }
 @media(max-width:640px){.quote-template-filters{grid-template-columns:1fr}}
+
+.quote-material-picker { position: relative; margin-block: 14px; }
+.quote-material-results { margin-top: 8px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card-bg); box-shadow: var(--shadow); }
+.quote-material-results [role="listbox"] { max-height: 240px; overflow-y: auto; }
+.quote-material-results [role="option"] { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 10px; text-align: left; border: 0; border-radius: 6px; color: var(--text); background: transparent; cursor: pointer; }
+.quote-material-results [role="option"]:hover, .quote-material-results [role="option"].active { background: var(--surface-sunken); }
+.quote-material-results [role="option"] small { color: var(--text-muted); }
+.quote-material-results > p { padding: 8px; font-size: 12px; }
+.quote-line .ui-check { margin-block: 16px; }
+
+.quote-workbench .ui-input:focus:not([aria-invalid="true"]) { border-color: var(--text-muted); outline: 2px solid var(--text-muted); outline-offset: 2px; box-shadow: none; }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { accountRequest } from "../../auth";
 import type { CustomerQuoteDocument } from "../../quote-types";
-import { salesMoney } from "../../sales-types";
+import { quoteMoney as salesMoney } from "../../quote-input.mjs";
 import { estimateLabels } from "../../estimating-types";
 import { Dialog, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";

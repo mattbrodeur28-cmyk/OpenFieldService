@@ -106,8 +106,10 @@ export const estimateLine = z
     description: text(500).min(1),
     quantityMilli: z.number().int().min(1).max(1000000000),
     headcount: z.number().int().min(1).max(100),
-    unitCostCents: cents,
-    unitSellCents: cents,
+    unitCostCents: cents.nullable(),
+    unitSellCents: cents.nullable(),
+    pricingPending: z.literal(true).optional(),
+    pendingPricingNote: text(1000).optional(),
     discountBasisPoints: z.number().int().min(0).max(10000),
     materialId: z.string().uuid().nullable(),
     costOverrideReason: text(1000),
@@ -117,8 +119,15 @@ export const estimateLine = z
   .strict()
   .superRefine((l, c) => {
     const fail = (message) => c.addIssue({ code: "custom", message });
-    if ((l.kind === "material") !== Boolean(l.materialId))
-      fail("Only material lines require a catalog material.");
+    if (l.pricingPending) {
+      if (l.kind !== "material") fail("Pending pricing applies only to material draft lines.");
+      if ((l.pendingPricingNote?.length ?? 0) < 10) fail("Describe the pending supplier pricing in at least 10 characters.");
+    } else {
+      if (l.unitCostCents === null || l.unitSellCents === null) fail("Complete costs and selling rates or mark material pricing pending.");
+      if (l.pendingPricingNote) fail("A pending pricing note requires pending pricing mode.");
+    }
+    if (l.kind !== "material" && l.materialId) fail("Only material lines can link a catalog material.");
+    if (l.kind === "material" && !l.materialId && !l.pricingPending) fail("Link a catalog material before completing material pricing.");
     if (
       !["technician", "apprentice", "after_hours"].includes(l.kind) &&
       l.headcount !== 1
@@ -176,10 +185,10 @@ export function calculateEstimate(rawLines, rawProfile) {
       );
   const result = lines.map((l) => {
     const q = BigInt(l.quantityMilli) * BigInt(l.headcount),
-      cost = round(q * BigInt(l.unitCostCents), 1000n),
-      gross = round(q * BigInt(l.unitSellCents), 1000n),
-      discount = round(gross * BigInt(l.discountBasisPoints), 10000n),
-      after = gross - discount;
+      cost = l.unitCostCents === null ? null : round(q * BigInt(l.unitCostCents), 1000n),
+      gross = l.unitSellCents === null ? null : round(q * BigInt(l.unitSellCents), 1000n),
+      discount = gross === null ? null : round(gross * BigInt(l.discountBasisPoints), 10000n),
+      after = gross === null ? null : gross - discount;
     const category = lineTaxCategory[l.kind],
       rule = category
         ? profile.rules.find((r) => r.kind === category)
@@ -190,34 +199,36 @@ export function calculateEstimate(rawLines, rawProfile) {
             note: "Only Labor and Materials have tax rules under company billing policy.",
           },
       rate = BigInt(rule.rateBasisPoints),
-      tax = ["inclusive", "exclusive"].includes(rule.treatment)
+      tax = after === null ? null : ["inclusive", "exclusive"].includes(rule.treatment)
         ? round(
             after * rate,
             rule.treatment === "inclusive" ? 10000n + rate : 10000n,
           )
         : 0n;
-    const net = rule.treatment === "inclusive" ? after - tax : after,
-      total = rule.treatment === "exclusive" ? after + tax : after;
+    const net = after === null ? null : rule.treatment === "inclusive" ? after - tax : after,
+      total = after === null ? null : rule.treatment === "exclusive" ? after + tax : after;
     return {
       ...l,
-      costCents: bounded(cost),
-      grossCents: bounded(gross),
-      discountCents: bounded(discount),
-      netCents: bounded(net),
-      taxCents: bounded(tax),
-      totalCents: bounded(total),
+      costCents: cost === null ? null : bounded(cost),
+      grossCents: gross === null ? null : bounded(gross),
+      discountCents: discount === null ? null : bounded(discount),
+      netCents: net === null ? null : bounded(net),
+      taxCents: tax === null ? null : bounded(tax),
+      totalCents: total === null ? null : bounded(total),
       taxCategory: category,
       taxRule: { ...rule },
     };
   });
-  const sum = (key) => bounded(result.reduce((n, l) => n + BigInt(l[key]), 0n)),
+  const known = (key) => bounded(result.reduce((n, l) => n + (l[key] === null ? 0n : BigInt(l[key])), 0n));
+  const sum = (key) => result.some(l => l[key] === null) ? null : known(key),
     costCents = sum("costCents"),
     netCents = sum("netCents"),
-    profitCents = netCents - costCents;
+    profitCents = netCents === null || costCents === null ? null : netCents - costCents;
   const ratio = (d) =>
-    d ? Number((BigInt(profitCents) * 10000n) / BigInt(d)) : null;
+    d && profitCents !== null ? Number((BigInt(profitCents) * 10000n) / BigInt(d)) : null;
   return {
-    calculationVersion: 1,
+    calculationVersion: hasPendingPricing({lines:result}) ? 2 : 1,
+    ...(hasPendingPricing({lines:result}) ? {pricingComplete:false, pendingLineIds:result.filter(l=>l.pricingPending).map(l=>l.id), knownTotals:Object.fromEntries(["costCents","grossCents","discountCents","netCents","taxCents","totalCents"].map(key=>[key,known(key)]))} : {}),
     currency: "USD",
     rounding: "half_up_per_line_cent",
     profile,
@@ -232,4 +243,9 @@ export function calculateEstimate(rawLines, rawProfile) {
     marginBasisPoints: ratio(netCents),
     markupBasisPoints: ratio(costCents),
   };
+}
+
+/** Incomplete pricing is a hard gate, never an administrator-overridable exception. */
+export function hasPendingPricing(price) {
+  return price.pricingComplete === false || price.lines.some(line => line.pricingPending || line.unitCostCents === null || line.unitSellCents === null || (line.kind === "material" && !line.materialId));
 }

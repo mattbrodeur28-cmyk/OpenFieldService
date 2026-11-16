@@ -9,8 +9,10 @@ export interface EstimateLine {
   description: string;
   quantityMilli: number;
   headcount: number;
-  unitCostCents: number;
-  unitSellCents: number;
+  unitCostCents: number | null;
+  unitSellCents: number | null;
+  pricingPending?: true;
+  pendingPricingNote?: string;
   discountBasisPoints: number;
   materialId: string | null;
   costOverrideReason: string;
@@ -18,12 +20,12 @@ export interface EstimateLine {
   includesFuel: boolean;
 }
 export interface PricedLine extends EstimateLine {
-  costCents: number;
-  grossCents: number;
-  discountCents: number;
-  netCents: number;
-  taxCents: number;
-  totalCents: number;
+  costCents: number | null;
+  grossCents: number | null;
+  discountCents: number | null;
+  netCents: number | null;
+  taxCents: number | null;
+  totalCents: number | null;
   taxCategory: "labor" | "material" | null;
   taxRule: Omit<TaxRule, "kind"> & {
     kind: TaxRule["kind"] | "non_taxable_fee";
@@ -48,6 +50,9 @@ export interface EstimateInput {
   lines: EstimateLine[];
 }
 export interface EstimateResult {
+  pricingComplete?: false;
+  pendingLineIds?: string[];
+  knownTotals?: Record<string, number>;
   calculationVersion: number;
   currency: "USD";
   profile: BillingProfileConfig;
@@ -59,13 +64,13 @@ export interface EstimateResult {
   materialSnapshots: MaterialCost[];
   persisted: boolean;
   lines: PricedLine[];
-  costCents: number;
-  grossCents: number;
-  discountCents: number;
-  netCents: number;
-  taxCents: number;
-  totalCents: number;
-  profitCents: number;
+  costCents: number | null;
+  grossCents: number | null;
+  discountCents: number | null;
+  netCents: number | null;
+  taxCents: number | null;
+  totalCents: number | null;
+  profitCents: number | null;
   marginBasisPoints: number | null;
   markupBasisPoints: number | null;
 }
@@ -106,6 +111,7 @@ export interface QuoteDetail {
   hasMoreHistory: boolean;
 }
 export interface QuoteSummary {
+  pricingComplete: boolean;
   id: string;
   identifier: string;
   version: number;
@@ -114,7 +120,7 @@ export interface QuoteSummary {
   opportunityTitle: string;
   title: string;
   validUntil: string;
-  totalCents: number;
+  totalCents: number | null;
   updatedAt: string;
   currency: string;
 }
@@ -138,6 +144,8 @@ export interface LookupPage<T> {
   pageSize: number;
 }
 export interface DraftLine {
+  pricingPending?: true;
+  pendingPricingNote?: string;
   id: string;
   kind: EstimateKind;
   description: string;
@@ -176,19 +184,19 @@ export interface CustomerQuoteDocument {
     headcount: number;
     unitSellCents: number;
     discountBasisPoints: number;
-    grossCents: number;
-    discountCents: number;
-    netCents: number;
-    taxCents: number;
-    totalCents: number;
+    grossCents: number | null;
+    discountCents: number | null;
+    netCents: number | null;
+    taxCents: number | null;
+    totalCents: number | null;
     taxTreatment: TaxRule["treatment"];
     taxRateBasisPoints: number;
   }[];
-  grossCents: number;
-  discountCents: number;
-  netCents: number;
-  taxCents: number;
-  totalCents: number;
+  grossCents: number | null;
+  discountCents: number | null;
+  netCents: number | null;
+  taxCents: number | null;
+  totalCents: number | null;
 }
 
 export interface TemplateReference { id: string; version: number; name?: string }

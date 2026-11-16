@@ -152,3 +152,8 @@ admin mutation. See [bid review contracts](sales-bid-review.md). These controls
 operate on immutable saved prices and do not change quote lifecycle status or
 customer documents. Future offering must recheck current pricing qualification and
 all lifecycle/identity requirements inside its own transaction.
+
+## Supplier-pending drafts
+
+See [pending material pricing](sales-pending-pricing.md) for nullable internal draft
+prices, unlisted working items, partial subtotals and hard approval/export gates.

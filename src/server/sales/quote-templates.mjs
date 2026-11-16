@@ -1,3 +1,4 @@
+import { hasPendingPricing } from "./estimating-domain.mjs";
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { transaction } from "../platform/sqlite.mjs";
@@ -81,6 +82,7 @@ export function createQuoteTemplates({ storage, sales, materialSnapshots }) {
       const revision=db.prepare("SELECT * FROM _sales_quote_revisions WHERE quote_id=? AND version=?").get(quote.id,data.source.revision);
       if (!revision) throw new SalesError("Source quote revision not found.",404);
       const document=JSON.parse(revision.document_json), price=JSON.parse(revision.pricing_json);
+      if (hasPendingPricing(price)) throw new SalesError("Complete pending supplier pricing before publishing a reusable template.",409);
       const lines=price.lines.map(line=>({
         sourceLineId:line.id,kind:line.kind,description:line.description,
         quantityMilli:line.quantityMilli,headcount:line.headcount,

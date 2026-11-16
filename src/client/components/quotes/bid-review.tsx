@@ -3,7 +3,7 @@ import {accountRequest,useAccount,isAdministrator} from "../../auth";
 import {useConnectivity} from "../../hooks/use-connectivity";
 import {useGuardedCommand} from "../../hooks/use-guarded-command";
 import type {BidReview,ReviewCommand} from "../../review-types";
-import {salesMoney} from "../../sales-types";
+import {quoteMoney as salesMoney} from "../../quote-input.mjs";
 import {Dialog,DialogTitle} from "../ui/dialog";
 import {Button} from "../ui/button";
 import {Badge,Card,Checkbox,Notice,LoadingState,Textarea} from "../ui/surfaces";
@@ -35,7 +35,7 @@ export function BidReviewPanel({id,revision,disabled}:{id:string;revision:number
   const {user}=useAccount(),{readOnly}=useConnectivity();
   const [data,setData]=useState<BidReview|null>(null),[error,setError]=useState(""),[page,setPage]=useState(1),[refresh,setRefresh]=useState(0),[action,setAction]=useState<"approve"|"revoke"|null>(null);
   useEffect(()=>{let active=true;setData(null);setError("");void accountRequest<BidReview>(`/api/sales/quotes/${id}/review?revision=${revision}&page=${page}`).then(result=>{if(active)setData(result);}).catch(error=>{if(active)setError(error.message);});return()=>{active=false;};},[id,revision,page,refresh]);
-  const editable=!!data&&data.revision===data.headVersion&&data.quoteStatus==="draft"&&!!data.policy&&isAdministrator(user)&&!disabled&&!readOnly;
+  const editable=!!data&&data.revision===data.headVersion&&data.quoteStatus==="draft"&&!!data.policy&&data.state!=="pricing_incomplete"&&isAdministrator(user)&&!disabled&&!readOnly;
   const percent=(value:number|null)=>value===null?"Not defined":`${(value/100).toFixed(2)}%`;
   return <Card>
     <header class="quote-header"><h2>Bid review</h2><Button disabled={!!action} onClick={()=>setRefresh(refresh+1)}>Refresh</Button></header>

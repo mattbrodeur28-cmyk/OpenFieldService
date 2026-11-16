@@ -125,3 +125,5 @@
   outline-offset: 2px;
   box-shadow: none;
 }
+
+.bid-review-dialog .ui-field { display: grid; gap: 8px; margin: 16px 0; }

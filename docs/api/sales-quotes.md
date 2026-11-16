@@ -142,3 +142,13 @@ A failed retry after an uncertain response does not disprove the earlier write,
 even if that retry returns403/409; both quote/template clients retain the original
 command until a successful acknowledgment resolves it. Pending commands remain
 in memory, not a durable offline queue.
+
+## Internal pricing review
+
+Quote migration v3 adds explicit company review policy and immutable pricing
+approval/revocation events. No policy is seeded. `/review-policy` is Owner/Admin
+only; `/quotes/:id/review` is a current-owner/admin internal read, with protected
+admin mutation. See [bid review contracts](sales-bid-review.md). These controls
+operate on immutable saved prices and do not change quote lifecycle status or
+customer documents. Future offering must recheck current pricing qualification and
+all lifecycle/identity requirements inside its own transaction.

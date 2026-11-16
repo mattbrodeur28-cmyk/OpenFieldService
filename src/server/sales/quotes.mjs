@@ -1,3 +1,5 @@
+import { quoteReviewSchema } from "./quote-review-schema.mjs";
+import { createQuoteReview } from "./quote-review.mjs";
 import { quoteTemplateSchema } from "./quote-template-schema.mjs";
 import { createQuoteTemplates, templateReference } from "./quote-templates.mjs";
 import { customerQuoteDocument } from "./quote-document.mjs";
@@ -47,8 +49,10 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
   migrate(db, "_sales_quote_migrations", [
     { version: 1, sql: quoteSchema },
     { version: 2, sql: quoteTemplateSchema },
+    { version: 3, sql: quoteReviewSchema },
   ]);
   const templates = createQuoteTemplates({ storage, sales, materialSnapshots });
+  const review = createQuoteReview({ storage, sales });
 
   function head(id) {
     parse(uuid, id);
@@ -313,5 +317,5 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
       };
     });
   }
-  return { list, detail, save, options, document, templates };
+  return { list, detail, save, options, document, templates, review };
 }

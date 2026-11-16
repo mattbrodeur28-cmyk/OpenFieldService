@@ -1,3 +1,4 @@
+import { BidReviewPanel } from "./bid-review";
 import { commandFailureIsDefinite } from "../../command-recovery.mjs";
 import { TemplateCommandDialog } from "./template-command";
 import { QuoteDocumentPreview } from "./document-preview";
@@ -844,6 +845,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                   </div>
                 </Card>
               )}
+              {saved && <BidReviewPanel key={`${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain}/>}
             </aside>
           </div>
         </>

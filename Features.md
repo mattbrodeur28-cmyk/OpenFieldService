@@ -439,6 +439,12 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
 - [ ] **SALES-007 — Options and approvals:** present multiple priced options where
   useful; enforce discount/margin approval limits and record deliberate exceptions.
   AI may draft scope but must not invent pricing or claim customer acceptance.
+  Implemented pricing-control increment: explicit admin-reviewed company limits,
+  exact saved-margin/per-line discount checks, zero-cost/no-charge acknowledgments,
+  immutable policy/approval/revocation versions and protected retries. Current
+  revision/policy/event checks reject stale or competing approval writes. Multiple
+  customer options, full offering and browser qualification remain open.
+  See [bid review API](docs/api/sales-bid-review.md).
 - [ ] **SALES-008 — Quote to active job:** authorized conversion of an accepted quote
   creates one linked job (or an explicit phased-project handoff later), snapshots
   accepted scope/pricing, carries customer/site/equipment, and places unassigned work
@@ -476,6 +482,10 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
 - [ ] **SALES-015 — Bid review:** compare estimated cost, selling value, markup and
   margin; distinguish overhead/burden, allowances, exclusions, alternates and taxes.
   Require explicit review for no-charge/zero-cost lines and configured approval limits.
+  Implemented: company margin/discount policy in Settings, saved bid financial
+  comparison and flag review, exact revision/policy/evaluation-bound admin approval
+  and revocation. Missing policy remains unconfigured. Overhead/burden/allowance and
+  alternate modeling plus real browser qualification remain open.
 - [ ] **SALES-016 — Accepted quote to procurement:** optional material selection from
   an actually accepted immutable quote version; create grouped draft POs or link lines
   to an existing editable draft PO. Preserve quote-line → demand/allocation → PO-line →

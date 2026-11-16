@@ -82,6 +82,16 @@ export function createSales({
     c.header("Cache-Control", "private, no-store");
     return check(c);
   };
+  app.get("/review-policy", (c) => c.json(quotes.review.policyDetail(templateActor(c), c.req.query())));
+  app.post("/review-policy", async (c) => {
+    const data = await body(c);
+    return c.json(quotes.review.savePolicy(templateActor(c), data));
+  });
+  app.get("/quotes/:id/review", (c) => c.json(quotes.review.summary(templateActor(c), c.req.param("id"), c.req.query())));
+  app.post("/quotes/:id/review", async (c) => {
+    const data = await body(c);
+    return c.json(quotes.review.record(templateActor(c), c.req.param("id"), data));
+  });
   app.get("/quote-templates", (c) => c.json(quotes.templates.list(templateActor(c), c.req.query())));
   app.get("/quote-templates/:id", (c) => c.json(quotes.templates.detail(templateActor(c), c.req.param("id"), c.req.query())));
   app.post("/quote-templates", async (c) => {

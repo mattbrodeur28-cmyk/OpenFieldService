@@ -163,7 +163,10 @@ export interface DraftLine {
 /** Public-field projection; internal costs, profile notes and stock evidence are absent. */
 export interface CustomerQuoteDocument {
   schemaVersion: 1;
-  kind: "draft_review";
+  kind: "draft_review" | "offered";
+  issuer?: import("./quote-lifecycle-types").PublicIssuer;
+  recipient?: import("./quote-lifecycle-types").Recipient;
+  offeredAt?: string;
   identifier: string;
   revision: number;
   savedAt: string;
@@ -173,7 +176,7 @@ export interface CustomerQuoteDocument {
   validUntil: string;
   pricingDate: string;
   currency: "USD";
-  identityBasis: "current_native_records";
+  identityBasis: "current_native_records" | "frozen_offer";
   customer: { kind: "customer" | "prospect"; name: string; address: string; city: string; state: string; zip: string };
   site: { name: string; address: string } | null;
   equipment: { name: string; manufacturer: string; model: string; serialNumber: string } | null;

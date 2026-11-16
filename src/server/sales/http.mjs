@@ -12,6 +12,7 @@ export function createSales({
   owners,
   resolveMessage,
   materialSnapshots,
+  clock,
 }) {
   const service = createSalesService({ storage, owners }),
     app = new Hono();
@@ -24,6 +25,7 @@ export function createSales({
     storage,
     sales: service,
     pricing: billingProfiles,
+    clock,
     materialSnapshots,
   });
   const activities = createActivities({
@@ -82,6 +84,21 @@ export function createSales({
     c.header("Cache-Control", "private, no-store");
     return check(c);
   };
+  app.get("/quote-issuer", c=>c.json(quotes.lifecycle.issuer.detail(templateActor(c),c.req.query())));
+  app.post("/quote-issuer",async c=>{const data=await body(c);return c.json(quotes.lifecycle.issuer.save(templateActor(c),data));});
+  app.get("/quotes/:id/lifecycle",c=>c.json(quotes.lifecycle.summary(templateActor(c),c.req.param("id"),c.req.query())));
+  app.post("/quotes/:id/lifecycle",async c=>{const data=await body(c);return c.json(quotes.lifecycle.record(templateActor(c),c.req.param("id"),data));});
+  app.get("/quotes/:id/offer-document",c=>{
+    const {html,...result}=quotes.lifecycle.frozenDocument(templateActor(c),c.req.param("id"),c.req.query());
+    c.header("X-Content-Type-Options","nosniff");return c.json(result);
+  });
+  app.get("/quotes/:id/offer-document.html",c=>{
+    const result=quotes.lifecycle.frozenDocument(templateActor(c),c.req.param("id"),c.req.query());
+    c.header("X-Content-Type-Options","nosniff");
+    c.header("Content-Security-Policy","sandbox; default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'");
+    c.header("Content-Disposition",`attachment; filename="${result.document.identifier}-r${result.document.revision}-offer.html"`);
+    return c.html(result.html);
+  });
   app.get("/review-policy", (c) => c.json(quotes.review.policyDetail(templateActor(c), c.req.query())));
   app.post("/review-policy", async (c) => {
     const data = await body(c);

@@ -8,7 +8,7 @@ export const owner = { id: "quote-owner", role: "owner", active: true },
   member = { id: "quote-member", role: "member", active: true },
   other = { id: "quote-other", role: "member", active: true },
   viewer = { id: "quote-viewer", role: "viewer", active: true };
-export function fixture(t) {
+export function fixture(t,overrides={}) {
   const directory = mkdtempSync(join(tmpdir(), "ofs-quotes-"));
   const storage = openStorage(join(directory, "service.sqlite"));
   t.after(() => {
@@ -25,6 +25,7 @@ export function fixture(t) {
     .run(materialId, "Native quote relay", "ea", 12, 0);
   const options = {
     storage,
+    ...overrides,
     owners: () => [owner, member, other],
     currentUser: () => actor,
     materialSnapshots: (ids) =>

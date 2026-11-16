@@ -389,8 +389,8 @@ estimates extend this model in M11/M12.
 ### Sales app — Kanban, quotes and conversion
 
 The dedicated Sales app now implements opportunities, configured pipelines and
-Kanban. Existing customer/site/equipment links are supported. Quote generation,
-acceptance and Dispatcher/job conversion remain subsequent increments. See
+Kanban. Existing customer/site/equipment links are supported. Quote generation now includes saved drafts, templates, pricing review and frozen
+offers with recorded external responses. Dispatcher/job conversion remains open. See
 [the release evidence](docs/releases/2026-11-14-sales-foundation.md) and
 [API/permission/operating rules](docs/api/sales.md).
 
@@ -423,7 +423,8 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   Customer-field saved-revision document review and escaped draft HTML download
   now omit internal costs/margin and label current native customer/location/equipment
   identity. They do not offer or accept a quote. PDF/print/browser qualification,
-  issuer configuration, alternates and customer acceptance remain open.
+  alternates and customer-facing acceptance/provider delivery remain open. Reviewed
+  issuer configuration and recorded external responses are implemented below.
   Reusable quote templates now have admin-reviewed immutable versions sourced from
   saved quotes, searchable history/archival, fresh material costs on application,
   and retained starting-template provenance on saved quote revisions. Applying one
@@ -441,7 +442,11 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   delivered/accepted/declined/expired status and retained acceptance evidence.
   Implemented increment: an allowlisted draft document projection plus authenticated
   HTML review copy over any saved revision; current native identity is labeled.
-  Offered identity snapshots, approval policy, PDF and delivery/acceptance remain open.
+  Frozen offered identity/issuer/recipient, current pricing qualification, retained
+  exact HTML/JSON and recorded delivery/acceptance/decline evidence are now implemented.
+  Unaccepted offers can become new draft revisions; accepted versions remain locked.
+  Provider-backed delivery/customer-facing acceptance, PDF and broader browser
+  qualification remain open. See [offer lifecycle](docs/api/sales-quote-lifecycle.md).
   See [document-review evidence](docs/releases/2026-11-15-quote-documents.md).
 - [ ] **SALES-007 — Options and approvals:** present multiple priced options where
   useful; enforce discount/margin approval limits and record deliberate exceptions.
@@ -450,7 +455,8 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   exact saved-margin/per-line discount checks, zero-cost/no-charge acknowledgments,
   immutable policy/approval/revocation versions and protected retries. Current
   revision/policy/event checks reject stale or competing approval writes. Multiple
-  customer options, full offering and browser qualification remain open.
+  customer options and broader browser qualification remain open. Core manual pricing
+  approval and exact frozen offering are browser-verified in the local fixture.
   See [bid review API](docs/api/sales-bid-review.md).
 - [ ] **SALES-008 — Quote to active job:** authorized conversion of an accepted quote
   creates one linked job (or an explicit phased-project handoff later), snapshots
@@ -484,7 +490,8 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   cost snapshots. Company policy: one Labor tax rule covers technician/apprentice/
   after-hours; service, permits, licensing, subcontractors, fuel and travel distance
   have no tax; Other fees removed. Internal draft snapshots and a pilot workbench
-  are implemented; offer/acceptance snapshots and complete bid workflow remain open.
+  are implemented; offered profile/pricing snapshots are retained by the frozen lifecycle. The full
+  options/bid/procurement workflow remains open.
   See [Sales pricing contracts](docs/api/sales-pricing.md).
 - [ ] **SALES-015 — Bid review:** compare estimated cost, selling value, markup and
   margin; distinguish overhead/burden, allowances, exclusions, alternates and taxes.
@@ -492,7 +499,8 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   Implemented: company margin/discount policy in Settings, saved bid financial
   comparison and flag review, exact revision/policy/evaluation-bound admin approval
   and revocation. Missing policy remains unconfigured. Overhead/burden/allowance and
-  alternate modeling plus real browser qualification remain open.
+  alternate modeling plus broader browser qualification remain open. The real browser
+  core now covers explicit policy setup, flag acknowledgment and manual approval.
 - [ ] **SALES-016 — Accepted quote to procurement:** optional material selection from
   an actually accepted immutable quote version; create grouped draft POs or link lines
   to an existing editable draft PO. Preserve quote-line → demand/allocation → PO-line →
@@ -507,6 +515,14 @@ acceptance and Dispatcher/job conversion remain subsequent increments. See
   prevent incomplete pricing approval/customer documents/template publication. Exact
   partial totals and real keyboard/pointer/save/reload/history/resolution evidence are
   documented in [the release record](docs/releases/2026-11-15-supplier-pending-quotes.md).
+
+- [x] **SALES-018 — Frozen offers and recorded responses:** reviewed issuer settings,
+  immutable customer-field JSON/HTML and hashes, native identity/pricing provenance,
+  exact versioned commands, attributed external delivery/response evidence and
+  protected history. Core configure/approve/offer/record acceptance/reload flow is
+  browser-verified. This is staff-recorded evidence, not provider delivery or verified
+  customer signatures. Remaining variant/browser/PDF gates are recorded in
+  [the release evidence](docs/releases/2026-11-15-quote-offers.md).
 
 **Acceptance:** create a prospect/opportunity, move it on Kanban with pointer and
 keyboard, generate/revise/accept a quote, convert it once into a linked active job,

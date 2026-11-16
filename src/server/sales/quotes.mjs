@@ -1,3 +1,5 @@
+import {quoteLifecycleSchema} from "./quote-lifecycle-schema.mjs";
+import {createQuoteLifecycle} from "./quote-lifecycle.mjs";
 import { hasPendingPricing } from "./estimating-domain.mjs";
 import { quoteReviewSchema } from "./quote-review-schema.mjs";
 import { createQuoteReview } from "./quote-review.mjs";
@@ -44,16 +46,18 @@ const saveInput = z
   );
 const pageInput = z.coerce.number().int().min(1).max(1000000);
 
-/** Internal drafts only. Customer offering/acceptance is a separate command boundary. */
-export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
+/** Draft pricing owns immutable revisions; lifecycle commands own frozen offers and recorded responses. */
+export function createQuotes({ storage, sales, pricing, materialSnapshots, clock }) {
   const db = storage.database;
   migrate(db, "_sales_quote_migrations", [
     { version: 1, sql: quoteSchema },
     { version: 2, sql: quoteTemplateSchema },
     { version: 3, sql: quoteReviewSchema },
+    { version: 4, sql: quoteLifecycleSchema },
   ]);
   const templates = createQuoteTemplates({ storage, sales, materialSnapshots });
   const review = createQuoteReview({ storage, sales });
+  const lifecycle = createQuoteLifecycle({storage,sales,review,pricing,source:lifecycleSource,documentInTransaction,clock});
 
   function head(id) {
     parse(uuid, id);
@@ -116,10 +120,12 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
     });
   }
 
-  function document(user, id, query = {}) {
+  function lifecycleSource(user,id,revision) {
+    requireWriter(user);const row=head(id);authorize(user,row);
+    return {head:row,quote:shape(row,revision),opportunity:sales.opportunity(row.opportunity_id)};
+  }
+  function documentInTransaction(user,id,revision) {
     requireWriter(user);
-    const revision = query.revision === undefined ? undefined : parse(pageInput, query.revision);
-    return transaction(db, () => {
       const row = head(id);
       authorize(user, row);
       const selectedQuote = shape(row, revision);
@@ -134,8 +140,12 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
       const equipment = opportunity.asset_id && opportunity.customer_id ? db.prepare(
         "SELECT name,manufacturer,model,serial_number FROM assets WHERE id=? AND customer_id=? AND (? IS NULL OR site_id=?)",
       ).get(opportunity.asset_id, opportunity.customer_id, opportunity.site_id, opportunity.site_id) : null;
-      return { document: customerQuoteDocument(selectedQuote, { opportunity, customer, site, equipment }) };
-    });
+      return customerQuoteDocument(selectedQuote, { opportunity, customer, site, equipment });
+  }
+  function document(user, id, query = {}) {
+    requireWriter(user);
+    const revision=query.revision===undefined?undefined:parse(pageInput,query.revision);
+    return transaction(db,()=>({document:documentInTransaction(user,id,revision)}));
   }
 
   function list(user, query = {}) {
@@ -321,5 +331,5 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots }) {
       };
     });
   }
-  return { list, detail, save, options, document, templates, review };
+  return { list, detail, save, options, document, templates, review, lifecycle };
 }

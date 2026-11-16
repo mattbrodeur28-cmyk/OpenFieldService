@@ -117,3 +117,9 @@ customer delivery/acceptance and job/procurement handoff remain open.
 
 See [pending material pricing](sales-pending-pricing.md) for nullable internal draft
 prices, unlisted working items, partial subtotals and hard approval/export gates.
+
+## Offering boundary
+
+[Quote lifecycle commands](sales-quote-lifecycle.md) now recheck current qualification
+in the offer transaction and retain its policy/evaluation/event evidence. Issued
+offers retain that review snapshot; later policy changes do not rewrite them.

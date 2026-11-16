@@ -5,6 +5,7 @@ const BillingProfileSettings = lazy(() =>
     default: m.BillingProfileSettings,
   })),
 );
+const QuoteIssuerSettings = lazy(()=>import("./quote-issuer-settings").then(m=>({default:m.QuoteIssuerSettings})));
 const ReviewPolicySettings = lazy(() => import("./review-policy-settings").then(m => ({default:m.ReviewPolicySettings})));
 import { CompanySettings } from "./company-settings";
 import { TextField } from "./ui/input";
@@ -272,6 +273,7 @@ export function ProfilePopup({
                     </Suspense>
                   )}
                   {admin && <Suspense fallback={<p>Loading pricing approval policy…</p>}><ReviewPolicySettings /></Suspense>}
+                  {admin && <Suspense fallback={<p>Loading quote issuer…</p>}><QuoteIssuerSettings /></Suspense>}
                   <DeviceStorage />
                   <section class="settings-card">
                     <h3>Integrations</h3>

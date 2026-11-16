@@ -31,10 +31,11 @@ function ReviewDialog({review,action,close,saved}:{review:BidReview;action:"appr
     <div class="quote-actions"><Button disabled={command.busy||command.uncertain} onClick={attemptClose}>Cancel</Button><Button variant="primary" disabled={command.busy||readOnly} onClick={submit}>{command.uncertain?"Retry exact command":action==="approve"?"Approve revision":"Revoke approval"}</Button></div>
   </Dialog>;
 }
-export function BidReviewPanel({id,revision,disabled}:{id:string;revision:number;disabled:boolean}){
+export function BidReviewPanel({id,revision,disabled,onChanged}:{id:string;revision:number;disabled:boolean;onChanged?():void}){
   const {user}=useAccount(),{readOnly}=useConnectivity();
   const [data,setData]=useState<BidReview|null>(null),[error,setError]=useState(""),[page,setPage]=useState(1),[refresh,setRefresh]=useState(0),[action,setAction]=useState<"approve"|"revoke"|null>(null);
   useEffect(()=>{let active=true;setData(null);setError("");void accountRequest<BidReview>(`/api/sales/quotes/${id}/review?revision=${revision}&page=${page}`).then(result=>{if(active)setData(result);}).catch(error=>{if(active)setError(error.message);});return()=>{active=false;};},[id,revision,page,refresh]);
+  useEffect(()=>{const changed=()=>{if(!action)setRefresh(value=>value+1);};window.addEventListener("ofs:sales-config-changed",changed);return()=>window.removeEventListener("ofs:sales-config-changed",changed);},[action]);
   const editable=!!data&&data.revision===data.headVersion&&data.quoteStatus==="draft"&&!!data.policy&&data.state!=="pricing_incomplete"&&isAdministrator(user)&&!disabled&&!readOnly;
   const percent=(value:number|null)=>value===null?"Not defined":`${(value/100).toFixed(2)}%`;
   return <Card>
@@ -47,6 +48,6 @@ export function BidReviewPanel({id,revision,disabled}:{id:string;revision:number
       <details><summary>Approval history for this revision</summary>{data.history.length?data.history.map(event=><div key={event.id}><p>{event.action==="approve"?"Approved":"Revoked"} · Policy v{event.policyVersion}</p><p>{event.note}</p></div>):<p class="workspace-help">No manual pricing event recorded.</p>}<div class="quote-actions"><Button disabled={page===1} onClick={()=>setPage(page-1)}>Newer</Button><Button disabled={!data.hasMore} onClick={()=>setPage(page+1)}>Older</Button></div></details>
       <p class="workspace-help">Pricing qualification does not record an offer or customer acceptance.</p>
     </>}
-    {action&&data&&<ReviewDialog review={data} action={action} close={()=>setAction(null)} saved={()=>{setAction(null);setRefresh(refresh+1);}}/>}
+    {action&&data&&<ReviewDialog review={data} action={action} close={()=>setAction(null)} saved={()=>{setAction(null);setRefresh(refresh+1);onChanged?.();}}/>}
   </Card>;
 }

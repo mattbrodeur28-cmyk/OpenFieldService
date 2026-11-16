@@ -1,3 +1,4 @@
+import {QuoteLifecyclePanel} from "./quote-lifecycle";
 import { BidReviewPanel } from "./bid-review";
 import { commandFailureIsDefinite } from "../../command-recovery.mjs";
 import { TemplateCommandDialog } from "./template-command";
@@ -85,6 +86,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
   const [documentOpen, setDocumentOpen] = useState(false),
     [publishingTemplate,setPublishingTemplate] = useState(false),
     [templateRefresh,setTemplateRefresh] = useState(0),
+    [reviewRefresh,setReviewRefresh] = useState(0),
     [template,setTemplate] = useState<TemplateReference|null>(null);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState("");
@@ -429,7 +431,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           </Button>
           <h1>{saved?.identifier ?? "New quote"}</h1>
           <p class="workspace-help">
-            Internal draft ·{" "}
+            {saved?.status && saved.status!=="draft" ? saved.status : "Internal draft"} ·{" "}
             {saved
               ? `Revision ${saved.revision} of ${saved.version}`
               : "Not saved"}
@@ -438,12 +440,12 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
         </div>
         <div class="quote-actions">
           {saved && (
-            <Button disabled={disabled || dirty} onClick={() => void load()}>
+            <Button disabled={busy||resourceBusy||loading||readOnly||uncertain||dirty} onClick={() => void load()}>
               Refresh
             </Button>
           )}
           {saved && isAdministrator(user) && <Button disabled={busy||resourceBusy||loading||dirty||uncertain||readOnly||saved.estimate.pricingComplete===false} onClick={()=>setPublishingTemplate(true)}>Save as template</Button>}
-          {saved && <Button disabled={busy || resourceBusy || loading || dirty || uncertain || readOnly || saved.estimate.pricingComplete===false} onClick={() => setDocumentOpen(true)}>Document preview</Button>}
+          {saved && <Button disabled={busy || resourceBusy || loading || dirty || uncertain || readOnly || saved.estimate.pricingComplete===false} onClick={() => setDocumentOpen(true)}>Draft document review</Button>}
           <Button
             disabled={disabled || !opportunity || !profile}
             onClick={() => void calculate()}
@@ -470,8 +472,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
       {publishingTemplate && saved && <TemplateCommandDialog source={{quoteId:saved.id,revision:saved.revision}} close={()=>setPublishingTemplate(false)} saved={item=>{setPublishingTemplate(false);setTemplateRefresh(value=>value+1);setNotice(`Saved template ${item.config.name} v${item.version}.`);}}/>}
       {documentOpen && saved && <QuoteDocumentPreview id={saved.id} revision={saved.revision} close={() => setDocumentOpen(false)}/>}
       <p class="workspace-help">
-        Prepare an internal estimate. Offering, customer acceptance, and
-        accepted-material purchasing are not available yet.
+        Prepare and review pricing, freeze an offer, and record external delivery and customer-response evidence. Job conversion and accepted-material purchasing remain separate steps.
       </p>
       {(error || company.error) && (
         <Notice tone="danger">{error || company.error}</Notice>
@@ -848,7 +849,8 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                   </div>
                 </Card>
               )}
-              {saved && <BidReviewPanel key={`${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain}/>}
+              {saved && <QuoteLifecyclePanel key={`lifecycle:${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} refreshKey={reviewRefresh} reloaded={()=>void load()}/>}
+              {saved && <BidReviewPanel key={`${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} onChanged={()=>setReviewRefresh(value=>value+1)}/>}
             </aside>
           </div>
         </>

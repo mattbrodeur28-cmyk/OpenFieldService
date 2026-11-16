@@ -1,9 +1,10 @@
 # Internal quote drafts
 
-Standalone service-database module under `/api/sales`. This increment persists
-internal quote drafts; the Sales Quotes workbench pilot is implemented with browser qualification still incomplete. There is no offering,
-final offered document, customer acceptance, delivery, job conversion, or procurement
-allocation command yet. A pipeline stage change is not quote acceptance.
+Standalone service-database module under `/api/sales`. This API owns immutable internal draft pricing and the
+Quotes workbench. The dedicated [offer lifecycle](sales-quote-lifecycle.md) now
+freezes reviewed offers and records external delivery/customer-response evidence.
+Provider delivery, verified customer signatures, job conversion and procurement
+remain open. A pipeline stage change is never quote acceptance.
 
 ## Access and native records
 
@@ -42,7 +43,8 @@ are private and must be omitted from future customer-facing representations.
 
 Each successful save increments the draft version and appends an attributed,
 immutable revision and native material line references. The head's opportunity
-cannot change. Only draft heads may be edited. No status-change endpoint exists.
+cannot change. Only draft heads may be edited. Dedicated lifecycle commands control offering and
+recorded response/expiry/withdrawal; ordinary draft saving cannot change status.
 Identifiers Q-000001 etc. use transactionally allocated unique sequence numbers;
 a failed save does not consume a number.
 
@@ -157,3 +159,11 @@ all lifecycle/identity requirements inside its own transaction.
 
 See [pending material pricing](sales-pending-pricing.md) for nullable internal draft
 prices, unlisted working items, partial subtotals and hard approval/export gates.
+
+## Frozen offers and recorded external responses
+
+Quote migration v4 adds the reviewed issuer, immutable offered documents and
+response evidence. See [the lifecycle API](sales-quote-lifecycle.md). `/document`
+remains a current-identity draft review; use `/offer-document` for the frozen
+artifact. Historical draft documentation above describes the original foundation,
+not a restriction that offering must remain unimplemented.

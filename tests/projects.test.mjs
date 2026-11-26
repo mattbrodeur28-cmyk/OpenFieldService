@@ -35,10 +35,17 @@ test("projects retain phases, milestones and linked jobs", (t) => {
   f.db.prepare("INSERT INTO jobs(id,identifier,customer_id,scheduled_date) VALUES(?,?,?,'2027-01-10')").run(job, "J-1", f.customer);
   const link = f.projects.linkJob(owner, saved.project.id, { id: randomUUID(), requestKey: randomUUID(), jobId: job, phaseId: phase.phase.id, reason, reviewAttested: true });
   assert.equal(link.link.jobId, job);
+  const site = randomUUID();
+  f.db.prepare("INSERT INTO sites(id,customer_id,name) VALUES(?,?,?)").run(site, f.customer, "Site A");
+  const siteLink = f.projects.linkSite(owner, saved.project.id, { id: randomUUID(), requestKey: randomUUID(), siteId: site, reason, reviewAttested: true });
+  assert.equal(siteLink.link.siteId, site);
+  f.projects.saveDeliverable(owner, saved.project.id, { id: randomUUID(), requestKey: randomUUID(), name: "O&M manual", dueDate: "2027-06-30", completed: false, reason, reviewAttested: true });
   const detail = f.projects.detail(owner, saved.project.id);
   assert.equal(detail.phases.length, 1);
   assert.equal(detail.milestones.length, 1);
   assert.equal(detail.jobs.length, 1);
+  assert.equal(detail.sites.length, 1);
+  assert.equal(detail.deliverables.length, 1);
   assert.equal(detail.jobs[0].phaseId, phase.phase.id);
   // idempotent replay of an identical update
   const update = { id: saved.project.id, requestKey: randomUUID(), expectedVersion: 1, customerId: f.customer, title: "AHU retrofit", description: "Controls upgrade", status: "active", projectManager: owner.id, plannedStart: "2027-01-01", plannedEnd: "2027-06-30", reason, reviewAttested: true };

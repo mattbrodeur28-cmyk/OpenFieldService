@@ -52,3 +52,16 @@ export const linkJobInput = z.object({
     reason: z.string().trim().min(10).max(2000),
     reviewAttested: z.literal(true),
 }).strict();
+
+export const linkSiteInput = z.object({
+    id: uuid, requestKey: uuid, siteId: uuid,
+    reason: z.string().trim().min(10).max(2000),
+    reviewAttested: z.literal(true),
+}).strict();
+
+export const deliverableInput = z.object({
+    id: uuid, requestKey: uuid, name: z.string().trim().min(1).max(200),
+    dueDate: date.default(""), completed: z.boolean().default(false),
+    reason: z.string().trim().min(10).max(2000),
+    reviewAttested: z.literal(true),
+}).strict();

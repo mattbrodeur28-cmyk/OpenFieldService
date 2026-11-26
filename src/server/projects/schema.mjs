@@ -50,3 +50,22 @@ CREATE TABLE _project_jobs(
 );
 CREATE INDEX _project_jobs_project ON _project_jobs(project_id,job_id);
 `;
+
+// v2: project sites and deliverables.
+export const projectSchemaV2 = `
+CREATE TABLE _project_sites(
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES _projects(id) ON DELETE RESTRICT,
+  site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE RESTRICT,
+  UNIQUE(project_id,site_id)
+);
+CREATE INDEX _project_sites_project ON _project_sites(project_id,site_id);
+CREATE TABLE _project_deliverables(
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES _projects(id) ON DELETE RESTRICT,
+  name TEXT NOT NULL,
+  due_date TEXT NOT NULL DEFAULT '',
+  completed_at TEXT
+);
+CREATE INDEX _project_deliverables_project ON _project_deliverables(project_id,due_date);
+`;

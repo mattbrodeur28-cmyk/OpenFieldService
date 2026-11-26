@@ -23,5 +23,8 @@ export function createProjectModule({ storage, currentUser }) {
     app.post("/:id/milestones", async (c) => c.json(projects.saveMilestone(actor(c), c.req.param("id"), await body(c))));
     app.post("/:id/jobs", async (c) => c.json(projects.linkJob(actor(c), c.req.param("id"), await body(c))));
     app.delete("/:id/jobs/:linkId", (c) => c.json(projects.unlinkJob(actor(c), c.req.param("id"), c.req.param("linkId"))));
+    app.post("/:id/sites", async (c) => c.json(projects.linkSite(actor(c), c.req.param("id"), await body(c))));
+    app.delete("/:id/sites/:linkId", (c) => c.json(projects.unlinkSite(actor(c), c.req.param("id"), c.req.param("linkId"))));
+    app.post("/:id/deliverables", async (c) => c.json(projects.saveDeliverable(actor(c), c.req.param("id"), await body(c))));
     return { app, projects };
 }

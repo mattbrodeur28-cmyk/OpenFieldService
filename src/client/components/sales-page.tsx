@@ -748,7 +748,7 @@ function SalesWorkspace({ opportunityId }: { opportunityId: string | null }) {
           Next
         </Button>
       </footer>
-      {editor && (
+      {editor && pipeline && (
         <OpportunityEditor
           key={editor === "new" ? "new" : editor.id}
           row={editor === "new" ? null : editor}

@@ -84,8 +84,9 @@ The navigation/profile/HR/channel refresh and conversational Builder core are
 implemented in the [M0/M1 release](docs/releases/2026-11-14-workspace.md). M1 remains
 in progress for full accessibility/theme qualification and later collaboration/preview
 slices. Local browser evidence is not a live LXC deployment claim. Dispatcher core and the first Sales opportunities/pipelines/Kanban increment are
-implemented. QuickBooks integration, contracts, broader CRM and Kubernetes
-qualification remain planned work.
+implemented. Contracts are now in progress (drafts, review, offers, authorization,
+maintenance plans, due-work generation and entitlement usage). QuickBooks integration,
+broader CRM and Kubernetes qualification remain planned work.
 
 ## Milestone order
 
@@ -96,7 +97,7 @@ qualification remain planned work.
 | M2 | Maintainable backend boundaries and operational foundations | Planned | M0; complete M1 first |
 | M3 | Salesforce-style Dispatcher app | Core implemented; accessibility qualification remains | M2 concurrency and scheduling foundation |
 | M4 | Commercial CRM, Sales pipeline and quote-to-job conversion | In progress: Sales opportunities, pipelines, Kanban, follow-ups and CRM accounts/contacts | M2; existing customers/sites |
-| M5 | Contracts, maintenance agreements and renewals | Planned | M4 customer/contact model; M3 scheduling |
+| M5 | Contracts, maintenance agreements and renewals | In progress: drafts, review, offers, authorization, maintenance plans, due-work generation and entitlement usage | M4 customer/contact model; M3 scheduling |
 | M6 | QuickBooks-backed accounting | Planned | M2 reliable integration jobs/audit; M4 mappings |
 | M7 | Controls records, commissioning and handover | Planned | M4; existing equipment foundation |
 | M11 | Commercial/construction projects, phased billing, crews and job costing | Planned | M2–M6 shared domains; project and ledger foundations |
@@ -664,15 +665,16 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   generation gated on an active authorized term and current accepted-scope ownership,
   with auditable per-occurrence skips. Holiday/timezone shifting and populated-migration
   qualification remain open.
-- [ ] **CONTRACT-005 — Entitlements:** included visits/hours, response priority,
+- [x] **CONTRACT-005 — Entitlements:** included visits/hours, response priority,
   billable exceptions and coverage exhaustion with explainable decisions.
-  Increment: optional included visits/hours and response priority bind immutably to the
-  authorization; usage is a live projection of approved in-scope native reports (a visit)
-  and approved `work` minutes (hours) within the active term. Exhaustion and a per-report
-  consumption detail are explainable; `billingEntitlement` flips to a billable exception
-  when either included amount is exhausted. Amendments/renewal, billable-exception
-  invoicing handoff, response-priority dispatch effects and qualification remain open.
-  See [entitlement API](docs/api/agreement-entitlement.md).
+  Implemented: optional included visits/hours and response priority bind immutably to
+  the authorization; usage is a live projection of approved in-scope native reports (a
+  visit) and approved `work` minutes (hours) within the active term. Exhaustion and a
+  per-report consumption detail are explainable; `billingEntitlement` flips to a
+  billable exception when either included amount is exhausted. Amendments/renewal
+  (CONTRACT-002/006), billable-exception invoicing handoff (TECH-008/M6) and
+  response-priority dispatch effects (M3) are separate follow-on work; browser/LXC
+  qualification remains deferred. See [entitlement API](docs/api/agreement-entitlement.md).
 - [ ] **CONTRACT-006 — Renewals:** assigned tasks, reminders, repricing, customer
   approval and retained history; no renewal without the configured authority/terms.
 - [ ] **CONTRACT-007 — Acceptance/documents:** templates/PDFs, signature or documented

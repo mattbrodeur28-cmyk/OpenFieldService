@@ -33,7 +33,7 @@ export function AssetDetail({ id }: { id: string }) {
     catch (err) { setError((err as Error).message); }
   };
   return <div class="page equipment-page">
-    <div class="page-header"><button class="btn" onClick={() => navigate(detail ? `/customers/${detail.asset.customer_id}` : "/customers")}>Back to customer</button>
+    <div class="record-header"><div class="record-header-main"><button class="btn btn-back" onClick={() => navigate(detail ? `/customers/${detail.asset.customer_id}` : "/customers")}>Back to customer</button><div><h1 class="record-header-title">{detail?.asset.name || "Equipment"}</h1><div class="record-header-subtitle">{detail && <><span>{detail.asset.customer_name} · {detail.asset.site_name}</span><span>{detail.asset.serial_number || "No serial number"}</span></>}</div></div></div>
       <div class="equipment-actions">
         <button class="btn" disabled={!detail || loading} onClick={edit}>Edit equipment</button>
         <button class="btn btn-primary" disabled={!detail || loading || !!error} onClick={() => setScheduling(true)}>Schedule job</button>
@@ -42,7 +42,6 @@ export function AssetDetail({ id }: { id: string }) {
     {loading ? <p role="status">Loading equipment…</p> : detail && <>
       <div class="equipment-record"><aside class="equipment-rail">
       <CustomRecordFields key={id} objectKey="equipment.asset" recordId={id}/>
-      <h1>{detail.asset.name}</h1><p class="text-muted">{detail.asset.customer_name} · {detail.asset.site_name}</p>
       <dl class="equipment-facts">{[
         ["Serial number", detail.asset.serial_number], ["Manufacturer", detail.asset.manufacturer], ["Model", detail.asset.model],
         ["Lifecycle status", detail.asset.status.replaceAll("_", " ")], ["Installed", detail.asset.installation_date], ["Commissioned", detail.asset.commissioning_date],

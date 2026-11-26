@@ -41,7 +41,7 @@ const VIEW_ROUTES: Record<string, View> = {
 };
 
 function parseRoute(path: string): RouteState {
-  const clean = path.replace(/^\/+|\/+$/g, "");
+  const clean = path.replace(/^\/+|\/+$/g, "").split(/[?#]/)[0];
   const segments = clean.split("/");
   const viewKey = segments[0] || "";
   const view = VIEW_ROUTES[viewKey] || "dashboard";

@@ -6,6 +6,7 @@
   color-scheme: light;
   --bg: var(--slds-g-color-neutral-base-95);
   --card-bg: var(--slds-g-color-neutral-base-100);
+  --surface: var(--slds-g-color-neutral-base-100);
   --surface-sunken: var(--slds-g-color-neutral-base-95);
   --border: var(--slds-g-color-border-base-1);
   --border-subtle: var(--slds-g-color-neutral-base-90);
@@ -46,6 +47,7 @@
     color-scheme: dark;
     --bg: #0b0c0c;
     --card-bg: #16181a;
+    --surface: #16181a;
     --surface-sunken: #1c1f22;
     --border: #2e3236;
     --border-subtle: #2e3236;

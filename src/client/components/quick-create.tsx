@@ -39,6 +39,7 @@ export function QuickCreate() {
             onClick={() => {
               setOpen(false);
               navigate("/sales?new=1");
+              window.dispatchEvent(new CustomEvent("ofs:new-opportunity"));
             }}
           >
             <TrendingUp size={15} /> New Opportunity

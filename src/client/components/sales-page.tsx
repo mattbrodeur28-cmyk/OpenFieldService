@@ -179,10 +179,13 @@ function SalesWorkspace({ opportunityId }: { opportunityId: string | null }) {
   }, [load]);
   useEffect(() => {
     // Salesforce global-action deep link: open a new opportunity editor.
-    if (new URLSearchParams(window.location.search).has("new")) {
+    const openNew = () => {
       setEditor("new");
       window.history.replaceState(null, "", window.location.pathname);
-    }
+    };
+    if (new URLSearchParams(window.location.search).has("new")) openNew();
+    window.addEventListener("ofs:new-opportunity", openNew);
+    return () => window.removeEventListener("ofs:new-opportunity", openNew);
   }, []);
   useEffect(() => {
     const poll = () => {

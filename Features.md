@@ -791,6 +791,12 @@ domain modules, with explicit permissions and accounting ownership.
 - [ ] **PROJ-001 — Project structure:** customer, contract/proposal, sites, project
   manager, phases, cost codes, milestones, deliverables, planned/actual dates and
   linked jobs/appointments. Convert an accepted proposal without re-entering scope.
+  Implemented: versioned projects with customer, title, status, project manager,
+  planned/actual dates, source reference and archive; phases with cost code/owner/date
+  and position; milestones with due/completed; and linked jobs (one project, with
+  phase assignment and customer/job validation) — `_projects`, `_project_phases`,
+  `_project_milestones`, `_project_jobs` (v1) with idempotent requests. Remaining:
+  project sites, deliverables, appointment links and accepted-proposal conversion.
 - [ ] **PROJ-002 — Project management:** baseline budget and schedule, dependencies,
   progress, committed/actual costs, forecast, issues and overdue actions. Show each
   phase's responsible owner and preserve approved baseline versions.

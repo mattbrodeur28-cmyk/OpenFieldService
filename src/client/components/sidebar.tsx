@@ -5,7 +5,7 @@ import { useEffect, useState } from "preact/hooks";
 import { ProfilePopup, type ProfileSection } from "./profile-popup";
 import { useApp } from "../context";
 import { useAccount, isAdministrator, canManagePeople } from "../auth";
-import { Wallet, ContactRound, Truck, TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, Package } from "lucide-preact";
+import { Wallet, ContactRound, Truck, TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Settings, Package, FolderKanban } from "lucide-preact";
 import type { View } from "../types";
 
 const navItems: { view: View; path: string; label: string; icon: typeof LayoutDashboard }[] = [
@@ -13,6 +13,7 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "dispatcher", path: "/dispatcher", label: "Dispatcher", icon: CalendarClock },
   { view: "jobs", path: "/jobs", label: "Jobs", icon: Briefcase },
   { view: "customers", path: "/customers", label: "Customers", icon: Users },
+  { view: "projects", path: "/projects", label: "Projects", icon: FolderKanban },
   { view: "agreements", path: "/agreements", label: "Agreements", icon: Briefcase },
   { view: "timesheets", path: "/timesheets", label: "Timesheets", icon: CalendarClock },
   { view: "technicians", path: "/technicians", label: "Technicians", icon: Wrench },
@@ -34,7 +35,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
   const active = (view: View) => currentView === view || (["schedule","calendar"].includes(currentView) && view==="dispatcher") || (currentView==="materials" && view==="inventory") || (currentView === "assets" && view === "customers") || (["purchasing", "invoices"].includes(currentView) && view === "finance");
   const colors: Partial<Record<View, string>> = {
     timesheets: "blue", sales: "cyan", dispatcher: "blue", schedule: "pink", jobs: "purple", customers: "blue", technicians: "pink",
-    invoices: "purple", materials: "cyan", services: "purple",
+    invoices: "purple", materials: "cyan", services: "purple", projects: "cyan",
   };
   const navItem = (item: typeof navItems[number]) => {
     const count = item.view === "jobs" ? stats.jobs : item.view === "customers" ? stats.customers

@@ -2,8 +2,8 @@ import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { createAgreements } from './service.mjs';
 import { AgreementError, reader } from './domain.mjs';
-export function createAgreementModule({ storage, currentUser, issuer, timeZone, clock }) {
-    const agreements = createAgreements({ storage, issuer, timeZone, clock }), app = new Hono();
+export function createAgreementModule({ storage, currentUser, issuer, timeZone, clock, maintenanceJobs }) {
+    const agreements = createAgreements({ storage, issuer, timeZone, clock, maintenanceJobs }), app = new Hono();
     const actor = c => {
         const user = currentUser(c);
         reader(user);
@@ -59,6 +59,21 @@ export function createAgreementModule({ storage, currentUser, issuer, timeZone, 
                 throw new AgreementError(error?.name === 'BodyLimitError' ? 'Agreement request too large.' : 'Send valid authorization JSON.', error?.name === 'BodyLimitError' ? 413 : 400);
             }
             return c.json(agreements.activation[method](actor(c), c.req.param('id'), data));
+        });
+    app.get('/:id/maintenance/plans', c => c.json(agreements.maintenance.plans(actor(c), c.req.param('id'))));
+    app.get('/:id/maintenance/plans/:planId', c => c.json(agreements.maintenance.detail(actor(c), c.req.param('id'), c.req.param('planId'))));
+    app.get('/:id/maintenance/plans/:planId/history', c => c.json(agreements.maintenance.history(actor(c), c.req.param('id'), c.req.param('planId'))));
+    app.get('/:id/maintenance/preview', c => c.json(agreements.maintenance.preview(actor(c), c.req.param('id'), c.req.query())));
+    for (const [suffix, method] of [['plans', 'save'], ['generate', 'generate'], ['skip', 'skip']])
+        app.post('/:id/maintenance/' + suffix, async (c) => {
+            let data;
+            try {
+                data = await c.req.json();
+            }
+            catch (error) {
+                throw new AgreementError(error?.name === 'BodyLimitError' ? 'Agreement request too large.' : 'Send valid maintenance JSON.', error?.name === 'BodyLimitError' ? 413 : 400);
+            }
+            return c.json(agreements.maintenance[method](actor(c), c.req.param('id'), data));
         });
     app.get('/:id/lifecycle', c => c.json(agreements.lifecycle.summary(actor(c), c.req.param('id'))));
     app.get('/:id/lifecycle/history', c => c.json(agreements.lifecycle.history(actor(c), c.req.param('id'), c.req.query())));

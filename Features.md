@@ -654,8 +654,16 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   amendments/renewal and remaining qualification stay open. See [agreement lifecycle](docs/api/agreement-lifecycle.md).
 - [ ] **CONTRACT-003 — Maintenance plans:** equipment-specific recurring tasks,
   seasonal schedules, checklists, template versions and required evidence.
+  Increment: versioned plans bound to the agreement's selected scope with monthly/
+  quarterly/annual frequency, seasonal-month filtering, ordered required/optional
+  checklists and immutable revisions/archive. Holiday shifting and completion-evidence
+  links remain open. See [maintenance API](docs/api/agreement-maintenance.md).
 - [ ] **CONTRACT-004 — Work generation:** idempotent job creation, scheduling horizon,
   due-work preview, exceptions, holiday/timezone rules and auditable skips.
+  Increment: read-only due-work preview and actor/content-idempotent native PM Job
+  generation gated on an active authorized term and current accepted-scope ownership,
+  with auditable per-occurrence skips. Holiday/timezone shifting and populated-migration
+  qualification remain open.
 - [ ] **CONTRACT-005 — Entitlements:** included visits/hours, response priority,
   billable exceptions and coverage exhaustion with explainable decisions.
   Increment: explainable equipment scope against accepted/authorized term and
@@ -1402,3 +1410,10 @@ per-asset equipment-scope eligibility and exact retry/rollback boundaries. Previ
 restarted after a consistent two-database backup; additive v5 loads on the live
 snapshot. Remaining M5 maintenance/entitlement/work-generation and browser/provider
 gates stay open in the qualification record.
+
+Maintenance plans/work-generation checkpoint:260/260 tests, TypeScript and production
+build pass. Six new maintenance cases cover versioned plans, seasonal filtering,
+active-term gated due preview, idempotent native PM Job generation, auditable skips
+and late-ack rollback. Preview restarted after a consistent two-database backup;
+additive v6 loads on the live snapshot. Entitlement usage, holiday shifting,
+populated upgrade and browser/provider gates stay open.

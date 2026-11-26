@@ -3,6 +3,7 @@ import {createHrDocuments} from "./hr/documents-http.mjs";
 import {createHr} from "./hr/http.mjs";
 import {createPlatform} from "./platform/http.mjs";
 import { createJobHandoff } from "./service/job-handoff.mjs";
+import { createMaintenanceJobs } from "./service/maintenance-jobs.mjs";
 import { createService } from "./service/http.mjs";
 import { quoteMaterialSnapshots } from "./inventory/quote-pricing.mjs";
 import { createSales } from "./sales/http.mjs";
@@ -30,7 +31,8 @@ const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABA
 const auth = createAuth({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
 const dispatcher = createDispatcher({ storage, currentUser: auth.currentUser });
 const service = createService({storage,currentUser:auth.currentUser,people:auth.activeWriters});
-const agreements=createAgreementModule({storage,currentUser:auth.currentUser,issuer:()=>sales.issuer(),timeZone:()=>dispatcher.timeZone});
+const maintenanceJobs = createMaintenanceJobs({storage});
+const agreements=createAgreementModule({storage,currentUser:auth.currentUser,issuer:()=>sales.issuer(),timeZone:()=>dispatcher.timeZone,maintenanceJobs});
 const hr=createHr({storage,currentUser:auth.currentUser});
 const hrDocuments=createHrDocuments({storage,currentUser:auth.currentUser});
 const jobHandoff = createJobHandoff({storage});

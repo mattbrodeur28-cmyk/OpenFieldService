@@ -3,6 +3,20 @@ import { createHash } from 'node:crypto';
 import { parse, uuid, reader, writer, fail } from './domain.mjs';
 const hash = value => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex'), digest = z.string().regex(/^[a-f0-9]{64}$/), reason = z.string().trim().min(10).max(2000);
 const date = z.string().refine(v => /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, 'Choose a valid Company date.');
+export function companyDay(instant, zone) { const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(instant).map(part => [part.type, part.value])); return `${p.year}-${p.month}-${p.day}`; }
+export function termState(activation, cancellation, companyDate) {
+    if (!activation)
+        return 'not_authorized';
+    if (companyDate < activation.authorizedOn)
+        return 'not_authorized_yet';
+    if (cancellation && companyDate >= cancellation.effectiveOn)
+        return 'cancelled';
+    if (companyDate < activation.startsOn)
+        return 'scheduled';
+    if (companyDate > activation.endsOn)
+        return 'expired';
+    return 'active';
+}
 const activateInput = z.object({ id: uuid, requestKey: uuid, offerId: uuid, expectedAcceptanceSequence: z.number().int().positive().safe(), expectedSnapshotHash: digest, expectedPdfHash: digest, reason, reviewAttested: z.literal(true) }).strict();
 const cancelInput = z.object({ id: uuid, requestKey: uuid, activationId: uuid, expectedSourceToken: digest, effectiveOn: date, reason, reviewAttested: z.literal(true) }).strict();
 const coverageInput = z.object({ assetId: uuid, date: date.optional() }).strict();
@@ -13,21 +27,7 @@ export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', c
             throw new Error('Agreement clock is invalid.');
         return value;
     }
-    function day(instant, zone) { const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(instant).map(part => [part.type, part.value])); return `${p.year}-${p.month}-${p.day}`; }
-    function state(activation, cancellation, companyDate) {
-        if (!activation)
-            return 'not_authorized';
-        if (companyDate < activation.authorizedOn)
-            return 'not_authorized_yet';
-        if (cancellation && companyDate >= cancellation.effectiveOn)
-            return 'cancelled';
-        if (companyDate < activation.startsOn)
-            return 'scheduled';
-        if (companyDate > activation.endsOn)
-            return 'expired';
-        return 'active';
-    }
-    function inSnapshot(id, observation) { const activation = repo.activation(id), cancellation = activation ? repo.activationCancellation(activation.id) : null, observed = observation ?? now(), zone = activation?.timeZone ?? timeZone(), companyDate = day(observed, zone); return { activation, cancellation, authorizationActive: state(activation, cancellation, companyDate) === 'active', state: state(activation, cancellation, companyDate), companyDate, observedAt: observed.toISOString(), sourceToken: hash({ activation, cancellation }), billingEntitlement: false, workGenerated: false }; }
+    function inSnapshot(id, observation) { const activation = repo.activation(id), cancellation = activation ? repo.activationCancellation(activation.id) : null, observed = observation ?? now(), zone = activation?.timeZone ?? timeZone(), companyDate = companyDay(observed, zone); return { activation, cancellation, authorizationActive: termState(activation, cancellation, companyDate) === 'active', state: termState(activation, cancellation, companyDate), companyDate, observedAt: observed.toISOString(), sourceToken: hash({ activation, cancellation }), billingEntitlement: false, workGenerated: false }; }
     function replay(user, key, fingerprint) {
         const prior = repo.prior(key);
         if (!prior)
@@ -105,7 +105,7 @@ export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', c
             if (event.sequence !== d.expectedAcceptanceSequence || offer.snapshotHash !== d.expectedSnapshotHash || offer.pdfHash !== d.expectedPdfHash)
                 fail('Accepted source changed. Reload before authorizing.', 409);
             ownership(offer);
-            const document = offer.snapshot.source.document, startsOn = parse(date, document.startsOn), endsOn = parse(date, document.endsOn), observed = now(), zone = timeZone(), authorizedOn = day(observed, zone);
+            const document = offer.snapshot.source.document, startsOn = parse(date, document.startsOn), endsOn = parse(date, document.endsOn), observed = now(), zone = timeZone(), authorizedOn = companyDay(observed, zone);
             if (startsOn > endsOn || endsOn < authorizedOn)
                 fail('Do not authorize an already-ended or invalid accepted term.', 409);
             repo.addActivation(d, id, offer, event.id, startsOn, endsOn, zone, authorizedOn, observed.toISOString(), user);
@@ -144,7 +144,7 @@ export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', c
         const q = parse(coverageInput, raw);
         return repo.within(() => {
             get(id);
-            const current = inSnapshot(id), selected = q.date ?? current.companyDate, scopeState = state(current.activation, current.cancellation, selected), asset = repo.activationAsset(q.assetId);
+            const current = inSnapshot(id), selected = q.date ?? current.companyDate, scopeState = termState(current.activation, current.cancellation, selected), asset = repo.activationAsset(q.assetId);
             if (!asset)
                 fail('Equipment not found.', 404);
             let decision = scopeState === 'active' ? 'outside_equipment_scope' : scopeState;

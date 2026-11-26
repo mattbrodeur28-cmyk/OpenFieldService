@@ -1,10 +1,11 @@
 import { createAgreementActivation } from "./activation.mjs";
 import { createAgreementLifecycle } from "./lifecycle.mjs";
+import { createAgreementMaintenance } from "./maintenance.mjs";
 import { identifyFile, MAX_DOCUMENT_BYTES } from "../documents/service.mjs";
 import { createHash } from 'node:crypto';
 import { createAgreementRepository } from './repository.mjs';
 import { parse, uuid, commandInput, listQuery, historyQuery, optionsQuery, reviewInput, documentInput, documentQuery, reader, writer, fail } from './domain.mjs';
-export function createAgreements({ storage, issuer, timeZone, clock }) {
+export function createAgreements({ storage, issuer, timeZone, clock, maintenanceJobs }) {
     const repo = createAgreementRepository(storage), get = id => {
         const row = repo.head(id);
         if (!row)
@@ -165,5 +166,6 @@ export function createAgreements({ storage, issuer, timeZone, clock }) {
     }
     const lifecycle = createAgreementLifecycle({ repo, get, source, reviewState, issuer, timeZone, clock });
     const activation = createAgreementActivation({ repo, get, timeZone, clock });
-    return { detail, list, save, history, options, review, reviewHistory, proposedDocument, uploadDocument, downloadDocument, lifecycle, activation };
+    const maintenance = createAgreementMaintenance({ db: storage.database, repo, get, timeZone, clock, jobs: maintenanceJobs });
+    return { detail, list, save, history, options, review, reviewHistory, proposedDocument, uploadDocument, downloadDocument, lifecycle, activation, maintenance };
 }

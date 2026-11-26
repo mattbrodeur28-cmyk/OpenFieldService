@@ -2,13 +2,15 @@ import { randomUUID } from 'node:crypto';
 import { fixture, owner, member } from '../fixtures/service-execution.mjs';
 import { createSales } from '../../src/server/sales/http.mjs';
 import { createAgreementModule } from '../../src/server/agreements/http.mjs';
+import { createMaintenanceJobs } from '../../src/server/service/maintenance-jobs.mjs';
 export const reason = 'Reviewed exact agreement source and external evidence';
 export const config = { schemaVersion: 1, legalName: 'Fixture Mechanical', address: '1 Fixture Way', email: 'office@example.test', phone: '555-0101', terms: 'Reviewed fixture issuer terms.', reviewNote: 'Disposable issuer configuration for tests.' };
 export function agreementLifecycleFixture(t) {
     const f = fixture(t), visit = f.visit(), job = f.db.prepare('SELECT customer_id,asset_id FROM jobs WHERE id=?').get(visit.id), asset = f.db.prepare('SELECT site_id FROM assets WHERE id=?').get(job.asset_id), sales = createSales({ storage: f.storage, owners: () => [owner, member], currentUser: () => owner });
     sales.quotes.lifecycle.issuer.save(owner, { requestKey: randomUUID(), expectedVersion: 0, config });
     let instant = new Date('2026-11-25T14:00:00Z'), actor = owner;
-    const module = createAgreementModule({ storage: f.storage, currentUser: () => actor, issuer: () => sales.issuer(), timeZone: () => 'America/New_York', clock: () => new Date(instant) }), a = module.agreements, draft = { id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, customerId: job.customer_id, title: 'Proposed maintenance agreement', scope: 'Inspect selected native equipment', exclusions: 'Emergency calls excluded', terms: 'Reviewed proposed annual scope', documentReference: '', startsOn: '2027-01-01', endsOn: '2027-12-31', renewalPolicy: 'manual_review', priceCents: 10000, currency: 'USD', billingFrequency: 'annual', siteIds: [asset.site_id], assetIds: [job.asset_id], archived: false, reason };
+    const maintenanceJobs = createMaintenanceJobs({ storage: f.storage });
+    const module = createAgreementModule({ storage: f.storage, currentUser: () => actor, issuer: () => sales.issuer(), timeZone: () => 'America/New_York', clock: () => new Date(instant), maintenanceJobs }), a = module.agreements, draft = { id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, customerId: job.customer_id, title: 'Proposed maintenance agreement', scope: 'Inspect selected native equipment', exclusions: 'Emergency calls excluded', terms: 'Reviewed proposed annual scope', documentReference: '', startsOn: '2027-01-01', endsOn: '2027-12-31', renewalPolicy: 'manual_review', priceCents: 10000, currency: 'USD', billingFrequency: 'annual', siteIds: [asset.site_id], assetIds: [job.asset_id], archived: false, reason };
     a.save(owner, draft);
     a.uploadDocument(owner, draft.id, { id: randomUUID(), requestKey: randomUUID(), expectedVersion: 1, title: 'Proposed source', reason, reviewAttested: true }, Buffer.from('%PDF-1.4\nProposed source\n%%EOF'), 'contract.pdf');
     for (const [action, sequence] of [['submit', 0], ['approve', 1]])

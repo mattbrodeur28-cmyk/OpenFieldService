@@ -240,3 +240,33 @@ billable exceptions, amendments/reactivation/renewal, historical ownership
 reconstruction, verified customer signatures and provider delivery. Operational
 authorization, billing entitlement and generated maintenance work remain distinct
 states.
+
+
+## Maintenance plans and work generation checkpoint
+
+Full working-tree suite now passes260/260, zero failed/skipped/cancelled/todo;
+TypeScript and production build pass. Six new `tests/agreement-maintenance.test.mjs`
+cases exercise versioned maintenance plans and idempotent native PM Job generation over
+the frozen accepted offer, not another customer/equipment master.
+
+Coverage verifies immutable plan revisions and agreement-scope enforcement; due preview
+gated on an active authorized term and accepted equipment scope; one native PM Job per
+occurrence with actor/content replay and no duplicate work under a fresh key; auditable
+per-occurrence skips that prevent regeneration; late acknowledgment rollback of Jobs and
+due-work links while leaving accepted scope untouched; Owner/Admin-only generation with
+ordinary-reader boundaries; moved equipment blocking generation; and seasonal-month
+filtering. The shared lifecycle fixture now injects the Service-owned maintenance Job
+creator so generation shares the single native Job counter and `pm` work category.
+
+Preview restarted successfully after backing up both native/workspace databases at
+/private/tmp/ofs-dev-20261125/before-maintenance-1795712029015. Additive
+`_agreement_draft_migrations` v6 initializes plan heads/revisions/scope and the due-work
+ledger with real Agreement/Asset/Job foreign keys and immutability triggers; the
+`/api/agreements/:id/maintenance/*` routes are live. This is local startup evidence, not
+populated real-contract restore, browser, concurrency or production qualification.
+
+Remaining M5 gates stay open: CONTRACT-005 included visits/hours/priority allocation and
+exhaustion with billable exceptions, holiday/timezone shifting of due dates, checklist
+completion evidence links, populated v5→v6 upgrade/restore, browser workbench and
+verified signatures/provider delivery. A created PM Job does not bill or recognize
+revenue; entitlement accounting remains unimplemented.

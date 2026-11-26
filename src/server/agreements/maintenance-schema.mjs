@@ -1,0 +1,13 @@
+// Additive v6: maintenance plans, immutable revisions, current equipment scope and
+// idempotent due-work ledger. Accepted scope/authorization tables remain unchanged.
+export const maintenanceSchema = `
+CREATE TABLE _agreement_maintenance_plans(id TEXT PRIMARY KEY,agreement_id TEXT NOT NULL REFERENCES _agreement_drafts(id) ON DELETE RESTRICT,title TEXT NOT NULL,archived INTEGER NOT NULL CHECK(archived IN(0,1)),version INTEGER NOT NULL CHECK(version>0),updated_by TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX _agreement_plan_agreement ON _agreement_maintenance_plans(agreement_id,archived);
+CREATE TABLE _agreement_plan_revisions(plan_id TEXT NOT NULL REFERENCES _agreement_maintenance_plans(id) ON DELETE RESTRICT,version INTEGER NOT NULL CHECK(version>0),title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',frequency TEXT NOT NULL CHECK(frequency IN ('monthly','quarterly','annual')),first_due TEXT NOT NULL,horizon_days INTEGER NOT NULL CHECK(horizon_days BETWEEN 1 AND 730),seasonal_months_json TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(seasonal_months_json)),checklist_json TEXT NOT NULL CHECK(json_valid(checklist_json)),asset_ids_json TEXT NOT NULL CHECK(json_valid(asset_ids_json)),actor_id TEXT NOT NULL,reason TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(plan_id,version));
+CREATE TABLE _agreement_plan_assets(plan_id TEXT NOT NULL REFERENCES _agreement_maintenance_plans(id) ON DELETE RESTRICT,asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE RESTRICT,PRIMARY KEY(plan_id,asset_id));
+CREATE TABLE _agreement_due_work(id TEXT PRIMARY KEY,plan_id TEXT NOT NULL REFERENCES _agreement_maintenance_plans(id) ON DELETE RESTRICT,asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE RESTRICT,due_on TEXT NOT NULL,job_id TEXT UNIQUE REFERENCES jobs(id) ON DELETE RESTRICT,skipped_by TEXT,skip_reason TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE(plan_id,asset_id,due_on));
+CREATE INDEX _agreement_due_work_lookup ON _agreement_due_work(plan_id,due_on);
+${['_agreement_plan_revisions', '_agreement_due_work'].flatMap(table => ['UPDATE', 'DELETE'].map(action => `CREATE TRIGGER ${table}_${action.toLowerCase()} BEFORE ${action} ON ${table} BEGIN SELECT RAISE(ABORT,'AGREEMENT_PLAN_IMMUTABLE'); END;`)).join(' ')}
+CREATE TRIGGER _agreement_plan_identity BEFORE UPDATE OF id,agreement_id,created_at ON _agreement_maintenance_plans BEGIN SELECT RAISE(ABORT,'AGREEMENT_PLAN_IDENTITY_IMMUTABLE'); END;
+CREATE TRIGGER _agreement_plan_no_delete BEFORE DELETE ON _agreement_maintenance_plans BEGIN SELECT RAISE(ABORT,'AGREEMENT_PLAN_IMMUTABLE'); END;
+`;

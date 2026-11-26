@@ -2,6 +2,7 @@ import {createCrmProspectHandoff} from "./prospect-handoff.mjs";
 import { createCrmActivities } from "./activity.mjs";
 import { createCrmAttachments } from "./attachment.mjs";
 import { createCrmCommunications } from "./communication.mjs";
+import { createCrmImport } from "./import.mjs";
 import { randomUUID } from "node:crypto";
 import { transaction, migrate } from "../platform/sqlite.mjs";
 import { reviewSchema } from "./review-schema.mjs";
@@ -641,6 +642,7 @@ export function createCrmService({ storage, invoiceSummaryInTransaction, salesSu
   const activities = createCrmActivities({ storage, customer, audit, people, clock });
   const communications = createCrmCommunications({ storage, customer, contact: contactRow, audit });
   const attachments = createCrmAttachments({ storage, customer, audit });
+  const importer = createCrmImport({ db });
 
   // CRM-006 (first slice): read-only duplicate candidates. A candidate is a group of
   // two or more accounts sharing a normalized email, phone or name. Nothing is merged
@@ -711,6 +713,7 @@ export function createCrmService({ storage, invoiceSummaryInTransaction, salesSu
     attachments,
     duplicateCandidates,
     exportCustomers,
+    importer,
     listContacts,
     createContact,
     updateContact,

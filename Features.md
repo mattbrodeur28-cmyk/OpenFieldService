@@ -467,10 +467,11 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
   (SALES-005/006/008/009). Multiple customer-facing options (SALES-007) remain open.
 - [ ] **CRM-006 — Data quality:** searchable/filterable records, validated import
   preview, duplicate/merge policy, exports and appropriate PII controls.
-  Implemented: read-only duplicate candidates grouped by normalized email, phone and
-  name (`GET /customers/duplicates`) and an Owner/Admin-only customer export
-  (`GET /customers/export`, JSON or CSV) with PII controls — no merge or delete.
-  Validated import preview and the merge policy remain open.
+  Implemented: read-only duplicate candidates (`GET /customers/duplicates`), an
+  Owner/Admin customer export (`GET /customers/export`, JSON/CSV) with PII controls,
+  and a validated CSV import preview + commit (`POST /customers/import/preview` and
+  `/customers/import`) that skips invalid and duplicate rows. The reviewed merge
+  policy remains open.
 - [ ] **CRM-007 — Communications:** link supported mail/channel activity to customer
   records with explicit access and consent boundaries.
   Implemented: a staff-recorded communication log linked to a customer and optional

@@ -356,6 +356,25 @@ test("CRM activities link and list private document attachments", (t) => {
   assert.throws(() => f.crm.attachments.link(owner, f.account, activity.id, { documentId: randomUUID() }), /available document/);
 });
 
+test("customer import previews and commits valid rows, skipping duplicates and invalid rows", (t) => {
+  const f = setup(t);
+  const csv = "name,email,phone,address,city,state,zip,segment,accountType\nAcme,acme@test.test,555-0100,1 Main,Spring,IL,62701,commercial,customer\nBad,invalid-email,,,,,,\n, ,,,,,,";
+  const preview = f.crm.importer.preview(owner, { csv });
+  assert.equal(preview.rows.length, 3);
+  assert.equal(preview.valid, 1);
+  assert.equal(preview.invalid, 2);
+  assert.equal(preview.rows[1].errors.length, 1);
+  assert.equal(preview.rows[2].errors.length, 1);
+  const result = f.crm.importer.commit(owner, { rows: preview.rows });
+  assert.equal(result.created, 1);
+  assert.equal(result.skipped, 2);
+  assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM customers").get().n, 2);
+  assert.equal(f.db.prepare("SELECT segment FROM _crm_account_settings WHERE customer_id=(SELECT id FROM customers WHERE email='acme@test.test')").get().segment, "commercial");
+  const again = f.crm.importer.commit(owner, { rows: preview.rows });
+  assert.equal(again.created, 0);
+  assert.equal(again.skipped, 3);
+});
+
 test("CRM v3 upgrades an existing v2 database without rewriting contacts", async (t) => {
   const { migrate } = await import("../src/server/platform/sqlite.mjs"),
     { crmSchema } = await import("../src/server/crm/schema.mjs"),

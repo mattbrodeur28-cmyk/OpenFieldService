@@ -251,3 +251,11 @@ mailboxes; automatic provider mail/channel linking and delivery remain separate.
 already-uploaded private document to a customer activity (v5 ledger, soft document
 reference validated at link time). Upload stays in the shared document module; the link
 is immutable and audited. Direct upload from the activity screen remains separate work.
+
+## CRM-006: validated import
+
+2026-11-26. `POST /api/service/customers/import/preview` parses CSV
+(name,email,phone,address,city,state,zip,segment,accountType) and returns per-row
+validation errors; `POST /api/service/customers/import` commits valid rows as native
+customers + classification, skipping invalid and duplicate rows (normalized email or
+name). Owner/Admin only. A reviewed duplicate-merge policy remains separate work.

@@ -75,6 +75,26 @@ export function mountCrm(app, { crm, check }) {
     }),
   );
 
+  // CRM-006: validated import preview and commit (Owner/Admin).
+  app.post(
+    "/customers/import/preview",
+    route(async (c) => {
+      const user = check(c);
+      requireWriter(user);
+      const data = await body(c);
+      return c.json(crm.importer.preview(user, data));
+    }),
+  );
+  app.post(
+    "/customers/import",
+    route(async (c) => {
+      const user = check(c);
+      requireWriter(user);
+      const data = await body(c);
+      return c.json(crm.importer.commit(user, data));
+    }),
+  );
+
   app.get(
     "/customers/:customerId/contacts",
     route((c) => {

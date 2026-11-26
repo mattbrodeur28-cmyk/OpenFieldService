@@ -1,5 +1,6 @@
 import { createAgreementActivation } from "./activation.mjs";
 import { createAgreementAmendment } from "./amendment.mjs";
+import { createAgreementAuthoritative } from "./authoritative.mjs";
 import { createAgreementLifecycle } from "./lifecycle.mjs";
 import { createAgreementMaintenance } from "./maintenance.mjs";
 import { createAgreementRenewal } from "./renewal.mjs";
@@ -171,5 +172,6 @@ export function createAgreements({ storage, issuer, timeZone, clock, maintenance
     const maintenance = createAgreementMaintenance({ db: storage.database, repo, get, timeZone, clock, jobs: maintenanceJobs });
     const renewal = createAgreementRenewal({ db: storage.database, repo, get });
     const amendment = createAgreementAmendment({ db: storage.database, repo, get });
-    return { detail, list, save, history, options, review, reviewHistory, proposedDocument, uploadDocument, downloadDocument, lifecycle, activation, maintenance, renewal, amendment };
+    const authoritative = createAgreementAuthoritative({ db: storage.database, repo, get });
+    return { detail, list, save, history, options, review, reviewHistory, proposedDocument, uploadDocument, downloadDocument, lifecycle, activation, maintenance, renewal, amendment, authoritative };
 }

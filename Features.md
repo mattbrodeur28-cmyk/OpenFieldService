@@ -657,17 +657,13 @@ Accepted quote changes require a new revision/change order, not silent overwrite
 
 ## M5 — Contracts and maintenance agreements
 
-- [ ] **CONTRACT-001 — Contract record:** customer, covered sites/equipment, scope,
+- [x] **CONTRACT-001 — Contract record:** customer, covered sites/equipment, scope,
   exclusions, terms, dates, renewal policy, pricing and authoritative document.
-  Source foundation 2026-11-25 (unqualified): native draft API with fixed Customer
-  UUID, validated location/equipment scope, nullable exact proposed USD pricing,
-  manual/no renewal policy, immutable revisions, archive/restore and actor-bound
-  exact retry. Draft workbench now provides paged native scope selection, proposed
-  price/terms, archive/restore and retained revision review. Proposed PDF originals
-  now attach immutably per exact draft revision, with review snapshot hashes and
-  historical downloads. Accepted-authoritative-document lifecycle and remaining
-  qualification stay open. Draft
-  never implies coverage or generated work. See [agreement API](docs/api/agreements.md).
+  Implemented: native draft API with fixed Customer UUID, validated location/equipment
+  scope, nullable exact USD pricing, manual/no renewal policy, immutable revisions,
+  archive/restore, immutable proposed PDFs per revision, and a retained authoritative
+  document bound to the exact accepted offer's PDF (v11). Draft never implies coverage
+  or generated work. See [agreement API](docs/api/agreements.md).
 - [x] **CONTRACT-002 — Lifecycle:** draft/review/offered/accepted/active/renewal/
   expired/cancelled, authorized transitions and immutable accepted versions/amendments.
   Implemented: per-revision internal submit/approve/reject/withdraw with exact

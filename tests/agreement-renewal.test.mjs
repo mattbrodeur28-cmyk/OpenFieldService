@@ -80,3 +80,23 @@ test('amendment requires accepted agreement and rejects stale or duplicate draft
     f.a.amendment.amend(owner, f.draft.id, { ...command, expectedVersion: v.version });
     assert.throws(() => f.a.amendment.amend(owner, f.draft.id, { ...command, id: randomUUID(), requestKey: randomUUID(), expectedVersion: v.version }), /identity already exists/);
 });
+
+test('authoritative document binds the exact accepted offer PDF and is immutable', t => {
+    const f = accepted(t);
+    const offer = f.a.activation.summary(owner, f.draft.id).acceptedOffer;
+    const command = { id: randomUUID(), requestKey: randomUUID(), offerId: offer.id, expectedAcceptanceSequence: offer.acceptanceSequence, reason, reviewAttested: true };
+    const result = f.a.authoritative.authorize(owner, f.draft.id, command);
+    assert.equal(result.document.pdfHash, offer.pdfHash);
+    assert.equal(f.a.authoritative.detail(owner, f.draft.id).pdfHash, offer.pdfHash);
+    assert.deepEqual(f.a.authoritative.authorize(owner, f.draft.id, command), result);
+    assert.throws(() => f.a.authoritative.authorize(owner, f.draft.id, { ...command, id: randomUUID(), requestKey: randomUUID() }), /already retained/);
+    assert.throws(() => f.db.prepare('UPDATE _agreement_authoritative_documents SET reason=?').run('x'), /IMMUTABLE/);
+});
+
+test('authoritative document requires the exact accepted offer', t => {
+    const f = accepted(t);
+    const offer = f.a.activation.summary(owner, f.draft.id).acceptedOffer;
+    assert.throws(() => f.a.authoritative.authorize(owner, f.draft.id, { id: randomUUID(), requestKey: randomUUID(), offerId: offer.id, expectedAcceptanceSequence: 99, reason, reviewAttested: true }), /exact offered agreement/);
+    const g = fixture(t);
+    assert.throws(() => g.a.authoritative.authorize(owner, g.draft.id, { id: randomUUID(), requestKey: randomUUID(), offerId: randomUUID(), expectedAcceptanceSequence: 1, reason, reviewAttested: true }), /belonging to this agreement/);
+});

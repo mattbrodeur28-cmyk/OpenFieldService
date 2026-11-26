@@ -83,3 +83,11 @@ writer authority before completion. A valid actual multipart upload is read back
 for byte. Build and TypeScript pass for the new UI. Browser modal/file-picker/history
 controls, malware scanning, populated v2→v3 upgrade/restore, concurrent writers and
 customer acceptance/signature/provider proofs remain open.
+
+## Authoritative document
+
+CONTRACT-001, 2026-11-26. `POST /api/agreements/:id/authoritative-document` (Owner/
+Admin) binds the exact accepted offer's immutable PDF hash and acceptance event as the
+authoritative contract document; `GET /api/agreements/:id/authoritative-document`
+returns it. One document per agreement, retained immutably. This is a recorded binding
+of the accepted PDF, not verified customer signature or provider delivery (CONTRACT-007).

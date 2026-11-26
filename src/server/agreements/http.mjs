@@ -53,6 +53,17 @@ export function createAgreementModule({ storage, currentUser, issuer, timeZone, 
     app.get('/:id/profitability', c => c.json(agreements.activation.profitability(actor(c), c.req.param('id'))));
     app.get('/:id/renewals', c => c.json(agreements.renewal.history(actor(c), c.req.param('id'))));
     app.get('/:id/amendments', c => c.json(agreements.amendment.history(actor(c), c.req.param('id'))));
+    app.get('/:id/authoritative-document', c => c.json({ document: agreements.authoritative.detail(actor(c), c.req.param('id')) }));
+    app.post('/:id/authoritative-document', async (c) => {
+        let data;
+        try {
+            data = await c.req.json();
+        }
+        catch (error) {
+            throw new AgreementError(error?.name === 'BodyLimitError' ? 'Agreement request too large.' : 'Send valid authoritative-document JSON.', error?.name === 'BodyLimitError' ? 413 : 400);
+        }
+        return c.json(agreements.authoritative.authorize(actor(c), c.req.param('id'), data));
+    });
     app.post('/:id/amendment', async (c) => {
         let data;
         try {

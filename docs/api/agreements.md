@@ -216,3 +216,10 @@ configured; margin is contract value minus material cost with that unknown label
 an accepted agreement with deliberate scope/price/terms overrides, retained in an
 immutable `_agreement_amendments` ledger (v10); the draft then uses the normal review/
 offer/accept/authorize lifecycle. Accepted scope is never silently rewritten.
+
+## Authoritative document follow-up
+
+[Authoritative documents](agreement-documents.md) now bind the exact accepted offer's
+immutable PDF (and acceptance event) as the authoritative contract document for an
+agreement (v11), retained immutably. One authoritative document per agreement; amendments
+and renewals create new drafts with their own lifecycle.

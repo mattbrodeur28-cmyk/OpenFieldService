@@ -32,6 +32,7 @@ import { WorkspacePage } from "./components/workspace-page";
 import { PanelLeft, Sparkles } from "lucide-preact";
 import { GlobalSearch } from "./components/global-search";
 import { DensityToggle } from "./components/density-toggle";
+import { QuickCreate } from "./components/quick-create";
 
 export function App() {
   const isAgent = useMemo(() => {
@@ -121,6 +122,7 @@ export function App() {
             <span class="workspace-header-divider" aria-hidden="true" />
             <span class="workspace-header-subtitle">Your workspace</span>
             <GlobalSearch />
+            <QuickCreate />
             <DensityToggle />
           </header>}
           {connectivity.readOnly && <span class="workspace-offline-indicator" role="status">Offline / saved data · changes require a connection</span>}

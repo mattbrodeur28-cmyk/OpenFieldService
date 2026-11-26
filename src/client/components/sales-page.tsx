@@ -178,6 +178,13 @@ function SalesWorkspace({ opportunityId }: { opportunityId: string | null }) {
     void load();
   }, [load]);
   useEffect(() => {
+    // Salesforce global-action deep link: open a new opportunity editor.
+    if (new URLSearchParams(window.location.search).has("new")) {
+      setEditor("new");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+  useEffect(() => {
     const poll = () => {
       if (document.hidden) return;
       if (dragRef.current) dirty.current = true;

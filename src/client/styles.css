@@ -1721,3 +1721,9 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 [data-density="compact"] .sidebar-item { min-height: 26px; }
 [data-density="compact"] .btn { min-height: 26px; padding-block: 2px; }
 [data-density="compact"] .record-tab { padding-block: 7px; }
+
+/* Salesforce quick-create global action */
+.quick-create { position: relative; }
+.quick-create-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 184px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 6px; z-index: 60; display: flex; flex-direction: column; }
+.quick-create-menu button { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 0; background: none; color: var(--text); font: inherit; font-size: 13px; border-radius: var(--radius-sm); cursor: pointer; text-align: left; }
+.quick-create-menu button:hover { background: var(--row-hover); }

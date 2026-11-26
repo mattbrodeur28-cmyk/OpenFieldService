@@ -131,6 +131,13 @@ export const moveInput = z
     stageId: z.string().uuid(),
     expectedVersion: version,
     reason: text(1000).default(""),
+    competitor: text(200).default(""),
+    nurtureDueAt: z
+      .string()
+      .datetime({ offset: true })
+      .refine((value) => Number.isFinite(Date.parse(value)), "Choose a valid nurture date and time.")
+      .transform((value) => new Date(value).toISOString())
+      .optional(),
   })
   .strict();
 export const noteInput = z

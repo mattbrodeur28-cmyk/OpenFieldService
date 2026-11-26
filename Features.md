@@ -552,22 +552,31 @@ offers with recorded external responses. Dispatcher/job conversion remains open.
   server calculation, templates and customer documents retain those inputs.
   See [costing worksheet](docs/product/job-costing-spreadsheet.md) for scope and
   deferred qualification. Do not mark this UI verified until testing resumes.
-- [ ] **SALES-008 — Quote to active job:** authorized conversion of an accepted quote
+- [x] **SALES-008 — Quote to active job:** authorized conversion of an accepted quote
   creates one linked job (or an explicit phased-project handoff later), snapshots
   accepted scope/pricing, carries customer/site/equipment, and places unassigned work
   into Dispatcher. Keep opportunity, quote and job links visible in both directions.
-  Work in progress (2026-11-25, untested): additive conversion persistence,
-  admin-only accepted-offer command, native service-owned Job handoff and Won
-  transition are implemented in source. Searchable native mapping and guarded
-  conversion/cancellation dialogs plus quote→Job/Dispatcher/opportunity and
-  Job→quote/opportunity links are now implemented in source. Qualification remains
-  deferred. See [conversion development notes](docs/product/quote-job-conversion.md).
-- [ ] **SALES-009 — Conversion safeguards:** idempotency, transaction boundary, unique
+  Implemented: an admin-only accepted-offer command creates one native Service-owned Job
+  on the frozen Customer/Location/Equipment, snapshots accepted scope/pricing in the
+  service contract, marks the same opportunity Won exactly once, and projects the
+  unassigned job onto Dispatcher; quote→Job/Dispatcher/opportunity and Job→quote links
+  are retained. Conversion/cancellation are tested for exact replay, duplicate conflict,
+  rollback and Dispatcher readback. See [conversion development notes](docs/product/quote-job-conversion.md).
+- [x] **SALES-009 — Conversion safeguards:** idempotency, transaction boundary, unique
   conversion references, stale-version checks and permission tests. Repeating a
   request must return the existing job rather than duplicate billable work. Mark
   Won/Converted only after the job is durably created; handle cancellation explicitly.
-- [ ] **SALES-010 — Loss and nurture:** required won/lost reasons, competitors where
+  Implemented: exact replay returns the original Job; a new key conflicts; admin-only,
+  stale opportunity and acceptance remapping reject; a late acknowledgment failure rolls
+  back the Job, native counter, service contract and Won state; cancellation retains the
+  accepted quote, Won state and the cancelled Job under exact retry.
+- [x] **SALES-010 — Loss and nurture:** required won/lost reasons, competitors where
   known, reopen history, follow-up/nurture tasks and retained prior quote versions.
+  Implemented: a lost move requires a reason and retains an optional competitor in an
+  immutable stage-outcome ledger; reopening lost work requires an administrator and a
+  reason and appends a reopen outcome; an optional nurture due date creates a native
+  nurture task for the owner; Won conversion records a won outcome. Prior quote
+  versions remain retained by the frozen quote lifecycle (SALES-006).
 - [ ] **SALES-011 — Forecast/reporting:** stage amounts, weighted/unweighted forecast,
   quote acceptance rate, time in stage, activity and conversion metrics with clear
   date/currency/probability definitions. Do not count quotes as recognized revenue.
@@ -1442,3 +1451,8 @@ CRM activity checkpoint:270/270 tests, TypeScript and production build pass. Six
 customer-activity cases cover private vs customer-facing notes, assignee/due/reminder
 validation, reminders and list filters, role boundaries, audited rollback, HTTP
 guards and the v2→v3 upgrade. Attachments and reminder delivery remain open.
+
+Sales outcomes checkpoint:274/274 tests, TypeScript and production build pass. Three
+new loss/nurture cases cover required loss reasons, competitor retention, admin-only
+reopen history, immutable outcomes and owner nurture tasks. The v3 outcomes ledger is
+additive; won/lost/reopen history is now retained per opportunity.

@@ -168,3 +168,15 @@ Opportunity list/detail now project `stageTiming` over the owning audit; see
 unknown/review states and deferred coverage. No migration, extra stage ledger or
 change to transition permissions. Current-page age is not a full forecast/cohort
 report or proof of a completed M4.
+
+## Loss, nurture and outcome history
+
+SALES-010, 2026-11-26. Moving an opportunity to a Lost stage requires a reason of at
+least three characters and may carry an optional `competitor` (≤200) and `nurtureDueAt`.
+The transition appends an immutable `_sales_stage_outcomes` row (v3) retaining kind
+(`won`/`lost`/`reopen`), stage, reason, competitor, actor and time; a `nurtureDueAt`
+also creates a native nurture task for the opportunity owner. Reopening lost work
+requires an administrator and a reason and appends a `reopen` outcome. Converted Wins
+append a `won` outcome from the accepted-quote handoff. Prior quote versions stay
+retained by the frozen offer lifecycle; no quote is overwritten. `GET
+/opportunities/:id/outcomes` returns the history newest-first; rows are immutable.

@@ -353,6 +353,19 @@ export function createSalesService({ storage, owners = () => [], clock }) {
         result,
         data.reason,
       );
+      if (target.kind === "lost") {
+        db.prepare(
+          "INSERT INTO _sales_stage_outcomes(id,opportunity_id,kind,stage_id,reason,competitor,actor_id) VALUES(?,?,?,?,?,?,?)",
+        ).run(randomUUID(), id, "lost", target.id, data.reason, data.competitor, user.id);
+        if (data.nurtureDueAt)
+          db.prepare(
+            "INSERT INTO _sales_activities(id,opportunity_id,kind,title,details,assignee_id,due_at,reminder_at,status,outcome,team_id,message_id,version,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          ).run(randomUUID(), id, "task", ("Nurture: " + old.title).slice(0, 200), "Lost opportunity follow-up", old.owner_id, data.nurtureDueAt, data.nurtureDueAt, "open", "", null, null, 0, user.id);
+      }
+      else if (old.stage_kind === "lost")
+        db.prepare(
+          "INSERT INTO _sales_stage_outcomes(id,opportunity_id,kind,stage_id,reason,competitor,actor_id) VALUES(?,?,?,?,?,?,?)",
+        ).run(randomUUID(), id, "reopen", target.id, data.reason, "", user.id);
       return result;
     });
   }
@@ -372,6 +385,7 @@ export function createSalesService({ storage, owners = () => [], clock }) {
     for(const field of JSON.parse(target.required_fields))if(!mapped[field])throw new SalesError(`This stage requires ${field}.`,409);
     db.prepare("UPDATE _sales_opportunities SET customer_id=?,site_id=?,asset_id=?,stage_id=?,probability=100,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND version=?").run(data.customerId,data.siteId,data.assetId,target.id,id,data.expectedVersion);
     const result=opportunity(id);audit(db,user,"opportunity",id,"convert_won",old,result,data.reason);
+    db.prepare("INSERT INTO _sales_stage_outcomes(id,opportunity_id,kind,stage_id,reason,competitor,actor_id) VALUES(?,?,?,?,?,?,?)").run(randomUUID(),id,"won",target.id,data.reason,"",user.id);
     return result;
   }
   function note(user, id, input) {
@@ -570,6 +584,15 @@ export function createSalesService({ storage, owners = () => [], clock }) {
       };
     });
   }
+  function outcomes(id) {
+    opportunity(id);
+    return db
+      .prepare(
+        "SELECT id,kind,stage_id AS stageId,reason,competitor,actor_id AS actorId,created_at AS createdAt FROM _sales_stage_outcomes WHERE opportunity_id=? ORDER BY rowid",
+      )
+      .all(id)
+      .map((row) => ({ ...row }));
+  }
   return {
     customerContext,
     opportunity,
@@ -587,5 +610,6 @@ export function createSalesService({ storage, owners = () => [], clock }) {
     list,
     detail,
     options,
+    outcomes,
   };
 }

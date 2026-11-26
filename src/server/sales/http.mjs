@@ -215,6 +215,9 @@ export function createSales({
       opportunity: service.move(check(c), c.req.param("id"), data),
     });
   });
+  app.get("/opportunities/:id/outcomes", (c) =>
+    c.json({ outcomes: service.outcomes(c.req.param("id")) }),
+  );
   app.post("/opportunities/:id/notes", async (c) => {
     const data = await body(c);
     return c.json(

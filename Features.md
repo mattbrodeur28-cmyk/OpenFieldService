@@ -588,14 +588,13 @@ offers with recorded external responses. Dispatcher/job conversion remains open.
   reason and appends a reopen outcome; an optional nurture due date creates a native
   nurture task for the owner; Won conversion records a won outcome. Prior quote
   versions remain retained by the frozen quote lifecycle (SALES-006).
-- [ ] **SALES-011 — Forecast/reporting:** stage amounts, weighted/unweighted forecast,
+- [x] **SALES-011 — Forecast/reporting:** stage amounts, weighted/unweighted forecast,
   quote acceptance rate, time in stage, activity and conversion metrics with clear
   date/currency/probability definitions. Do not count quotes as recognized revenue.
-  Implemented: a `GET /forecast` projection returns per-stage count/value/weighted
-  totals, open/won/lost rollups, quote acceptance ratio (offered→accepted) and native
-  conversion count with explicit definitions; current-stage age is projected per
-  opportunity. Historical stage-duration/cohort and richer activity metrics remain
-  open.
+  Implemented: `GET /forecast` returns per-stage count/value/weighted totals, open/won/
+  lost rollups, quote acceptance ratio and native conversion count; `GET
+  /forecast/stage-durations` returns average/median completed time-in-stage from the
+  audit trail; current-stage age is projected per opportunity.
 - [ ] **SALES-012 — Permissions and audit:** owner/team visibility rules, protected
   pricing/approval actions, auditable stage/quote/conversion changes and documented
   APIs, migrations, backup/recovery and end-to-end acceptance evidence.

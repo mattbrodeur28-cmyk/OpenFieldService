@@ -540,6 +540,56 @@ export function createSalesService({ storage, owners = () => [], clock }) {
       };
     });
   }
+  function stageDurations(query = {}) {
+    const pipelineId = query.pipelineId || null;
+    const stamp = (raw) => (typeof raw === "string" && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw) ? Date.parse(raw.replace(" ", "T") + "Z") : NaN);
+    return transaction(db, () => {
+      const events = db
+        .prepare(
+          "SELECT entity_id AS opportunityId,id,created_at AS createdAt,json_extract(after_json,'$.stage_id') AS stageId,json_extract(after_json,'$.stage_name') AS stageName,json_extract(after_json,'$.stage_kind') AS stageKind FROM _sales_audit WHERE entity_type='opportunity' AND action IN ('create','move','reopen','convert_won') AND json_valid(before_json) AND json_valid(after_json) AND json_extract(after_json,'$.stage_id') IS NOT json_extract(before_json,'$.stage_id') ORDER BY entity_id,id",
+        )
+        .all();
+      const byOpportunity = new Map();
+      for (const event of events) {
+        if (!byOpportunity.has(event.opportunityId))
+          byOpportunity.set(event.opportunityId, []);
+        byOpportunity.get(event.opportunityId).push(event);
+      }
+      const buckets = new Map();
+      for (const list of byOpportunity.values()) {
+        for (let i = 0; i < list.length - 1; i++) {
+          const entered = list[i], left = list[i + 1];
+          const t1 = stamp(entered.createdAt), t2 = stamp(left.createdAt);
+          if (!Number.isFinite(t1) || !Number.isFinite(t2) || t2 < t1)
+            continue;
+          const minutes = Math.floor((t2 - t1) / 60000);
+          const key = entered.stageName || entered.stageId;
+          const bucket = buckets.get(key) || { stageName: key, stageKind: entered.stageKind, count: 0, totalMinutes: 0, minutes: [] };
+          bucket.count += 1;
+          bucket.totalMinutes += minutes;
+          bucket.minutes.push(minutes);
+          buckets.set(key, bucket);
+        }
+      }
+      const stages = [...buckets.values()].map((b) => {
+        const sorted = b.minutes.sort((a, z) => a - z);
+        const median = sorted.length
+          ? sorted.length % 2
+            ? sorted[(sorted.length - 1) / 2]
+            : Math.round((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2)
+          : null;
+        return { stageName: b.stageName, stageKind: b.stageKind, count: b.count, averageMinutes: Math.round(b.totalMinutes / b.count), medianMinutes: median };
+      });
+      return {
+        stages,
+        definitions: {
+          averageMinutes: "Mean completed time-in-stage across opportunities that have left the stage.",
+          medianMinutes: "Median completed time-in-stage.",
+          currentStageExcluded: "The current (still-open) stage is not counted; use per-opportunity current-stage age for that.",
+        },
+      };
+    });
+  }
   function detail(id) {
     return transaction(db, () => ({
       opportunity: stageTiming([opportunity(id)])[0],
@@ -663,6 +713,7 @@ export function createSalesService({ storage, owners = () => [], clock }) {
     detail,
     options,
     forecast,
+    stageDurations,
     outcomes,
   };
 }

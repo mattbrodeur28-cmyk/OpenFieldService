@@ -190,3 +190,9 @@ acceptance ratio (accepted ÷ offered lifecycle events) and a native conversion 
 from `_sales_quote_conversions`. Definitions are returned alongside the figures; quotes
 and pipeline value are never counted as recognized revenue. Historical stage-duration
 and cohort metrics remain a separate follow-on.
+
+## Stage durations
+
+SALES-011, 2026-11-26. `GET /forecast/stage-durations` returns average and median
+completed time-in-stage from the Sales audit trail (create/move/reopen/convert_won),
+excluding the still-current stage. Definitions are returned alongside the figures.

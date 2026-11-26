@@ -132,3 +132,21 @@ test("forecast sums weighted and unweighted stage amounts with explicit definiti
   assert.ok(forecast.definitions.weighted.length > 0);
 });
 
+test("stage durations aggregate completed time-in-stage from the audit trail", (t) => {
+  const f = fixture(t);
+  const opp = f.service.saveOpportunity(member, null, input(f.pipeline, { title: "Duration opp" }));
+  const qualified = f.pipeline.stages[1];
+  const lost = f.pipeline.stages.find((s) => s.kind === "lost");
+  f.service.move(member, opp.id, { stageId: qualified.id, expectedVersion: 0, reason: "Qualified" });
+  f.service.move(member, opp.id, { stageId: lost.id, expectedVersion: 1, reason: "Lost", competitor: "Rival" });
+  const durations = f.service.stageDurations();
+  const newStage = durations.stages.find((s) => s.stageName === "New");
+  const qualifiedStage = durations.stages.find((s) => s.stageName === "Qualified");
+  assert.ok(newStage);
+  assert.equal(newStage.count, 1);
+  assert.equal(newStage.stageKind, "open");
+  assert.ok(qualifiedStage);
+  assert.equal(qualifiedStage.count, 1);
+  assert.equal(durations.stages.find((s) => s.stageKind === "lost"), undefined);
+});
+

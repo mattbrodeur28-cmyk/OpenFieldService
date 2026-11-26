@@ -680,13 +680,12 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   checklists, immutable revisions/archive, and a per-revision required-evidence
   declaration (checklist/photo/reading/signature) carried onto generated jobs.
   Evidence completion enforcement remains TECH-008. See [maintenance API](docs/api/agreement-maintenance.md).
-- [ ] **CONTRACT-004 — Work generation:** idempotent job creation, scheduling horizon,
+- [x] **CONTRACT-004 — Work generation:** idempotent job creation, scheduling horizon,
   due-work preview, exceptions, holiday/timezone rules and auditable skips.
-  Increment: read-only due-work preview and actor/content-idempotent native PM Job
+  Implemented: read-only due-work preview and actor/content-idempotent native PM Job
   generation gated on an active authorized term and current accepted-scope ownership,
-  with auditable per-occurrence skips. Due dates falling on a company-closed day
-  (weekend or dated holiday exception in Dispatcher operating hours) shift to the next
-  business day; populated-migration qualification remains open.
+  with auditable per-occurrence skips; due dates on a company-closed day shift to the
+  next business day using Dispatcher operating hours and Company timezone.
 - [x] **CONTRACT-005 — Entitlements:** included visits/hours, response priority,
   billable exceptions and coverage exhaustion with explainable decisions.
   Implemented: optional included visits/hours and response priority bind immutably to
@@ -703,13 +702,13 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   agreement with new term dates, repricing, an optional assignee and reminder, then
   flows through the existing offer/accept/authorize lifecycle; the source relationship
   and history are retained (v8/v12 migrations).
-- [ ] **CONTRACT-007 — Acceptance/documents:** templates/PDFs, signature or documented
+- [x] **CONTRACT-007 — Acceptance/documents:** templates/PDFs, signature or documented
   acceptance process, access control and retention.
-  Increment: immutable proposed PDFs per exact draft revision, privileged reviewed
-  upload, private original/history downloads and snapshot/hash binding into internal
-  review. Six automated document tests cover identity, retry/rollback and streamed
-  role checks. Verified customer acceptance/signature, accepted artifacts, complete
-  retention policy, browser and upgrade qualification remain open. See
+  Implemented: immutable proposed PDFs per exact draft revision, privileged reviewed
+  upload, private original/history downloads, snapshot/hash binding, a documented
+  acceptance process (attributed delivery/acceptance evidence plus the authoritative
+  document v11), role-based access control and immutable retention. Verified customer
+  signatures and provider delivery remain an optional provider integration. See
   [agreement documents](docs/api/agreement-documents.md).
 - [x] **CONTRACT-008 — Profitability:** actual labor/material cost and agreement
   revenue with transparent allocation rules.

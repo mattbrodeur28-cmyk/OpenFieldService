@@ -53,10 +53,23 @@ export function JobDetail() {
 
   return (
     <div class="page">
-      <div class="page-header">
-        <button class="btn btn-back" onClick={() => navigate("/jobs")}>
-          <ArrowLeft size={16} /> Back
-        </button>
+      <div class="record-header">
+        <div class="record-header-main">
+          <button class="btn btn-back" onClick={() => navigate("/jobs")}>
+            <ArrowLeft size={16} /> Back
+          </button>
+          <div>
+            <h1 class="record-header-title">{job.identifier}</h1>
+            <div class="record-header-subtitle">
+              <StatusBadge status={job.status} />
+              <PriorityBadge priority={job.priority} />
+              <span>{job.customer_name || "—"}</span>
+              <span>{job.scheduled_date} {job.scheduled_time} · {job.duration} min</span>
+              <span>{job.technician_name || "Unassigned"}</span>
+              <span>${job.price.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
         <div class="page-header-right">
           <button class="btn btn-primary" disabled={readOnly} onClick={() => createInvoiceFromJob(job.id).catch(err => setError((err as Error).message))}>
             <FileText size={14} /> Create Invoice
@@ -69,12 +82,6 @@ export function JobDetail() {
 
       <div class="detail-layout">
         <div class="detail-main">
-          <div class="detail-title-row">
-            <span class="identifier-lg">{job.identifier}</span>
-            <StatusBadge status={job.status} />
-            <PriorityBadge priority={job.priority} />
-          </div>
-
           <JobSalesSource key={`sales:${job.id}`} jobId={job.id}/>
           <JobAccounting key={job.id} jobId={job.id}/>
           <div class="detail-meta-grid">

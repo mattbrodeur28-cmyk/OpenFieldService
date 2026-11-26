@@ -1,11 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import { migrate, transaction } from "../platform/sqlite.mjs";
 import { projectSchema, projectSchemaV2 } from "./schema.mjs";
-import { parse, uuid, reader, writer, fail, projectInput, phaseInput, milestoneInput, linkJobInput, linkSiteInput, deliverableInput } from "./domain.mjs";
+import { parse, uuid, reader, writer, fail, projectInput, phaseInput, milestoneInput, linkJobInput, linkSiteInput, deliverableInput, fromProposalInput } from "./domain.mjs";
 
 const hash = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
-export function createProjects({ storage }) {
+export function createProjects({ storage, proposalSource = null }) {
     const db = storage.database;
     migrate(db, "_project_migrations", [{ version: 1, sql: projectSchema }, { version: 2, sql: projectSchemaV2 }]);
     db.exec("CREATE TABLE IF NOT EXISTS _project_requests(request_key TEXT PRIMARY KEY,actor_id TEXT NOT NULL,request_hash TEXT NOT NULL,result_json TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
@@ -167,5 +167,22 @@ export function createProjects({ storage }) {
         });
     }
 
-    return { save, list, detail, savePhase, saveMilestone, linkJob, unlinkJob, linkSite, unlinkSite, saveDeliverable };
+    function fromProposal(user, raw) {
+        writer(user);
+        const d = parse(fromProposalInput, raw), fingerprint = hash({ action: "from_proposal", ...d });
+        return transaction(db, () => {
+            const prior = replay(user, d.requestKey, fingerprint); if (prior) return prior;
+            if (!proposalSource) fail("Accepted-proposal conversion is not configured here.", 501);
+            const proposal = proposalSource(user, d.quoteId);
+            if (!proposal || !proposal.customerId) fail("Choose an accepted proposal to convert.", 404);
+            if (db.prepare("SELECT 1 FROM _projects WHERE source_kind='quote' AND source_id=?").get(d.quoteId)) fail("That proposal is already converted to a project.", 409);
+            customer(proposal.customerId);
+            db.prepare("INSERT INTO _projects(id,customer_id,title,description,status,project_manager,planned_start,planned_end,actual_start,actual_end,source_kind,source_id,archived,version,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(d.projectId, proposal.customerId, proposal.title, proposal.scope || "", "active", "", "", "", "", "", "quote", d.quoteId, 0, 1, user.id);
+            const result = { project: projectRow(d.projectId) };
+            acknowledge(d.requestKey, user, fingerprint, result);
+            return result;
+        });
+    }
+
+    return { save, list, detail, savePhase, saveMilestone, linkJob, unlinkJob, linkSite, unlinkSite, saveDeliverable, fromProposal };
 }

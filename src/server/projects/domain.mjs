@@ -65,3 +65,9 @@ export const deliverableInput = z.object({
     reason: z.string().trim().min(10).max(2000),
     reviewAttested: z.literal(true),
 }).strict();
+
+export const fromProposalInput = z.object({
+    projectId: uuid, requestKey: uuid, quoteId: uuid,
+    reason: z.string().trim().min(10).max(2000),
+    reviewAttested: z.literal(true),
+}).strict();

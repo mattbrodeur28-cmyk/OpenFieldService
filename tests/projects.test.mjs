@@ -54,6 +54,25 @@ test("projects retain phases, milestones and linked jobs", (t) => {
   assert.deepEqual(f.projects.save(owner, update), first);
 });
 
+test("fromProposal converts an accepted proposal into a project without re-entering scope", (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "ofs-projects-")),
+    storage = openStorage(join(dir, "s.sqlite")),
+    db = storage.database,
+    customer = randomUUID(),
+    quoteId = randomUUID();
+  db.prepare("INSERT INTO customers(id,name) VALUES(?,?)").run(customer, "Acme");
+  const projects = createProjects({ storage, proposalSource: (u, q) => q === quoteId ? { customerId: customer, title: "AHU retrofit", scope: "Replace 4 AHUs with VAV controls" } : null });
+  t.after(() => { storage.close(); rmSync(dir, { recursive: true, force: true }); });
+  const result = projects.fromProposal(owner, { projectId: randomUUID(), requestKey: randomUUID(), quoteId, reason, reviewAttested: true });
+  assert.equal(result.project.title, "AHU retrofit");
+  assert.equal(result.project.source_kind, "quote");
+  assert.equal(result.project.source_id, quoteId);
+  assert.equal(result.project.customer_id, customer);
+  assert.throws(() => projects.fromProposal(owner, { projectId: randomUUID(), requestKey: randomUUID(), quoteId, reason, reviewAttested: true }), /already converted/);
+  assert.throws(() => projects.fromProposal(owner, { projectId: randomUUID(), requestKey: randomUUID(), quoteId: randomUUID(), reason, reviewAttested: true }), /accepted proposal/);
+  assert.throws(() => createProjects({ storage }).fromProposal(owner, { projectId: randomUUID(), requestKey: randomUUID(), quoteId, reason, reviewAttested: true }), /not configured/);
+});
+
 test("projects reject stale versions, wrong-customer jobs and duplicate links", (t) => {
   const f = setup(t);
   const base = { id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, customerId: f.customer, title: "P", reason, reviewAttested: true };

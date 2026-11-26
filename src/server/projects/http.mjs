@@ -3,8 +3,8 @@ import { bodyLimit } from "hono/body-limit";
 import { createProjects } from "./service.mjs";
 import { ProjectError } from "./domain.mjs";
 
-export function createProjectModule({ storage, currentUser }) {
-    const projects = createProjects({ storage }), app = new Hono();
+export function createProjectModule({ storage, currentUser, proposalSource = null }) {
+    const projects = createProjects({ storage, proposalSource }), app = new Hono();
     const actor = (c) => {
         const user = currentUser(c);
         if (c.req.method !== "GET" && c.req.header("X-Requested-With") !== "OpenFieldService")
@@ -18,6 +18,7 @@ export function createProjectModule({ storage, currentUser }) {
 
     app.get("/", (c) => c.json(projects.list(actor(c), c.req.query())));
     app.post("/", async (c) => c.json(projects.save(actor(c), await body(c))));
+    app.post("/from-proposal", async (c) => c.json(projects.fromProposal(actor(c), await body(c))));
     app.get("/:id", (c) => c.json(projects.detail(actor(c), c.req.param("id"))));
     app.post("/:id/phases", async (c) => c.json(projects.savePhase(actor(c), c.req.param("id"), await body(c))));
     app.post("/:id/milestones", async (c) => c.json(projects.saveMilestone(actor(c), c.req.param("id"), await body(c))));

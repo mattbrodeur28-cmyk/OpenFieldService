@@ -40,7 +40,11 @@ const hrDocuments=createHrDocuments({storage,currentUser:auth.currentUser});
 const jobHandoff = createJobHandoff({storage});
 const sales = createSales({storage,jobHandoff,crmHandoff:service.crm.prospects,currentUser:auth.currentUser,owners:auth.activeWriters,resolveMessage:auth.salesMessageReference,materialSnapshots:(ids: string[])=>quoteMaterialSnapshots(storage.database,ids)});
 const platform=createPlatform({storage,currentUser:auth.currentUser});
-const projects = createProjectModule({ storage, currentUser: auth.currentUser });
+const projects = createProjectModule({ storage, currentUser: auth.currentUser, proposalSource: (user: unknown, quoteId: string) => {
+  const summary = (sales as any).quotes.conversion.summary(user, quoteId);
+  if (!summary.acceptedDocument || !summary.nativeLinks?.customerId) return null;
+  return { customerId: summary.nativeLinks.customerId, title: summary.acceptedDocument.title, scope: summary.acceptedDocument.scope };
+} });
 const app = new Hono();
 app.use("/api/*", auth.guard);
 app.route("/api/auth", auth.app);

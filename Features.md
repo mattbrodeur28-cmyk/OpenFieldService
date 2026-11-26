@@ -788,16 +788,14 @@ domain modules, with explicit permissions and accounting ownership.
 
 ### Shared project foundation
 
-- [ ] **PROJ-001 — Project structure:** customer, contract/proposal, sites, project
+- [x] **PROJ-001 — Project structure:** customer, contract/proposal, sites, project
   manager, phases, cost codes, milestones, deliverables, planned/actual dates and
   linked jobs/appointments. Convert an accepted proposal without re-entering scope.
-  Implemented: versioned projects with customer, title, status, project manager,
-  planned/actual dates, source reference and archive; phases with cost code/owner/date
-  and position; milestones with due/completed; linked jobs (one project, with phase
-  assignment and customer/job validation); linked sites and deliverables (v2) —
-  `_projects`, `_project_phases`, `_project_milestones`, `_project_jobs`,
-  `_project_sites`, `_project_deliverables` with idempotent requests. Jobs double as
-  appointments on the Dispatcher board. Remaining: accepted-proposal conversion.
+  Implemented: versioned projects (customer/status/manager/dates/source/archive),
+  phases (cost code + owner + position), milestones, deliverables, linked sites and
+  linked jobs (one project, customer/phase validation) with idempotent requests, plus
+  `POST /api/projects/from-proposal` converting an accepted quote into a project from
+  its accepted document (title/scope/customer) without re-entry.
 - [ ] **PROJ-002 — Project management:** baseline budget and schedule, dependencies,
   progress, committed/actual costs, forecast, issues and overdue actions. Show each
   phase's responsible owner and preserve approved baseline versions.

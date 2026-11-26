@@ -27,3 +27,5 @@ export function writer(user) {
 }
 export const optionsQuery = z.object({ kind: z.enum(["customer", "site", "asset"]), customerId: uuid.optional(), search: z.string().trim().max(200).default(""), page: z.coerce.number().int().min(1).max(100000).default(1) }).strict();
 export const reviewInput = z.object({ id: uuid, requestKey: uuid, expectedVersion: z.number().int().positive().safe(), expectedReviewSequence: z.number().int().nonnegative().safe(), action: z.enum(["submit", "approve", "reject", "withdraw"]), reason: z.string().trim().min(10).max(2000), reviewAttested: z.literal(true) }).strict();
+export const documentInput = z.object({ id: uuid, requestKey: uuid, expectedVersion: z.number().int().positive().safe(), title: z.string().trim().min(1).max(160), reason: z.string().trim().min(10).max(2000), reviewAttested: z.literal(true) }).strict();
+export const documentQuery = z.object({ version: z.coerce.number().int().positive().safe().optional() }).strict();

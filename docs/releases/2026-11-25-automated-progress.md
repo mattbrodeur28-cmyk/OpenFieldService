@@ -156,3 +156,23 @@ Preparing an isolated publication snapshot from reviewed src/docs/tests/Features
 changes. Local editor settings and the untracked password-reset helper are excluded.
 The snapshot must pass build/type/tests separately before branch publication. No
 browser or live-provider completion is implied by that checkpoint.
+
+
+## Proposed-contract PDF checkpoint
+
+Working-tree full suite now passes240/240; TypeScript and production build pass.
+Six new document cases verify immutable exact-revision source/hash binding, historical
+PDF retention and new-revision replacement, upload/read boundaries, pending-review
+withdrawal, actor/content retry, late blob/association rollback, deduplication,
+byte-exact safe/private downloads, CSRF, actual multipart success and writer revocation
+during a streamed body. Previous234-test checkpoint is published as9b02259432f5d0a5049e510a6566d95dc88ea79d.
+
+The local preview restarted successfully after backing up both databases at
+/private/tmp/ofs-dev-20261125/before-hr-platform-1795665087296. Agreement review v2
+and proposed-document v3 now load in the preview. This is startup evidence, not
+populated real-contract upgrade/restore or user-file interaction proof. No contract
+PDF or review decision was uploaded to the preview as part of these checks.
+
+Browser/mobile/file-picker/modal qualification, malware scanning, authoritative
+accepted artifacts, customer signature/acceptance, contract activation and recurring
+work generation remain open. No production LXC/provider posting is claimed.

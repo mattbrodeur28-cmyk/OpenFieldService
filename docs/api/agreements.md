@@ -172,3 +172,11 @@ Automated checks have now resumed: six agreement tests and the complete196-test
 suite pass; TypeScript and build pass. See [qualification progress](../releases/2026-11-25-automated-progress.md)
 for exact coverage and remaining HTTP/populated-migration/browser gates. Earlier
 source-only notes above describe the state when those increments were written.
+
+## Proposed contract PDF follow-up
+
+[Revision-bound proposed PDFs](agreement-documents.md) now retain one immutable
+original per draft revision and bind its metadata/hash into internal review context.
+The workbench supports upload and current/historical downloads. A textual reference
+still is not a retained PDF or acceptance evidence. Full offer/customer acceptance,
+active coverage and authoritative accepted-version lifecycle remain open.

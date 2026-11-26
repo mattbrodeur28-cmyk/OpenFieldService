@@ -71,5 +71,6 @@ Testing is currently deferred at the owner's request. These guides describe loca
 source changes, not published or production-qualified releases.
 
 - [Native agreement draft foundation](api/agreements.md)
+- [Revision-bound proposed contract PDFs](api/agreement-documents.md)
 
 - [Automated qualification progress, 2026-11-25](releases/2026-11-25-automated-progress.md)

@@ -633,8 +633,10 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   UUID, validated location/equipment scope, nullable exact proposed USD pricing,
   manual/no renewal policy, immutable revisions, archive/restore and actor-bound
   exact retry. Draft workbench now provides paged native scope selection, proposed
-  price/terms, archive/restore and retained revision review; authoritative-document
-  workflow and qualification remain open. Draft
+  price/terms, archive/restore and retained revision review. Proposed PDF originals
+  now attach immutably per exact draft revision, with review snapshot hashes and
+  historical downloads. Accepted-authoritative-document lifecycle and remaining
+  qualification stay open. Draft
   never implies coverage or generated work. See [agreement API](docs/api/agreements.md).
 - [ ] **CONTRACT-002 — Lifecycle:** draft/review/offered/accepted/active/renewal/
   expired/cancelled, authorized transitions and immutable accepted versions/amendments.
@@ -653,6 +655,12 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   approval and retained history; no renewal without the configured authority/terms.
 - [ ] **CONTRACT-007 — Acceptance/documents:** templates/PDFs, signature or documented
   acceptance process, access control and retention.
+  Increment: immutable proposed PDFs per exact draft revision, privileged reviewed
+  upload, private original/history downloads and snapshot/hash binding into internal
+  review. Six automated document tests cover identity, retry/rollback and streamed
+  role checks. Verified customer acceptance/signature, accepted artifacts, complete
+  retention policy, browser and upgrade qualification remain open. See
+  [agreement documents](docs/api/agreement-documents.md).
 - [ ] **CONTRACT-008 — Profitability:** actual labor/material cost and agreement
   revenue with transparent allocation rules.
 
@@ -1364,3 +1372,8 @@ gates remain open; accepted-scope billing is not supplied by the handoff.
 Projection checkpoint:234/234 tests pass. Six new weekly timecard, Customer360 and
 audit-stage timing tests strengthen native projection proof; isolated publication
 qualification and all unfulfilled roadmap acceptance gates remain distinct.
+
+Proposed contract PDF checkpoint:240/240 automated tests, TypeScript and production
+build pass. Local preview startup after consistent backup loads review/PDF migrations.
+Exact coverage and remaining acceptance/activation/browser/provider gates remain in
+the qualification record.

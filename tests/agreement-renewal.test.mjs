@@ -38,6 +38,16 @@ test('renewal creates a linked renewal draft from an authorized agreement', t =>
     assert.equal(f.a.renewal.history(owner, f.draft.id).rows.length, 1);
 });
 
+test('renewal retains an assignee and reminder for follow-up tasks', t => {
+    const f = authorized(t);
+    const source = f.a.detail(owner, f.draft.id).agreement;
+    const command = { id: randomUUID(), requestKey: randomUUID(), renewalDraftId: randomUUID(), expectedVersion: source.version, startsOn: '2028-01-01', endsOn: '2028-12-31', priceCents: 12000, assigneeId: owner.id, reminderAt: '2027-10-01T09:00:00Z', reason, reviewAttested: true };
+    const result = f.a.renewal.renew(owner, f.draft.id, command);
+    assert.equal(result.renewal.assigneeId, owner.id);
+    assert.equal(result.renewal.reminderAt, '2027-10-01T09:00:00.000Z');
+    assert.equal(f.a.renewal.history(owner, f.draft.id).rows[0].assigneeId, owner.id);
+});
+
 test('renewal requires authorization and rejects stale, invalid or duplicate drafts', t => {
     const pending = accepted(t);
     const source = pending.a.detail(owner, pending.draft.id).agreement;

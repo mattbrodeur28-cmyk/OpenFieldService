@@ -697,12 +697,12 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   (CONTRACT-002/006), billable-exception invoicing handoff (TECH-008/M6) and
   response-priority dispatch effects (M3) are separate follow-on work; browser/LXC
   qualification remains deferred. See [entitlement API](docs/api/agreement-entitlement.md).
-- [ ] **CONTRACT-006 — Renewals:** assigned tasks, reminders, repricing, customer
+- [x] **CONTRACT-006 — Renewals:** assigned tasks, reminders, repricing, customer
   approval and retained history; no renewal without the configured authority/terms.
   Implemented: a renewal command creates a linked renewal draft from an authorized
-  agreement with new term dates and repricing, then flows through the existing
-  offer/accept/authorize lifecycle; the source relationship and history are retained
-  (v8 migration). Assigned renewal tasks and reminders remain open.
+  agreement with new term dates, repricing, an optional assignee and reminder, then
+  flows through the existing offer/accept/authorize lifecycle; the source relationship
+  and history are retained (v8/v12 migrations).
 - [ ] **CONTRACT-007 — Acceptance/documents:** templates/PDFs, signature or documented
   acceptance process, access control and retention.
   Increment: immutable proposed PDFs per exact draft revision, privileged reviewed

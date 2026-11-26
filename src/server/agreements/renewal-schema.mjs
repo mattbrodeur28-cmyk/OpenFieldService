@@ -15,3 +15,9 @@ CREATE INDEX _agreement_renewals_source ON _agreement_renewals(source_agreement_
 CREATE TRIGGER _agreement_renewals_no_update BEFORE UPDATE ON _agreement_renewals BEGIN SELECT RAISE(ABORT,'AGREEMENT_RENEWAL_IMMUTABLE'); END;
 CREATE TRIGGER _agreement_renewals_no_delete BEFORE DELETE ON _agreement_renewals BEGIN SELECT RAISE(ABORT,'AGREEMENT_RENEWAL_IMMUTABLE'); END;
 `;
+
+// Additive v12: an optional renewal assignee and reminder, surfaced in history.
+export const renewalTaskSchema = `
+ALTER TABLE _agreement_renewals ADD COLUMN assignee_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE _agreement_renewals ADD COLUMN reminder_at TEXT;
+`;

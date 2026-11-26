@@ -20,6 +20,14 @@ export function createProjects({ storage, proposalSource = null }) {
     const deliverables = (projectId) => db.prepare("SELECT id,project_id AS projectId,name,due_date AS dueDate,completed_at AS completedAt FROM _project_deliverables WHERE project_id=? ORDER BY due_date,id").all(projectId).map((r) => ({ ...r, completed: r.completedAt !== null }));
     const issues = (projectId) => db.prepare("SELECT id,project_id AS projectId,title,description,severity,status,assigned_to AS assignedTo,due_date AS dueDate,created_at AS createdAt,resolved_at AS resolvedAt FROM _project_issues WHERE project_id=? ORDER BY CASE status WHEN 'resolved' THEN 1 ELSE 0 END,severity DESC,created_at DESC,id DESC").all(projectId).map((r) => ({ ...r }));
     const dependencies = (projectId) => db.prepare("SELECT id,project_id AS projectId,phase_id AS phaseId,depends_on_id AS dependsOnId FROM _project_phase_dependencies WHERE project_id=? ORDER BY id").all(projectId).map((r) => ({ ...r }));
+    const financials = (projectId) => {
+        const row = db.prepare("SELECT COALESCE(SUM(i.total),0) AS actual FROM invoices i JOIN _project_jobs pj ON pj.job_id=i.job_id WHERE pj.project_id=?").get(projectId);
+        return { actualCostCents: Math.round(row.actual * 100), committedCostCents: null, currency: "USD" };
+    };
+    const overdueActions = (projectId) => {
+        const today = new Date().toISOString().slice(0, 10);
+        return db.prepare("SELECT id,title,due_date AS dueDate,severity,status FROM _project_issues WHERE project_id=? AND status<>'resolved' AND due_date<>'' AND due_date<?").all(projectId, today).map((r) => ({ ...r }));
+    };
     const replay = (user, key, fingerprint) => { const prior = db.prepare("SELECT actor_id,request_hash,result_json FROM _project_requests WHERE request_key=?").get(key); if (!prior) return null; if (prior.actor_id !== user.id) fail("This request belongs to another account.", 403); if (prior.request_hash !== fingerprint) fail("Request key has different project content.", 409); return JSON.parse(prior.result_json); };
     const acknowledge = (key, user, fingerprint, result) => db.prepare("INSERT INTO _project_requests(request_key,actor_id,request_hash,result_json) VALUES(?,?,?,?)").run(key, user.id, fingerprint, JSON.stringify(result));
 
@@ -59,7 +67,7 @@ export function createProjects({ storage, proposalSource = null }) {
     function detail(user, id) {
         reader(user);
         parse(uuid, id);
-        return transaction(db, () => ({ project: get(id), phases: phases(id), milestones: milestones(id), jobs: jobs(id), sites: sites(id), deliverables: deliverables(id), issues: issues(id), dependencies: dependencies(id) }));
+        return transaction(db, () => ({ project: get(id), phases: phases(id), milestones: milestones(id), jobs: jobs(id), sites: sites(id), deliverables: deliverables(id), issues: issues(id), dependencies: dependencies(id), financials: financials(id), overdueActions: overdueActions(id) }));
     }
 
     function savePhase(user, projectId, raw) {

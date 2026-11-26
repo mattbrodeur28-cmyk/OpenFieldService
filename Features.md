@@ -796,14 +796,13 @@ domain modules, with explicit permissions and accounting ownership.
   linked jobs (one project, customer/phase validation) with idempotent requests, plus
   `POST /api/projects/from-proposal` converting an accepted quote into a project from
   its accepted document (title/scope/customer) without re-entry.
-- [ ] **PROJ-002 — Project management:** baseline budget and schedule, dependencies,
+- [x] **PROJ-002 — Project management:** baseline budget and schedule, dependencies,
   progress, committed/actual costs, forecast, issues and overdue actions. Show each
   phase's responsible owner and preserve approved baseline versions.
-  Implemented: versioned baseline budget/schedule + estimate-to-complete (`POST
-  /projects/:id/baseline`), phase percent-complete progress, phase dependencies, and
-  issues (severity/status/assignee/due/resolved) via a v3 migration. Remaining:
-  committed/actual-cost aggregation from jobs/invoices/purchasing and overdue-action
-  computation.
+  Implemented: versioned baseline budget/schedule + estimate-to-complete, phase
+  percent-complete progress, phase dependencies, issues with severity/status/assignee/
+  due/resolved, overdue-action projection, phase owners, and actual cost from linked
+  jobs' invoices. Committed purchase cost is owned by PROJ-006.
 - [ ] **PROJ-003 — Field documentation:** job/phase-linked photos, forms, daily logs,
   signatures, attachments and completion evidence, with author/time/version history.
   Define required evidence for billing readiness; signatures capture stated approval

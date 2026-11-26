@@ -54,6 +54,29 @@ test("projects retain phases, milestones and linked jobs", (t) => {
   assert.deepEqual(f.projects.save(owner, update), first);
 });
 
+test("projects baseline, phase progress, issues and dependencies", (t) => {
+  const f = setup(t);
+  const saved = f.projects.save(owner, { id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, customerId: f.customer, title: "P", reason, reviewAttested: true });
+  const pid = saved.project.id;
+  const bl = f.projects.setBaseline(owner, pid, { requestKey: randomUUID(), baselineCostCents: 100000, baselineStart: "2027-01-01", baselineEnd: "2027-06-30", estimateToCompleteCents: 80000, reason, reviewAttested: true });
+  assert.equal(bl.project.baseline_cost_cents, 100000);
+  assert.equal(bl.project.version, 2);
+  assert.ok(bl.project.baselined_at);
+  const p1 = randomUUID(), p2 = randomUUID();
+  f.projects.savePhase(owner, pid, { id: p1, requestKey: randomUUID(), expectedVersion: 0, name: "Phase 1", position: 1, percentComplete: 40, reason, reviewAttested: true });
+  f.projects.savePhase(owner, pid, { id: p2, requestKey: randomUUID(), expectedVersion: 0, name: "Phase 2", position: 2, reason, reviewAttested: true });
+  f.projects.saveIssue(owner, pid, { id: randomUUID(), requestKey: randomUUID(), title: "Permit delay", severity: "high", status: "open", assignedTo: "pm", dueDate: "2027-02-01", reason, reviewAttested: true });
+  f.projects.saveDependency(owner, pid, { id: randomUUID(), requestKey: randomUUID(), phaseId: p2, dependsOnId: p1, reason, reviewAttested: true });
+  const d = f.projects.detail(owner, pid);
+  assert.equal(d.phases.find((p) => p.id === p1).percentComplete, 40);
+  assert.equal(d.issues.length, 1);
+  assert.equal(d.issues[0].severity, "high");
+  assert.equal(d.dependencies.length, 1);
+  assert.equal(d.dependencies[0].phaseId, p2);
+  assert.throws(() => f.projects.saveDependency(owner, pid, { id: randomUUID(), requestKey: randomUUID(), phaseId: p1, dependsOnId: p1, reason, reviewAttested: true }), /itself/);
+  assert.throws(() => f.projects.saveDependency(owner, pid, { id: randomUUID(), requestKey: randomUUID(), phaseId: p2, dependsOnId: p1, reason, reviewAttested: true }), /already exists/);
+});
+
 test("fromProposal converts an accepted proposal into a project without re-entering scope", (t) => {
   const dir = mkdtempSync(join(tmpdir(), "ofs-projects-")),
     storage = openStorage(join(dir, "s.sqlite")),

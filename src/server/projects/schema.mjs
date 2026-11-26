@@ -69,3 +69,36 @@ CREATE TABLE _project_deliverables(
 );
 CREATE INDEX _project_deliverables_project ON _project_deliverables(project_id,due_date);
 `;
+
+// v3: baseline budget/schedule, phase progress, issues and phase dependencies (PROJ-002).
+export const projectSchemaV3 = `
+ALTER TABLE _projects ADD COLUMN baseline_cost_cents INTEGER;
+ALTER TABLE _projects ADD COLUMN baseline_start TEXT NOT NULL DEFAULT '';
+ALTER TABLE _projects ADD COLUMN baseline_end TEXT NOT NULL DEFAULT '';
+ALTER TABLE _projects ADD COLUMN estimate_to_complete_cents INTEGER;
+ALTER TABLE _projects ADD COLUMN baselined_at TEXT;
+ALTER TABLE _projects ADD COLUMN baselined_by TEXT NOT NULL DEFAULT '';
+ALTER TABLE _project_phases ADD COLUMN percent_complete INTEGER NOT NULL DEFAULT 0 CHECK(percent_complete BETWEEN 0 AND 100);
+ALTER TABLE _project_phases ADD COLUMN progress_updated_at TEXT;
+CREATE TABLE _project_issues(
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES _projects(id) ON DELETE RESTRICT,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  severity TEXT NOT NULL DEFAULT 'medium' CHECK(severity IN ('low','medium','high','critical')),
+  status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','in_progress','blocked','resolved')),
+  assigned_to TEXT NOT NULL DEFAULT '',
+  due_date TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  resolved_at TEXT
+);
+CREATE INDEX _project_issues_project ON _project_issues(project_id,status);
+CREATE TABLE _project_phase_dependencies(
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES _projects(id) ON DELETE RESTRICT,
+  phase_id TEXT NOT NULL REFERENCES _project_phases(id) ON DELETE RESTRICT,
+  depends_on_id TEXT NOT NULL REFERENCES _project_phases(id) ON DELETE RESTRICT,
+  CHECK(phase_id <> depends_on_id)
+);
+CREATE INDEX _project_phase_dependencies_project ON _project_phase_dependencies(project_id,phase_id);
+`;

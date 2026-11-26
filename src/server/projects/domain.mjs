@@ -36,6 +36,7 @@ export const phaseInput = z.object({
     name: z.string().trim().min(1).max(200), costCode: z.string().trim().max(60).default(""), owner: z.string().trim().max(100).default(""),
     plannedStart: date.default(""), plannedEnd: date.default(""), actualStart: date.default(""), actualEnd: date.default(""),
     position: z.number().int().nonnegative().safe().default(0),
+    percentComplete: z.number().int().min(0).max(100).default(0),
     reason: z.string().trim().min(10).max(2000),
     reviewAttested: z.literal(true),
 }).strict();
@@ -68,6 +69,34 @@ export const deliverableInput = z.object({
 
 export const fromProposalInput = z.object({
     projectId: uuid, requestKey: uuid, quoteId: uuid,
+    reason: z.string().trim().min(10).max(2000),
+    reviewAttested: z.literal(true),
+}).strict();
+
+export const baselineInput = z.object({
+    requestKey: uuid,
+    baselineCostCents: z.number().int().nonnegative().nullable(),
+    baselineStart: date.default(""), baselineEnd: date.default(""),
+    estimateToCompleteCents: z.number().int().nonnegative().nullable(),
+    reason: z.string().trim().min(10).max(2000),
+    reviewAttested: z.literal(true),
+}).strict();
+
+export const issueInput = z.object({
+    id: uuid, requestKey: uuid,
+    title: z.string().trim().min(1).max(200),
+    description: z.string().trim().max(4000).default(""),
+    severity: z.enum(["low", "medium", "high", "critical"]).default("medium"),
+    status: z.enum(["open", "in_progress", "blocked", "resolved"]).default("open"),
+    assignedTo: z.string().trim().max(100).default(""),
+    dueDate: date.default(""),
+    reason: z.string().trim().min(10).max(2000),
+    reviewAttested: z.literal(true),
+}).strict();
+
+export const dependencyInput = z.object({
+    id: uuid, requestKey: uuid,
+    phaseId: uuid, dependsOnId: uuid,
     reason: z.string().trim().min(10).max(2000),
     reviewAttested: z.literal(true),
 }).strict();

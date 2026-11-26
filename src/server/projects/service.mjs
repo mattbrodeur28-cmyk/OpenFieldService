@@ -1,23 +1,25 @@
 import { createHash, randomUUID } from "node:crypto";
 import { migrate, transaction } from "../platform/sqlite.mjs";
-import { projectSchema, projectSchemaV2 } from "./schema.mjs";
-import { parse, uuid, reader, writer, fail, projectInput, phaseInput, milestoneInput, linkJobInput, linkSiteInput, deliverableInput, fromProposalInput } from "./domain.mjs";
+import { projectSchema, projectSchemaV2, projectSchemaV3 } from "./schema.mjs";
+import { parse, uuid, reader, writer, fail, projectInput, phaseInput, milestoneInput, linkJobInput, linkSiteInput, deliverableInput, fromProposalInput, baselineInput, issueInput, dependencyInput } from "./domain.mjs";
 
 const hash = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
 export function createProjects({ storage, proposalSource = null }) {
     const db = storage.database;
-    migrate(db, "_project_migrations", [{ version: 1, sql: projectSchema }, { version: 2, sql: projectSchemaV2 }]);
+    migrate(db, "_project_migrations", [{ version: 1, sql: projectSchema }, { version: 2, sql: projectSchemaV2 }, { version: 3, sql: projectSchemaV3 }]);
     db.exec("CREATE TABLE IF NOT EXISTS _project_requests(request_key TEXT PRIMARY KEY,actor_id TEXT NOT NULL,request_hash TEXT NOT NULL,result_json TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
 
     const customer = (id) => { const row = db.prepare("SELECT id,name FROM customers WHERE id=?").get(id); if (!row) fail("Customer not found.", 404); return row; };
     const projectRow = (id) => { const row = db.prepare("SELECT * FROM _projects WHERE id=?").get(id); return row ? { ...row, archived: row.archived === 1 } : null; };
     const get = (id) => { const p = projectRow(id); if (!p) fail("Project not found.", 404); return p; };
-    const phases = (projectId) => db.prepare("SELECT id,project_id AS projectId,name,cost_code AS costCode,owner,planned_start AS plannedStart,planned_end AS plannedEnd,actual_start AS actualStart,actual_end AS actualEnd,position,version FROM _project_phases WHERE project_id=? ORDER BY position,name,id").all(projectId).map((r) => ({ ...r }));
+    const phases = (projectId) => db.prepare("SELECT id,project_id AS projectId,name,cost_code AS costCode,owner,planned_start AS plannedStart,planned_end AS plannedEnd,actual_start AS actualStart,actual_end AS actualEnd,position,percent_complete AS percentComplete,progress_updated_at AS progressUpdatedAt,version FROM _project_phases WHERE project_id=? ORDER BY position,name,id").all(projectId).map((r) => ({ ...r }));
     const milestones = (projectId) => db.prepare("SELECT id,project_id AS projectId,name,due_date AS dueDate,completed_at AS completedAt FROM _project_milestones WHERE project_id=? ORDER BY due_date,id").all(projectId).map((r) => ({ ...r, completed: r.completedAt !== null }));
     const jobs = (projectId) => db.prepare("SELECT j.id,j.phase_id AS phaseId,k.id AS jobId,k.identifier,k.status,k.scheduled_date AS scheduledDate FROM _project_jobs j JOIN jobs k ON k.id=j.job_id WHERE j.project_id=? ORDER BY k.identifier").all(projectId).map((r) => ({ ...r }));
     const sites = (projectId) => db.prepare("SELECT j.id,s.id AS siteId,s.name,s.address FROM _project_sites j JOIN sites s ON s.id=j.site_id WHERE j.project_id=? ORDER BY s.name").all(projectId).map((r) => ({ ...r }));
     const deliverables = (projectId) => db.prepare("SELECT id,project_id AS projectId,name,due_date AS dueDate,completed_at AS completedAt FROM _project_deliverables WHERE project_id=? ORDER BY due_date,id").all(projectId).map((r) => ({ ...r, completed: r.completedAt !== null }));
+    const issues = (projectId) => db.prepare("SELECT id,project_id AS projectId,title,description,severity,status,assigned_to AS assignedTo,due_date AS dueDate,created_at AS createdAt,resolved_at AS resolvedAt FROM _project_issues WHERE project_id=? ORDER BY CASE status WHEN 'resolved' THEN 1 ELSE 0 END,severity DESC,created_at DESC,id DESC").all(projectId).map((r) => ({ ...r }));
+    const dependencies = (projectId) => db.prepare("SELECT id,project_id AS projectId,phase_id AS phaseId,depends_on_id AS dependsOnId FROM _project_phase_dependencies WHERE project_id=? ORDER BY id").all(projectId).map((r) => ({ ...r }));
     const replay = (user, key, fingerprint) => { const prior = db.prepare("SELECT actor_id,request_hash,result_json FROM _project_requests WHERE request_key=?").get(key); if (!prior) return null; if (prior.actor_id !== user.id) fail("This request belongs to another account.", 403); if (prior.request_hash !== fingerprint) fail("Request key has different project content.", 409); return JSON.parse(prior.result_json); };
     const acknowledge = (key, user, fingerprint, result) => db.prepare("INSERT INTO _project_requests(request_key,actor_id,request_hash,result_json) VALUES(?,?,?,?)").run(key, user.id, fingerprint, JSON.stringify(result));
 
@@ -57,7 +59,7 @@ export function createProjects({ storage, proposalSource = null }) {
     function detail(user, id) {
         reader(user);
         parse(uuid, id);
-        return transaction(db, () => ({ project: get(id), phases: phases(id), milestones: milestones(id), jobs: jobs(id), sites: sites(id), deliverables: deliverables(id) }));
+        return transaction(db, () => ({ project: get(id), phases: phases(id), milestones: milestones(id), jobs: jobs(id), sites: sites(id), deliverables: deliverables(id), issues: issues(id), dependencies: dependencies(id) }));
     }
 
     function savePhase(user, projectId, raw) {
@@ -70,8 +72,8 @@ export function createProjects({ storage, proposalSource = null }) {
             if (old && old.project_id !== projectId) fail("Phase does not belong to this project.", 404);
             if (old && old.version !== d.expectedVersion) fail("Phase changed. Reload and review before saving.", 409);
             const version = (old?.version ?? 0) + 1;
-            if (old) db.prepare("UPDATE _project_phases SET name=?,cost_code=?,owner=?,planned_start=?,planned_end=?,actual_start=?,actual_end=?,position=?,version=? WHERE id=? AND version=?").run(d.name, d.costCode, d.owner, d.plannedStart, d.plannedEnd, d.actualStart, d.actualEnd, d.position, version, d.id, d.expectedVersion);
-            else db.prepare("INSERT INTO _project_phases(id,project_id,name,cost_code,owner,planned_start,planned_end,actual_start,actual_end,position,version) VALUES(?,?,?,?,?,?,?,?,?,?,?)").run(d.id, projectId, d.name, d.costCode, d.owner, d.plannedStart, d.plannedEnd, d.actualStart, d.actualEnd, d.position, version);
+            if (old) db.prepare("UPDATE _project_phases SET name=?,cost_code=?,owner=?,planned_start=?,planned_end=?,actual_start=?,actual_end=?,position=?,percent_complete=?,progress_updated_at=CURRENT_TIMESTAMP,version=? WHERE id=? AND version=?").run(d.name, d.costCode, d.owner, d.plannedStart, d.plannedEnd, d.actualStart, d.actualEnd, d.position, d.percentComplete, version, d.id, d.expectedVersion);
+            else db.prepare("INSERT INTO _project_phases(id,project_id,name,cost_code,owner,planned_start,planned_end,actual_start,actual_end,position,percent_complete,progress_updated_at,version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)").run(d.id, projectId, d.name, d.costCode, d.owner, d.plannedStart, d.plannedEnd, d.actualStart, d.actualEnd, d.position, d.percentComplete, d.percentComplete > 0 ? new Date().toISOString() : null, version);
             const result = { phase: db.prepare("SELECT id,name,cost_code AS costCode,owner,position,version FROM _project_phases WHERE id=?").get(d.id) };
             acknowledge(d.requestKey, user, fingerprint, result);
             return result;
@@ -184,5 +186,52 @@ export function createProjects({ storage, proposalSource = null }) {
         });
     }
 
-    return { save, list, detail, savePhase, saveMilestone, linkJob, unlinkJob, linkSite, unlinkSite, saveDeliverable, fromProposal };
+    function setBaseline(user, projectId, raw) {
+        writer(user);
+        const d = parse(baselineInput, raw), fingerprint = hash({ action: "set_baseline", projectId, ...d });
+        return transaction(db, () => {
+            const prior = replay(user, d.requestKey, fingerprint); if (prior) return prior;
+            const project = get(projectId);
+            db.prepare("UPDATE _projects SET baseline_cost_cents=?,baseline_start=?,baseline_end=?,estimate_to_complete_cents=?,baselined_at=CURRENT_TIMESTAMP,baselined_by=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(d.baselineCostCents, d.baselineStart, d.baselineEnd, d.estimateToCompleteCents, user.id, projectId);
+            const result = { project: projectRow(projectId), baseline: { costCents: d.baselineCostCents, start: d.baselineStart, end: d.baselineEnd, estimateToCompleteCents: d.estimateToCompleteCents, version: project.version + 1 } };
+            acknowledge(d.requestKey, user, fingerprint, result);
+            return result;
+        });
+    }
+
+    function saveIssue(user, projectId, raw) {
+        writer(user);
+        const d = parse(issueInput, raw), fingerprint = hash({ action: "save_issue", projectId, ...d });
+        return transaction(db, () => {
+            const prior = replay(user, d.requestKey, fingerprint); if (prior) return prior;
+            get(projectId);
+            const old = db.prepare("SELECT * FROM _project_issues WHERE id=?").get(d.id);
+            if (old && old.project_id !== projectId) fail("Issue does not belong to this project.", 404);
+            const resolvedAt = d.status === "resolved" ? (old?.resolved_at ?? new Date().toISOString()) : null;
+            db.prepare("INSERT INTO _project_issues(id,project_id,title,description,severity,status,assigned_to,due_date,resolved_at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,description=excluded.description,severity=excluded.severity,status=excluded.status,assigned_to=excluded.assigned_to,due_date=excluded.due_date,resolved_at=excluded.resolved_at").run(d.id, projectId, d.title, d.description, d.severity, d.status, d.assignedTo, d.dueDate, resolvedAt);
+            const result = { issue: db.prepare("SELECT id,title,severity,status,assigned_to AS assignedTo,due_date AS dueDate,resolved_at AS resolvedAt FROM _project_issues WHERE id=?").get(d.id) };
+            acknowledge(d.requestKey, user, fingerprint, result);
+            return result;
+        });
+    }
+
+    function saveDependency(user, projectId, raw) {
+        writer(user);
+        const d = parse(dependencyInput, raw), fingerprint = hash({ action: "save_dependency", projectId, ...d });
+        return transaction(db, () => {
+            const prior = replay(user, d.requestKey, fingerprint); if (prior) return prior;
+            get(projectId);
+            if (d.phaseId === d.dependsOnId) fail("A phase cannot depend on itself.", 409);
+            const phase = db.prepare("SELECT 1 FROM _project_phases WHERE id=? AND project_id=?").get(d.phaseId, projectId);
+            const dep = db.prepare("SELECT 1 FROM _project_phases WHERE id=? AND project_id=?").get(d.dependsOnId, projectId);
+            if (!phase || !dep) fail("Both phases must belong to this project.", 404);
+            if (db.prepare("SELECT 1 FROM _project_phase_dependencies WHERE phase_id=? AND depends_on_id=?").get(d.phaseId, d.dependsOnId)) fail("That dependency already exists.", 409);
+            db.prepare("INSERT INTO _project_phase_dependencies(id,project_id,phase_id,depends_on_id) VALUES(?,?,?,?)").run(d.id, projectId, d.phaseId, d.dependsOnId);
+            const result = { dependency: { id: d.id, projectId, phaseId: d.phaseId, dependsOnId: d.dependsOnId } };
+            acknowledge(d.requestKey, user, fingerprint, result);
+            return result;
+        });
+    }
+
+    return { save, list, detail, savePhase, saveMilestone, linkJob, unlinkJob, linkSite, unlinkSite, saveDeliverable, fromProposal, setBaseline, saveIssue, saveDependency };
 }

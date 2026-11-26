@@ -799,6 +799,11 @@ domain modules, with explicit permissions and accounting ownership.
 - [ ] **PROJ-002 — Project management:** baseline budget and schedule, dependencies,
   progress, committed/actual costs, forecast, issues and overdue actions. Show each
   phase's responsible owner and preserve approved baseline versions.
+  Implemented: versioned baseline budget/schedule + estimate-to-complete (`POST
+  /projects/:id/baseline`), phase percent-complete progress, phase dependencies, and
+  issues (severity/status/assignee/due/resolved) via a v3 migration. Remaining:
+  committed/actual-cost aggregation from jobs/invoices/purchasing and overdue-action
+  computation.
 - [ ] **PROJ-003 — Field documentation:** job/phase-linked photos, forms, daily logs,
   signatures, attachments and completion evidence, with author/time/version history.
   Define required evidence for billing readiness; signatures capture stated approval

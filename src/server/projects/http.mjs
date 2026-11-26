@@ -27,5 +27,8 @@ export function createProjectModule({ storage, currentUser, proposalSource = nul
     app.post("/:id/sites", async (c) => c.json(projects.linkSite(actor(c), c.req.param("id"), await body(c))));
     app.delete("/:id/sites/:linkId", (c) => c.json(projects.unlinkSite(actor(c), c.req.param("id"), c.req.param("linkId"))));
     app.post("/:id/deliverables", async (c) => c.json(projects.saveDeliverable(actor(c), c.req.param("id"), await body(c))));
+    app.post("/:id/baseline", async (c) => c.json(projects.setBaseline(actor(c), c.req.param("id"), await body(c))));
+    app.post("/:id/issues", async (c) => c.json(projects.saveIssue(actor(c), c.req.param("id"), await body(c))));
+    app.post("/:id/dependencies", async (c) => c.json(projects.saveDependency(actor(c), c.req.param("id"), await body(c))));
     return { app, projects };
 }

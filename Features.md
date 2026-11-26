@@ -668,20 +668,15 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   historical downloads. Accepted-authoritative-document lifecycle and remaining
   qualification stay open. Draft
   never implies coverage or generated work. See [agreement API](docs/api/agreements.md).
-- [ ] **CONTRACT-002 — Lifecycle:** draft/review/offered/accepted/active/renewal/
+- [x] **CONTRACT-002 — Lifecycle:** draft/review/offered/accepted/active/renewal/
   expired/cancelled, authorized transitions and immutable accepted versions/amendments.
-  Source increment (unqualified): per-revision internal submit/approve/reject/withdraw
-  decisions with exact native-context snapshots, stale source/sequence guards,
-  retained actor/reason history and guarded UI recovery. New revisions require a
-  new review. Frozen offer/evidence workflow now binds approved source, immutable
-  proposed PDF, native issuer revision, recipient and expiry. External delivery and
-  customer acceptance/decline are separately attributed records; seven focused
-  tests cover source/role/replay/expiry/rollback and streamed-body checks. Accepted
-  scope is protected. Explicit operational authorization now freezes accepted term/
-  Company timezone/source, validates native ownership and projects scheduled/active/
-  ended/cancelled state with retained cancellation and exact retry. Seven tests cover
-  scope, dates, role boundaries and rollback. Verified signatures/provider delivery,
-  amendments/renewal and remaining qualification stay open. See [agreement lifecycle](docs/api/agreement-lifecycle.md).
+  Implemented: per-revision internal submit/approve/reject/withdraw with exact
+  native-context snapshots; frozen offers with attributed delivery/acceptance evidence;
+  explicit operational authorization projecting scheduled/active/ended/cancelled terms
+  with retained cancellation; and linked renewals (CONTRACT-006) and amendments, each
+  creating a new draft that flows through review/offer/accept again with an immutable
+  source ledger. Verified signatures and provider delivery remain CONTRACT-007. See
+  [agreement lifecycle](docs/api/agreement-lifecycle.md).
 - [x] **CONTRACT-003 — Maintenance plans:** equipment-specific recurring tasks,
   seasonal schedules, checklists, template versions and required evidence.
   Implemented: versioned plans bound to the agreement's selected scope with monthly/

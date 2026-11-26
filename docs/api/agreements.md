@@ -209,3 +209,10 @@ contract value (a contract value, not recognized revenue), net native material c
 (usage minus return movements) on in-scope jobs during the active term, and a per-job
 allocation. Labor cost remains explicit null until a reviewed labor cost-rate policy is
 configured; margin is contract value minus material cost with that unknown labeled.
+
+## Amendment follow-up
+
+[Agreement amendments](agreement-lifecycle.md) now create a linked amendment draft from
+an accepted agreement with deliberate scope/price/terms overrides, retained in an
+immutable `_agreement_amendments` ledger (v10); the draft then uses the normal review/
+offer/accept/authorize lifecycle. Accepted scope is never silently rewritten.

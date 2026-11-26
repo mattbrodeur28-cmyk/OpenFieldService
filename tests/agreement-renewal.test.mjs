@@ -52,3 +52,31 @@ test('renewal requires authorization and rejects stale, invalid or duplicate dra
     assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM _agreement_drafts').get().n, 2);
     assert.throws(() => f.db.prepare('UPDATE _agreement_renewals SET reason=?').run('x'), /IMMUTABLE/);
 });
+
+test('amendment creates a linked draft with deliberate overrides and retained history', t => {
+    const f = authorized(t);
+    const source = f.a.detail(owner, f.draft.id).agreement;
+    const command = { id: randomUUID(), requestKey: randomUUID(), amendmentDraftId: randomUUID(), expectedVersion: source.version, kind: 'price', priceCents: 15000, reason, reviewAttested: true };
+    const result = f.a.amendment.amend(owner, f.draft.id, command);
+    assert.equal(result.amendment.kind, 'price');
+    const draft = f.a.detail(owner, command.amendmentDraftId);
+    assert.equal(draft.agreement.document.priceCents, 15000);
+    assert.equal(draft.agreement.document.scope, source.document.scope);
+    assert.equal(draft.agreement.document.startsOn, source.document.startsOn);
+    assert.equal(draft.agreement.document.siteIds.length, 1);
+    assert.deepEqual(f.a.amendment.amend(owner, f.draft.id, command), result);
+    assert.equal(f.a.amendment.history(owner, f.draft.id).rows.length, 1);
+    assert.throws(() => f.db.prepare('UPDATE _agreement_amendments SET kind=?').run('other'), /IMMUTABLE/);
+});
+
+test('amendment requires accepted agreement and rejects stale or duplicate drafts', t => {
+    const g = fixture(t);
+    const source = g.a.detail(owner, g.draft.id).agreement;
+    const command = { id: randomUUID(), requestKey: randomUUID(), amendmentDraftId: randomUUID(), expectedVersion: source.version, kind: 'price', priceCents: 15000, reason, reviewAttested: true };
+    assert.throws(() => g.a.amendment.amend(owner, g.draft.id, command), /accepted/);
+    const f = authorized(t);
+    const v = f.a.detail(owner, f.draft.id).agreement;
+    assert.throws(() => f.a.amendment.amend(owner, f.draft.id, { ...command, expectedVersion: 999 }), /changed/);
+    f.a.amendment.amend(owner, f.draft.id, { ...command, expectedVersion: v.version });
+    assert.throws(() => f.a.amendment.amend(owner, f.draft.id, { ...command, id: randomUUID(), requestKey: randomUUID(), expectedVersion: v.version }), /identity already exists/);
+});

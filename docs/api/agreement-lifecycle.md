@@ -104,3 +104,13 @@ revocation during streamed JSON. Browser forms, DST ambiguous event entry, popul
 v3→v4 migration/restore, worker concurrency, evidence corrections, verified signature/
 provider delivery, accepted amendments, activation/entitlements and work generation
 remain open. Do not mark M5 complete from recorded acceptance.
+
+## Amendments
+
+CONTRACT-002, 2026-11-26. `POST /api/agreements/:id/amendment` (Owner/Admin) creates a
+linked amendment draft from an accepted agreement with optional title/scope/exclusions/
+terms/document-reference/site/asset/price overrides and a `kind` label, then flows
+through the normal review/offer/accept/authorize lifecycle. `GET
+/api/agreements/:id/amendments` returns the immutable source relationship and history.
+The accepted source scope stays protected; an amendment is a new reviewed version, not a
+silent overwrite. Verified signatures and provider delivery remain CONTRACT-007.

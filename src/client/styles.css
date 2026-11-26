@@ -625,8 +625,8 @@ body {
   justify-content: center;
   font-size: 14px;
   font-weight: 500;
-  border: 0;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  box-shadow: none;
   border-radius: var(--radius-sm);
   background: var(--card-bg);
   color: var(--text);
@@ -641,7 +641,7 @@ body {
 .btn-primary {
   background: var(--primary);
   color: var(--on-primary);
-  border-color: var(--ring);
+  border-color: var(--primary);
 }
 
 .btn-primary:hover { background: var(--primary-hover); }
@@ -1053,7 +1053,7 @@ a { color: var(--text); text-underline-offset: 3px; text-decoration-color: var(-
 .btn-primary { box-shadow: none; }
 .btn-danger:hover { background: var(--danger-hover); color: white; }
 .btn-back { box-shadow: none; }
-.btn-ghost { background: none; box-shadow: none; color: var(--text-muted); }
+.btn-ghost { background: none; box-shadow: none; border: none; color: var(--text-muted); }
 .sidebar-brand-name { flex: 1; white-space: nowrap; font-size: 14px; }
 .sidebar-brand-icon { color: white; flex-shrink: 0; }
 .sidebar-section-title, .detail-meta-label, .detail-sidebar-section h4 { font-size: 13px; font-weight: 500; }

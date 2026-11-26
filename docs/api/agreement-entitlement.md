@@ -57,3 +57,13 @@ records with exact idempotency when work is cancelled or corrected, billable-exc
 invoicing handoff, response-priority dispatch effects, holiday/timezone shifting,
 populated v6→v7 upgrade/restore, browser workbench and real provider/LXC qualification.
 Do not mark M5 complete from an exhaustion flag or a projected remaining-visit count.
+
+## Profitability
+
+M5 CONTRACT-008 increment, 2026-11-26. `GET /api/agreements/:id/profitability` projects
+the authorized contract value (`priceCents` from the accepted offer), net native
+material cost on in-scope jobs during the active term (sum of `usage` minus `return`
+inventory-movement value), and a per-job allocation. `laborCostCents` is explicit
+`null` until a reviewed labor cost-rate policy exists; margin is contract value minus
+material cost with that unknown labeled. No revenue recognition or provider posting is
+implied by this projection.

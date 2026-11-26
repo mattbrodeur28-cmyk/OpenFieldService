@@ -61,6 +61,22 @@ export function createAgreementRepository(storage) {
             const placeholders = assetIds.map(() => '?').join(',');
             return db.prepare('SELECT r.id AS reportId,r.job_id AS jobId,r.visit_start_at AS visitStartAt,r.visit_end_at AS visitEndAt,j.asset_id AS assetId FROM _service_reports r JOIN _service_report_reviews v ON v.report_id=r.id AND v.decision=\'approved\' JOIN jobs j ON j.id=r.job_id WHERE j.customer_id=? AND j.asset_id IN (' + placeholders + ')').all(customerId, ...assetIds).map(row => ({ ...row, hours: Number(db.prepare("SELECT COALESCE(SUM(worked_minutes),0) AS n FROM _service_time_entries WHERE report_id=? AND state='approved' AND work_type='work'").get(row.reportId).n) }));
         },
+        materialCost: (customerId, assetIds, startsOn, endsOn) => {
+            if (!assetIds.length || !db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_inventory_movements'").get())
+                return { totalCents: 0, jobs: [] };
+            const placeholders = assetIds.map(() => '?').join(',');
+            const rows = db.prepare('SELECT j.id AS jobId,j.identifier,m.kind,m.quantity_milli AS quantityMilli,CAST(m.value_millicents AS INTEGER) AS millicents FROM _inventory_movements m JOIN jobs j ON j.id=m.job_id WHERE m.kind IN (\'usage\',\'return\') AND j.customer_id=? AND j.asset_id IN (' + placeholders + ') AND j.scheduled_date BETWEEN ? AND ? ORDER BY j.id,m.kind').all(customerId, ...assetIds, startsOn, endsOn);
+            const byJob = new Map();
+            for (const row of rows) {
+                if (!byJob.has(row.jobId))
+                    byJob.set(row.jobId, { jobId: row.jobId, identifier: row.identifier, millicents: 0n });
+                const sign = row.kind === 'return' ? -1n : 1n;
+                byJob.get(row.jobId).millicents += sign * BigInt(row.millicents);
+            }
+            const jobs = [...byJob.values()].map(row => ({ jobId: row.jobId, identifier: row.identifier, costCents: Math.round(Number(row.millicents) / 1000) }));
+            const totalCents = jobs.reduce((sum, row) => sum + row.costCents, 0);
+            return { totalCents, jobs };
+        },
         addActivationCancellation: (d, recordedAt, user) => db.prepare('INSERT INTO _agreement_activation_cancellations(id,activation_id,effective_on,recorded_at,actor_id,reason) VALUES(?,?,?,?,?,?)').run(d.id, d.activationId, d.effectiveOn, recordedAt, user.id, d.reason),
         offerIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_offers WHERE id=?').get(id),
         offerEventIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_offer_events WHERE id=?').get(id),

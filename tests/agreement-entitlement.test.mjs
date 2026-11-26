@@ -100,3 +100,21 @@ test('out-of-term and unselected-equipment evidence is never consumed', t => {
     assert.equal(e.consumed.hours, 0);
     assert.equal(e.detail.length, 0);
 });
+
+test('profitability projects contract value and net material cost with explicit unknowns', t => {
+    const f = authorized(t);
+    f.setTime('2027-01-10T15:00:00Z');
+    const job = randomUUID();
+    f.db.prepare("INSERT INTO jobs(id,identifier,customer_id,asset_id,scheduled_date) VALUES(?,?,?,?,'2027-01-10')").run(job, 'PM-' + job.slice(0, 8), f.draft.customerId, f.draft.assetIds[0]);
+    const material = randomUUID();
+    f.db.prepare('INSERT INTO materials(id,name) VALUES(?,?)').run(material, 'Filter');
+    f.db.prepare("INSERT INTO _inventory_movements(id,request_key,request_hash,actor_id,kind,material_id,quantity_milli,value_millicents,job_id,technician_id,reason,delegation_reason,before_json,after_json) VALUES(?,?,?,?,?,?,?,?,?,NULL,?,?,?,?)")
+        .run(randomUUID(), randomUUID(), 'x', owner.id, 'usage', material, 1000, '50000', job, 'Used on PM', '', '{}', '{}');
+    const p = f.a.activation.profitability(owner, f.draft.id);
+    assert.equal(p.contractValueCents, 10000);
+    assert.equal(p.materialCostCents, 50);
+    assert.equal(p.laborCostCents, null);
+    assert.equal(p.marginCents, 9950);
+    assert.equal(p.allocation.length, 1);
+    assert.equal(p.allocation[0].costCents, 50);
+});

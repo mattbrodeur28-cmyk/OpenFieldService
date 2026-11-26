@@ -50,6 +50,7 @@ export function createAgreementModule({ storage, currentUser, issuer, timeZone, 
     app.get('/:id/activation', c => c.json(agreements.activation.summary(actor(c), c.req.param('id'))));
     app.get('/:id/coverage', c => c.json(agreements.activation.coverage(actor(c), c.req.param('id'), c.req.query())));
     app.get('/:id/entitlement', c => c.json(agreements.activation.entitlement(actor(c), c.req.param('id'))));
+    app.get('/:id/profitability', c => c.json(agreements.activation.profitability(actor(c), c.req.param('id'))));
     app.get('/:id/renewals', c => c.json(agreements.renewal.history(actor(c), c.req.param('id'))));
     app.post('/:id/renewal', async (c) => {
         let data;

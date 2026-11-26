@@ -201,3 +201,11 @@ visits, billable exceptions, pricing and generated maintenance work.
 authorized agreement (new term dates and repricing) and retain the source relationship
 and history; the draft then uses the normal offer/accept/authorize lifecycle. Assigned
 renewal tasks and reminders remain open.
+
+## Profitability follow-up
+
+[Agreement profitability](agreement-entitlement.md) now projects the authorized
+contract value (a contract value, not recognized revenue), net native material cost
+(usage minus return movements) on in-scope jobs during the active term, and a per-job
+allocation. Labor cost remains explicit null until a reviewed labor cost-rate policy is
+configured; margin is contract value minus material cost with that unknown labeled.

@@ -190,6 +190,24 @@ export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', c
             return { agreementId: id, state: e.state, companyDate: e.companyDate, observedAt: e.observedAt, configured: e.configured, consumed: e.consumed, remaining: e.remaining, visitsExhausted: e.visitsExhausted, hoursExhausted: e.hoursExhausted, billingEntitlement: e.billingEntitlement, detail: e.detail, workGenerated: false };
         });
     }
+    function profitability(user, id) {
+        reader(user);
+        parse(uuid, id);
+        return repo.within(() => {
+            get(id);
+            const current = inSnapshot(id), activation = current.activation;
+            let contractValueCents = null, material = { totalCents: 0, jobs: [] };
+            if (activation) {
+                const offer = repo.offerById(activation.offerId), document = offer?.snapshot?.source?.document;
+                contractValueCents = document?.priceCents ?? null;
+                const customerId = document?.customerId, assetIds = offer?.snapshot?.source?.scope?.assets?.map(item => item.id) ?? [];
+                material = repo.materialCost(customerId, assetIds, activation.startsOn, activation.endsOn);
+            }
+            const laborCostCents = null;
+            const marginCents = contractValueCents === null ? null : contractValueCents - material.totalCents - (laborCostCents ?? 0);
+            return { agreementId: id, state: current.state, companyDate: current.companyDate, observedAt: current.observedAt, contractValueCents, materialCostCents: material.totalCents, laborCostCents, marginCents, allocation: material.jobs, currency: 'USD', definitions: { contractValue: 'Authorized accepted-term proposed price (priceCents); a contract value, not recognized revenue.', materialCost: 'Net native inventory usage (usage minus return) movement value on in-scope jobs during the authorized term, in cents.', laborCost: 'Unknown until a reviewed labor cost-rate policy is configured.', margin: 'contractValue − materialCost (labor cost unknown).' } };
+        });
+    }
     function decorateInSnapshot(user, rows) { reader(user); const observed = now(); return rows.map(row => { const result = inSnapshot(row.id, observed); return { ...row, operationalState: result.state, authorizationActive: result.authorizationActive, cancellationEffectiveOn: result.cancellation?.effectiveOn ?? null }; }); }
-    return { summary, authorize, cancel, coverage, entitlement, decorateInSnapshot };
+    return { summary, authorize, cancel, coverage, entitlement, profitability, decorateInSnapshot };
 }

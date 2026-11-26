@@ -446,13 +446,13 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
   tasks/follow-ups and recent notes) and native agreement heads from M5.
   Communications (CRM-007) remain pending; broader cross-module activity and
   qualification are deferred.
-- [ ] **CRM-003 — Sales pipeline:** leads/opportunities, stages, owner, estimated
+- [x] **CRM-003 — Sales pipeline:** leads/opportunities, stages, owner, estimated
   value, close date, next action and conversion into customer/site/quote.
-  Existing Sales pipelines/Kanban supply the shared opportunity model. Source
-  follow-up 2026-11-25 adds recorded current-stage age to cards/list without
-  resetting on notes or duplicating stage history. Prospect conversion now has
-  source for native account reuse/creation, multiple locations, reviewed contacts,
-  duplicate guards and exact retry recovery; qualification remains deferred. See [pipeline progress](docs/product/crm-pipeline-progress.md).
+  Implemented: the shared Sales opportunity model (stages/Kanban, owner, value, close
+  date, next action), recorded current-stage age, and native prospect conversion into
+  an account (reuse/creation), multiple locations and reviewed contacts with duplicate
+  guards and exact retry — all tested; quote generation follows the opportunity
+  (SALES-005). See [pipeline progress](docs/product/crm-pipeline-progress.md).
 - [ ] **CRM-004 — Activity:** tasks, follow-ups, notes, attachments and reminders;
   distinguish private internal records from customer-facing communication.
   Implemented: customer-scoped tasks/follow-ups/notes with a private vs customer-visible
@@ -462,11 +462,15 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
   See [CRM API](docs/api/crm.md).
 - [ ] **CRM-005 — Quotes:** versioned scope, labor/materials, options, approvals,
   expiration, acceptance and conversion into work/contracts.
+  Implemented via the Sales quote lifecycle: versioned scope/labor/material lines,
+  approvals, expiration, recorded acceptance and accepted-quote conversion into work
+  (SALES-005/006/008/009). Multiple customer-facing options (SALES-007) remain open.
 - [ ] **CRM-006 — Data quality:** searchable/filterable records, validated import
   preview, duplicate/merge policy, exports and appropriate PII controls.
   Implemented: read-only duplicate candidates grouped by normalized email, phone and
-  name (`GET /customers/duplicates`) — no merge or delete. Validated import preview,
-  the merge policy, exports and PII export controls remain open.
+  name (`GET /customers/duplicates`) and an Owner/Admin-only customer export
+  (`GET /customers/export`, JSON or CSV) with PII controls — no merge or delete.
+  Validated import preview and the merge policy remain open.
 - [ ] **CRM-007 — Communications:** link supported mail/channel activity to customer
   records with explicit access and consent boundaries.
 

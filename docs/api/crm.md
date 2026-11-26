@@ -228,3 +228,10 @@ more accounts sharing a normalized email (trimmed/lowercased), phone (digits onl
 name (lowercased, diacritics and punctuation stripped). It never merges, deletes or
 rewrites records; a reviewed merge policy and validated import/export remain separate
 follow-on work with explicit PII controls.
+
+## CRM-006: PII-controlled export
+
+2026-11-26. `GET /customers/export?format=json|csv` is Owner/Admin-only and returns a
+live read of native customer rows plus classification and contacts (never a copied
+ledger). CSV fields are escaped and served as an attachment. Import preview and the
+reviewed duplicate-merge policy remain separate follow-on work.

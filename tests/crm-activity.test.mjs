@@ -290,6 +290,21 @@ test("CRM duplicate candidates group accounts by normalized email, phone and nam
   assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM customers").get().n, 3);
 });
 
+test("customer export is Owner/Admin-only and escapes CSV fields", (t) => {
+  const f = setup(t);
+  f.crm.createContact(owner, f.account, { name: "AP, Inc.", email: "ap@acme.test", roles: ["billing"] });
+  const json = f.crm.exportCustomers(owner, "json");
+  assert.equal(json.format, "json");
+  assert.equal(json.customers.length, 1);
+  assert.equal(json.customers[0].segment, "commercial");
+  assert.equal(json.customers[0].contacts.length, 1);
+  assert.throws(() => f.crm.exportCustomers(member, "json"), /Owner or Admin/);
+  assert.throws(() => f.crm.exportCustomers(viewer, "json"), /Owner or Admin/);
+  const csv = f.crm.exportCustomers(owner, "csv");
+  assert.match(csv.body, /segment/);
+  assert.match(csv.body, /"AP, Inc\./);
+});
+
 test("CRM v3 upgrades an existing v2 database without rewriting contacts", async (t) => {
   const { migrate } = await import("../src/server/platform/sqlite.mjs"),
     { crmSchema } = await import("../src/server/crm/schema.mjs"),

@@ -38,6 +38,25 @@ export function mountCrm(app, { crm, check }) {
     }),
   );
 
+  // CRM-006: Owner/Admin-only customer export (JSON or CSV), PII-controlled.
+  app.get(
+    "/customers/export",
+    route((c) => {
+      const user = check(c);
+      const format = c.req.query("format") === "csv" ? "csv" : "json";
+      const result = crm.exportCustomers(user, format);
+      if (format === "csv")
+        return new Response(result.body, {
+          headers: {
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": 'attachment; filename="customers.csv"',
+            "Cache-Control": "private, no-store",
+          },
+        });
+      return c.json(result);
+    }),
+  );
+
   app.get(
     "/customers/:customerId/contacts",
     route((c) => {

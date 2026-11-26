@@ -665,10 +665,42 @@ export function createCrmService({ storage, invoiceSummaryInTransaction, salesSu
     return [...groups.values()].filter((group) => group.customers.length >= 2);
   }
 
+  // CRM-006: PII-controlled export. Only Owner/Admin may export contact fields; the
+  // result is a live read of the native customer/contact rows, never a copied ledger.
+  function exportCustomers(user, format = "json") {
+    requireReader(user);
+    if (!["owner", "admin"].includes(user.role))
+      throw new CrmError("Customer export requires Owner or Admin access.", 403);
+    const customers = db
+      .prepare("SELECT id,name,email,phone,address,city,state,zip,notes FROM customers ORDER BY name COLLATE NOCASE")
+      .all()
+      .map((c) => {
+        const settings = accountSettings(user, c.id);
+        const contacts = db
+          .prepare("SELECT name,title,email,phone,active FROM _crm_contacts WHERE customer_id=? ORDER BY active DESC,name COLLATE NOCASE")
+          .all(c.id)
+          .map((row) => ({ ...row, active: row.active === 1 }));
+        return { ...c, segment: settings.segment, accountType: settings.accountType, contacts };
+      });
+    if (format === "csv") {
+      const escape = (value) => {
+        const s = value == null ? "" : String(value);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      };
+      const header = ["id", "name", "email", "phone", "address", "city", "state", "zip", "segment", "accountType", "contacts"];
+      const lines = [header.join(",")];
+      for (const row of customers)
+        lines.push([row.id, row.name, row.email, row.phone, row.address, row.city, row.state, row.zip, row.segment, row.accountType, row.contacts.map((c) => c.name).join("; ")].map(escape).join(","));
+      return { format: "csv", body: lines.join("\n") };
+    }
+    return { format: "json", customers };
+  }
+
   return {
     prospects:createCrmProspectHandoff({storage,createContactInTransaction,audit,timeZone}),
     activities,
     duplicateCandidates,
+    exportCustomers,
     listContacts,
     createContact,
     updateContact,

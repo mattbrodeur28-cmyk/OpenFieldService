@@ -9,6 +9,7 @@ const BillingProfileSettings = lazy(() =>
 const QuoteIssuerSettings = lazy(()=>import("./quote-issuer-settings").then(m=>({default:m.QuoteIssuerSettings})));
 const ReviewPolicySettings = lazy(() => import("./review-policy-settings").then(m => ({default:m.ReviewPolicySettings})));
 import { CompanySettings } from "./company-settings";
+import { ServiceTypesSettings } from "./service-type-settings";
 import { TextField } from "./ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Dialog, DialogTitle } from "./ui/dialog";
@@ -268,6 +269,7 @@ export function ProfilePopup({
                 </header>
                 <div class="workspace-settings-stack">
                   {admin && <CompanySettings />}
+                  {admin && <ServiceTypesSettings />}
                   {admin && <Suspense fallback={<p>Loading custom fields…</p>}><CustomFieldSettings /></Suspense>}
                   {admin && (
                     <Suspense fallback={<p>Loading billing profiles…</p>}>

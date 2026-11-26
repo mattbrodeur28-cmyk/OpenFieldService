@@ -117,18 +117,22 @@ export function ProjectsPage({ id }: { id: string | null }) {
       {id && !detail && !error && <p role="status">Loading project…</p>}
 
       {creating && (
-        <Dialog close={() => setCreating(false)}>
+        <Dialog class="project-form" close={() => setCreating(false)}>
           <DialogTitle>New project</DialogTitle>
-          <Select label="Customer" value={form.customerId} options={customers.map((c) => ({ value: c.id, label: c.name }))} onValueChange={(customerId) => setForm({ ...form, customerId })} />
-          <TextField label="Title" value={form.title} onInput={(e) => setForm({ ...form, title: (e.target as HTMLInputElement).value })} />
-          <Select label="Status" value={form.status} options={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))} onValueChange={(status) => setForm({ ...form, status })} />
-          <TextField label="Project manager" value={form.projectManager} onInput={(e) => setForm({ ...form, projectManager: (e.target as HTMLInputElement).value })} />
-          <TextField label="Planned start (YYYY-MM-DD)" value={form.plannedStart} onInput={(e) => setForm({ ...form, plannedStart: (e.target as HTMLInputElement).value })} />
-          <TextField label="Planned end (YYYY-MM-DD)" value={form.plannedEnd} onInput={(e) => setForm({ ...form, plannedEnd: (e.target as HTMLInputElement).value })} />
-          <div class="dialog-actions">
-            <Button onClick={() => setCreating(false)}>Cancel</Button>
-            <Button variant="primary" disabled={!canWrite} onClick={() => void create()}><CheckCircle2 size={14} /> Create project</Button>
-          </div>
+          <form class="sales-form" onSubmit={(e) => { e.preventDefault(); void create(); }}>
+            <Select label="Customer" value={form.customerId} options={customers.map((c) => ({ value: c.id, label: c.name }))} onValueChange={(customerId) => setForm({ ...form, customerId })} />
+            <TextField label="Title" value={form.title} onInput={(e) => setForm({ ...form, title: (e.target as HTMLInputElement).value })} />
+            <Select label="Status" value={form.status} options={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))} onValueChange={(status) => setForm({ ...form, status })} />
+            <TextField label="Project manager" value={form.projectManager} onInput={(e) => setForm({ ...form, projectManager: (e.target as HTMLInputElement).value })} />
+            <div class="sales-form-grid">
+              <TextField label="Planned start (YYYY-MM-DD)" value={form.plannedStart} onInput={(e) => setForm({ ...form, plannedStart: (e.target as HTMLInputElement).value })} />
+              <TextField label="Planned end (YYYY-MM-DD)" value={form.plannedEnd} onInput={(e) => setForm({ ...form, plannedEnd: (e.target as HTMLInputElement).value })} />
+            </div>
+            <div class="dialog-actions">
+              <Button onClick={() => setCreating(false)}>Cancel</Button>
+              <Button variant="primary" type="submit" disabled={!canWrite}><CheckCircle2 size={14} /> Create project</Button>
+            </div>
+          </form>
         </Dialog>
       )}
     </div>

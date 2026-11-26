@@ -29,6 +29,9 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.4.1
         version: 1.4.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@salesforce-ux/design-system':
+        specifier: ^2.264.3
+        version: 2.264.3(postcss@8.5.8)
       hono:
         specifier: ^4.6.0
         version: 4.12.10
@@ -1407,6 +1410,12 @@ packages:
     resolution: {integrity: sha512-lWMnixq/QzxyhTV6NjQJ4SFo1J6PvOX8vUx5Wb4bBPsEb+8xZ89Bz6kOXpfXj9ak9AHTQVQzlgzBEc1SyM27xQ==}
     cpu: [x64]
     os: [win32]
+
+  '@salesforce-ux/design-system@2.264.3':
+    resolution: {integrity: sha512-y8NI9xZbqAaly6WWnYyQNmXqszhxEeemxWv+pkopN4Gvyq3jfxCHirvfeUdAyKd94XqKQr/1LAwEz5D6jPSfPw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      postcss: ^8.3.5
 
   '@sindresorhus/is@7.2.0':
     resolution: {integrity: sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw==}
@@ -2917,6 +2926,10 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.60.1':
     optional: true
+
+  '@salesforce-ux/design-system@2.264.3(postcss@8.5.8)':
+    dependencies:
+      postcss: 8.5.8
 
   '@sindresorhus/is@7.2.0': {}
 

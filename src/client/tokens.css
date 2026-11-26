@@ -1,49 +1,45 @@
-/* Salesforce Lightning Design System (SLDS) design tokens.
-   See docs/architecture/decisions/0008-slds.md for the adoption decision.
-   SLDS is BSD-3-Clause licensed; these are its canonical values. */
+/* Salesforce Lightning Design System (SLDS) adoption.
+   These semantic tokens reference the SLDS package's design tokens (defined in the
+   imported SLDS stylesheet), giving one source of truth for Salesforce's palette.
+   See docs/architecture/decisions/0008-slds.md. */
 :root {
   color-scheme: light;
-  /* SLDS neutrals: gray-1 page background, white surfaces, gray-2 borders. */
-  --bg: #f3f3f3;
-  --card-bg: #ffffff;
-  --surface-sunken: #f3f3f3;
-  --border: #e5e5e5;
-  --border-subtle: #e5e5e5;
-  /* SLDS text grays. */
-  --text: #181818;
-  --text-secondary: #444444;
-  --text-muted: #747474;
-  --faint: #969492;
-  /* SLDS brand blue. */
-  --primary: #0176d3;
-  --primary-hover: #014486;
+  --bg: var(--slds-g-color-neutral-base-95);
+  --card-bg: var(--slds-g-color-neutral-base-100);
+  --surface-sunken: var(--slds-g-color-neutral-base-95);
+  --border: var(--slds-g-color-border-base-1);
+  --border-subtle: var(--slds-g-color-neutral-base-90);
+  --text: var(--slds-g-color-neutral-base-10);
+  --text-secondary: var(--slds-g-color-neutral-base-30);
+  --text-muted: var(--slds-g-color-neutral-base-50);
+  --faint: var(--slds-g-color-neutral-base-60);
+  --primary: var(--slds-g-color-brand-base-50);
+  --primary-hover: var(--slds-g-color-brand-base-30);
   --on-primary: #ffffff;
   --primary-light: rgba(1, 118, 211, 0.08);
-  --accent: #0176d3;
-  --accent-tint: #eaf5fe;
-  --ring: #0176d3;
-  --info: #0176d3;
-  --info-tint: #eaf5fe;
-  --success: #2e844a;
-  --success-tint: #e2f4e8;
-  --warning: #dd7a01;
-  --warning-tint: #fef3e2;
-  --danger: #ba0517;
-  --danger-tint: #fde8ea;
-  --danger-hover: #a60415;
-  --row-hover: #f3f3f3;
+  --accent: var(--slds-g-color-brand-base-50);
+  --accent-tint: var(--slds-g-color-palette-cloud-blue-95);
+  --ring: var(--slds-g-color-brand-base-50);
+  --info: var(--slds-g-color-brand-base-50);
+  --info-tint: var(--slds-g-color-palette-cloud-blue-95);
+  --success: var(--slds-g-color-success-base-50);
+  --success-tint: var(--slds-g-color-palette-green-95);
+  --warning: var(--slds-g-color-warning-base-60);
+  --warning-tint: var(--slds-g-color-palette-orange-95);
+  --danger: var(--slds-g-color-error-base-40);
+  --danger-tint: var(--slds-g-color-palette-red-95);
+  --danger-hover: var(--slds-g-color-error-base-30);
+  --row-hover: var(--slds-g-color-neutral-base-95);
   --shadow-edge: inset 0 0 0 1px var(--border);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.12);
-  /* SLDS border radii: 4px small, 8px medium, 12px large. */
   --radius: 0.5rem;
   --radius-sm: 0.25rem;
   --radius-lg: 0.75rem;
   --header-height: 3.5rem;
   --sidebar-width: 17.1875rem;
   --gutter: 1.5rem;
-  /* Salesforce Sans first, system fallbacks per SLDS. */
-  --font: 'Salesforce Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font: var(--slds-g-font-family-base);
 }
 @media (prefers-color-scheme: dark) {
   :root {

@@ -3,6 +3,7 @@ import { AuthGate } from "./auth";
 import { CompanyWebsite } from "./components/account-pages";
 import { App } from "./app";
 import { prepareOfflineSupport } from "./offline";
+import "@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.min.css";
 import "./tokens.css";
 import "./styles.css";
 

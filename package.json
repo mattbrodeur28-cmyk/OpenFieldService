@@ -25,6 +25,7 @@
     "@radix-ui/react-select": "^2.4.1",
     "@radix-ui/react-tabs": "^1.2.1",
     "@radix-ui/react-tooltip": "^1.4.1",
+    "@salesforce-ux/design-system": "^2.264.3",
     "hono": "^4.6.0",
     "lucide-preact": "^0.575.0",
     "number-flow": "^0.6.2",

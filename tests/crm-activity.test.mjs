@@ -305,6 +305,42 @@ test("customer export is Owner/Admin-only and escapes CSV fields", (t) => {
   assert.match(csv.body, /"AP, Inc\./);
 });
 
+test("CRM communications link to a contact with outbound consent enforcement", (t) => {
+  const f = setup(t);
+  const contact = f.crm.createContact(owner, f.account, { name: "No SMS", email: "nosms@acme.test", smsOk: false, roles: [] });
+  const email = f.crm.communications.record(owner, f.account, {
+    contactId: contact.id,
+    channel: "email",
+    direction: "outbound",
+    subject: "Quote",
+    occurredAt: "2026-11-26T09:00:00Z",
+  });
+  assert.equal(email.communication.channel, "email");
+  assert.equal(email.communication.direction, "outbound");
+  assert.throws(
+    () => f.crm.communications.record(owner, f.account, { contactId: contact.id, channel: "sms", direction: "outbound", occurredAt: "2026-11-26T09:00:00Z" }),
+    /not consented to SMS/,
+  );
+  const inbound = f.crm.communications.record(owner, f.account, {
+    contactId: contact.id,
+    channel: "sms",
+    direction: "inbound",
+    occurredAt: "2026-11-26T09:00:00Z",
+  });
+  assert.equal(inbound.communication.direction, "inbound");
+  const other = randomUUID();
+  f.db.prepare("INSERT INTO customers(id,name) VALUES(?,?)").run(other, "Other");
+  assert.throws(
+    () => f.crm.communications.record(owner, other, { contactId: contact.id, channel: "email", direction: "outbound", occurredAt: "2026-11-26T09:00:00Z" }),
+    /does not belong/,
+  );
+  assert.equal(f.crm.communications.list(owner, f.account).total, 2);
+  assert.throws(
+    () => f.crm.communications.record(viewer, f.account, { channel: "email", direction: "outbound", occurredAt: "2026-11-26T09:00:00Z" }),
+    /cannot change CRM records/,
+  );
+});
+
 test("CRM v3 upgrades an existing v2 database without rewriting contacts", async (t) => {
   const { migrate } = await import("../src/server/platform/sqlite.mjs"),
     { crmSchema } = await import("../src/server/crm/schema.mjs"),

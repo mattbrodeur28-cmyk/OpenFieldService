@@ -57,6 +57,24 @@ export function mountCrm(app, { crm, check }) {
     }),
   );
 
+  // CRM-007: staff-recorded communications linked to a customer, with consent checks.
+  app.get(
+    "/customers/:customerId/communications",
+    route((c) => {
+      const user = check(c);
+      return c.json(crm.communications.list(user, c.req.param("customerId"), c.req.query()));
+    }),
+  );
+  app.post(
+    "/customers/:customerId/communications",
+    route(async (c) => {
+      const user = check(c);
+      requireWriter(user);
+      const data = await body(c);
+      return c.json(crm.communications.record(user, c.req.param("customerId"), data), 201);
+    }),
+  );
+
   app.get(
     "/customers/:customerId/contacts",
     route((c) => {

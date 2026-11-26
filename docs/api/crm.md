@@ -235,3 +235,12 @@ follow-on work with explicit PII controls.
 live read of native customer rows plus classification and contacts (never a copied
 ledger). CSV fields are escaped and served as an attachment. Import preview and the
 reviewed duplicate-merge policy remain separate follow-on work.
+
+## CRM-007: communication log and consent
+
+2026-11-26. `GET/POST /customers/:customerId/communications` records staff-attested
+mail/call/SMS/portal activity against a customer and optional contact, with channel,
+direction, subject, summary and an external reference. Outbound records enforce the
+contact's email/phone/SMS consent; inbound records (customer-initiated) are allowed.
+This logs activity performed elsewhere — it does not send mail/SMS or read provider
+mailboxes; automatic provider mail/channel linking and delivery remain separate.

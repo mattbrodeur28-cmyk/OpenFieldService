@@ -473,6 +473,10 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
   Validated import preview and the merge policy remain open.
 - [ ] **CRM-007 — Communications:** link supported mail/channel activity to customer
   records with explicit access and consent boundaries.
+  Implemented: a staff-recorded communication log linked to a customer and optional
+  contact, with channel/direction/subject/reference and outbound consent enforcement
+  against the contact's email/phone/SMS preferences (v4 migration). Automatic provider
+  mail/channel header linking and delivery remain separate integration work.
 
 **Acceptance:** convert a prospect into a commercial customer with contacts and two
 sites, accept a quote into work and retain its history through reload and migration.

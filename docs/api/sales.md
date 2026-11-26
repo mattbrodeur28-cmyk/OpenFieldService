@@ -180,3 +180,13 @@ requires an administrator and a reason and appends a `reopen` outcome. Converted
 append a `won` outcome from the accepted-quote handoff. Prior quote versions stay
 retained by the frozen offer lifecycle; no quote is overwritten. `GET
 /opportunities/:id/outcomes` returns the history newest-first; rows are immutable.
+
+## Forecast and conversion metrics
+
+SALES-011, 2026-11-26. `GET /forecast` (optionally `?pipelineId=`) returns one row per
+active stage with count, unweighted value (integer cents), weighted value (expected
+value × opportunity probability, rounded), plus open/won/lost rollups, a quote
+acceptance ratio (accepted ÷ offered lifecycle events) and a native conversion count
+from `_sales_quote_conversions`. Definitions are returned alongside the figures; quotes
+and pipeline value are never counted as recognized revenue. Historical stage-duration
+and cohort metrics remain a separate follow-on.

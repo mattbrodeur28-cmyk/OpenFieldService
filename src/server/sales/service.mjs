@@ -488,6 +488,58 @@ export function createSalesService({ storage, owners = () => [], clock }) {
       };
     });
   }
+  function forecast(query = {}) {
+    const pipelineId = query.pipelineId || null;
+    return transaction(db, () => {
+      const stages = db
+        .prepare(
+          "SELECT s.id,s.name,s.kind,s.position,s.probability AS stage_probability,COUNT(o.id) AS count,COALESCE(SUM(o.expected_value),0) AS value,COALESCE(SUM(o.expected_value*o.probability),0) AS weighted_hundredths FROM _sales_stages s LEFT JOIN _sales_opportunities o ON o.stage_id=s.id " +
+            (pipelineId ? "WHERE s.pipeline_id=?" : "") +
+            " GROUP BY s.id ORDER BY s.position",
+        )
+        .all(...(pipelineId ? [pipelineId] : []))
+        .map((row) => ({
+          id: row.id,
+          name: row.name,
+          kind: row.kind,
+          position: row.position,
+          stageProbability: row.stage_probability,
+          count: row.count,
+          value: row.value,
+          weighted: Math.round(row.weighted_hundredths / 100),
+        }));
+      const sum = (kind) => {
+        const rows = stages.filter((s) => s.kind === kind);
+        return {
+          count: rows.reduce((n, s) => n + s.count, 0),
+          value: rows.reduce((n, s) => n + s.value, 0),
+          weighted: rows.reduce((n, s) => n + s.weighted, 0),
+        };
+      };
+      let quoteAcceptance = null;
+      if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_sales_quote_lifecycle_events'").get()) {
+        const offered = db.prepare("SELECT COUNT(*) AS n FROM _sales_quote_lifecycle_events WHERE action='offer'").get().n;
+        const accepted = db.prepare("SELECT COUNT(*) AS n FROM _sales_quote_lifecycle_events WHERE action='accepted'").get().n;
+        quoteAcceptance = { offered, accepted, rate: offered ? accepted / offered : null };
+      }
+      let conversions = null;
+      if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_sales_quote_conversions'").get())
+        conversions = db.prepare("SELECT COUNT(*) AS n FROM _sales_quote_conversions").get().n;
+      return {
+        stages,
+        totals: { open: sum("open"), won: sum("won"), lost: sum("lost") },
+        quoteAcceptance,
+        conversions,
+        currency: "USD",
+        observedAt: clock ? clock().toISOString() : new Date().toISOString(),
+        definitions: {
+          value: "Sum of expected_value in integer cents, unweighted.",
+          weighted: "Sum of expected_value × opportunity probability (0–100), rounded to integer cents.",
+          quoteAcceptanceRate: "accepted lifecycle events ÷ offered lifecycle events; a ratio, not recognized revenue.",
+        },
+      };
+    });
+  }
   function detail(id) {
     return transaction(db, () => ({
       opportunity: stageTiming([opportunity(id)])[0],
@@ -610,6 +662,7 @@ export function createSalesService({ storage, owners = () => [], clock }) {
     list,
     detail,
     options,
+    forecast,
     outcomes,
   };
 }

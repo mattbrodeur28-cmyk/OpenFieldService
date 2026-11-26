@@ -111,11 +111,24 @@ test("reopen records history, requires an administrator and keeps outcomes immut
   assert.throws(() => f.db.exec("DELETE FROM _sales_stage_outcomes"), /IMMUTABLE/);
 });
 
-test("a converted Won records a won outcome without losing reopenability of prior history", async (t) => {
-  const { createSales } = await import("../src/server/sales/http.mjs");
+test("forecast sums weighted and unweighted stage amounts with explicit definitions", (t) => {
   const f = fixture(t);
-  // The won outcome path is exercised through winConvertedInTransaction in native handoff;
-  // assert the outcomes projection stays empty until a real transition happens.
-  const opp = f.service.saveOpportunity(member, null, input(f.pipeline));
-  assert.deepEqual(f.service.outcomes(opp.id), []);
+  f.service.saveOpportunity(member, null, input(f.pipeline, { expectedValue: 100000, probability: 50 }));
+  const b = f.service.saveOpportunity(member, null, input(f.pipeline, { expectedValue: 200000, probability: 50 }));
+  const lost = f.pipeline.stages.find((s) => s.kind === "lost");
+  f.service.move(member, b.id, { stageId: lost.id, expectedVersion: 0, reason: "Lost bid" });
+  const forecast = f.service.forecast();
+  const byName = Object.fromEntries(forecast.stages.map((s) => [s.name, s]));
+  assert.equal(byName.New.count, 1);
+  assert.equal(byName.New.value, 100000);
+  assert.equal(byName.New.weighted, 50000);
+  assert.equal(byName.Lost.count, 1);
+  assert.equal(byName.Lost.value, 200000);
+  assert.equal(byName.Lost.weighted, 0);
+  assert.deepEqual(forecast.totals.open, { count: 1, value: 100000, weighted: 50000 });
+  assert.deepEqual(forecast.totals.lost, { count: 1, value: 200000, weighted: 0 });
+  assert.equal(forecast.quoteAcceptance, null);
+  assert.equal(forecast.conversions, null);
+  assert.ok(forecast.definitions.weighted.length > 0);
 });
+

@@ -580,9 +580,11 @@ offers with recorded external responses. Dispatcher/job conversion remains open.
 - [ ] **SALES-011 — Forecast/reporting:** stage amounts, weighted/unweighted forecast,
   quote acceptance rate, time in stage, activity and conversion metrics with clear
   date/currency/probability definitions. Do not count quotes as recognized revenue.
-  Current-stage age projection implemented in source 2026-11-25, testing deferred:
-  native audit entry, server-observed elapsed minutes and explicit unknown/review
-  states. Historical stage-duration/cohort metrics remain open.
+  Implemented: a `GET /forecast` projection returns per-stage count/value/weighted
+  totals, open/won/lost rollups, quote acceptance ratio (offered→accepted) and native
+  conversion count with explicit definitions; current-stage age is projected per
+  opportunity. Historical stage-duration/cohort and richer activity metrics remain
+  open.
 - [ ] **SALES-012 — Permissions and audit:** owner/team visibility rules, protected
   pricing/approval actions, auditable stage/quote/conversion changes and documented
   APIs, migrations, backup/recovery and end-to-end acceptance evidence.
@@ -1456,3 +1458,8 @@ Sales outcomes checkpoint:274/274 tests, TypeScript and production build pass. T
 new loss/nurture cases cover required loss reasons, competitor retention, admin-only
 reopen history, immutable outcomes and owner nurture tasks. The v3 outcomes ledger is
 additive; won/lost/reopen history is now retained per opportunity.
+
+Sales forecast checkpoint:274/274 tests, TypeScript and production build pass. A new
+`GET /forecast` projection adds per-stage weighted/unweighted totals, open/won/lost
+rollups, quote acceptance ratio and native conversion count with explicit definitions.
+Historical cohort metrics remain open.

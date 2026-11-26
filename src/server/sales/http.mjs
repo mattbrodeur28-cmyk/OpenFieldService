@@ -218,6 +218,7 @@ export function createSales({
   app.get("/opportunities/:id/outcomes", (c) =>
     c.json({ outcomes: service.outcomes(c.req.param("id")) }),
   );
+  app.get("/forecast", (c) => c.json(service.forecast(c.req.query())));
   app.post("/opportunities/:id/notes", async (c) => {
     const data = await body(c);
     return c.json(

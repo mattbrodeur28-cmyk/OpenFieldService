@@ -1,71 +1,79 @@
-/* Clawnify app instruction tokens. Override these to rebrand the whole app. */
+/* Salesforce Lightning Design System (SLDS) design tokens.
+   See docs/architecture/decisions/0008-slds.md for the adoption decision.
+   SLDS is BSD-3-Clause licensed; these are its canonical values. */
 :root {
   color-scheme: light;
-  --bg: #ffffff;
+  /* SLDS neutrals: gray-1 page background, white surfaces, gray-2 borders. */
+  --bg: #f3f3f3;
   --card-bg: #ffffff;
-  --surface-sunken: #f7f7f5;
-  --border: #e5e3de;
-  --border-subtle: #e5e3de;
-  --text: #1b1a19;
-  --text-secondary: #646360;
-  --text-muted: #646360;
-  --faint: #9a9893;
-  --primary: #1b1a19;
-  --primary-hover: #333130;
+  --surface-sunken: #f3f3f3;
+  --border: #e5e5e5;
+  --border-subtle: #e5e5e5;
+  /* SLDS text grays. */
+  --text: #181818;
+  --text-secondary: #444444;
+  --text-muted: #747474;
+  --faint: #969492;
+  /* SLDS brand blue. */
+  --primary: #0176d3;
+  --primary-hover: #014486;
   --on-primary: #ffffff;
-  --primary-light: rgba(0, 0, 0, 0.04);
-  --accent: #df3656;
-  --accent-tint: #f9eded;
-  --ring: #df3656;
-  --info: #173ec4;
-  --info-tint: #ecf0f9;
-  --success: #2b5f3c;
-  --success-tint: #dbf9e2;
-  --warning: #664e27;
-  --warning-tint: #f9efdf;
-  --danger: #8a2f2d;
-  --danger-tint: #f9edec;
-  --danger-hover: #e1363a;
-  --row-hover: var(--surface-sunken);
+  --primary-light: rgba(1, 118, 211, 0.08);
+  --accent: #0176d3;
+  --accent-tint: #eaf5fe;
+  --ring: #0176d3;
+  --info: #0176d3;
+  --info-tint: #eaf5fe;
+  --success: #2e844a;
+  --success-tint: #e2f4e8;
+  --warning: #dd7a01;
+  --warning-tint: #fef3e2;
+  --danger: #ba0517;
+  --danger-tint: #fde8ea;
+  --danger-hover: #a60415;
+  --row-hover: #f3f3f3;
   --shadow-edge: inset 0 0 0 1px var(--border);
-  --shadow: 0 0 2px rgba(28,40,64,0.18), 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-lg: 0 0 0 1px rgba(28,40,64,0.04), 0 8px 16px -8px rgba(28,40,64,0.16), 0 12px 32px -4px rgba(24,41,75,0.20);
-  --radius: 0.75rem;
-  --radius-sm: 0.5rem;
-  --radius-lg: 1rem;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.12);
+  /* SLDS border radii: 4px small, 8px medium, 12px large. */
+  --radius: 0.5rem;
+  --radius-sm: 0.25rem;
+  --radius-lg: 0.75rem;
   --header-height: 3.5rem;
   --sidebar-width: 17.1875rem;
   --gutter: 1.5rem;
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Salesforce Sans first, system fallbacks per SLDS. */
+  --font: 'Salesforce Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #100f0e;
-    --card-bg: #161615;
-    --surface-sunken: #222120;
-    --border: #2e2e2c;
-    --border-subtle: #2e2e2c;
-    --text: #efeeed;
-    --text-secondary: #c0bdb9;
-    --text-muted: #c0bdb9;
-    --faint: #82807c;
-    --primary: #efeeed;
-    --primary-hover: #d6d4d1;
-    --on-primary: #100f0e;
-    --primary-light: rgba(255,255,255,0.06);
-    --accent: #e4415d;
-    --accent-tint: #3b1c1e;
-    --ring: #e4415d;
-    --info: #b5c4e5;
-    --info-tint: #12234f;
-    --success: #86da9e;
-    --success-tint: #1a2b1f;
-    --warning: #e5bd7e;
-    --warning-tint: #2d2518;
-    --danger: #e6b7b2;
-    --danger-tint: #3b1c1a;
-    --danger-hover: #e64243;
+    --bg: #0b0c0c;
+    --card-bg: #16181a;
+    --surface-sunken: #1c1f22;
+    --border: #2e3236;
+    --border-subtle: #2e3236;
+    --text: #f3f3f3;
+    --text-secondary: #c9c9c9;
+    --text-muted: #a0a0a0;
+    --faint: #747474;
+    --primary: #0176d3;
+    --primary-hover: #0f8ee8;
+    --on-primary: #ffffff;
+    --primary-light: rgba(1, 118, 211, 0.18);
+    --accent: #0176d3;
+    --accent-tint: #0e2a3d;
+    --ring: #0176d3;
+    --info: #0176d3;
+    --info-tint: #0e2a3d;
+    --success: #2e844a;
+    --success-tint: #14301c;
+    --warning: #dd7a01;
+    --warning-tint: #2e2414;
+    --danger: #ea001e;
+    --danger-tint: #331417;
+    --danger-hover: #ff1a39;
+    --row-hover: #1c1f22;
     --shadow: var(--shadow-edge);
     --shadow-lg: var(--shadow-edge);
   }

@@ -7,6 +7,7 @@ milestone sequence, acceptance criteria and definition of done.
 
 - [ADR-0001: selected UI system and compatibility strategy](architecture/decisions/0001-ui-system.md)
 - [ADR-0002: Radix Dialog/Tabs compatibility slice](architecture/decisions/0002-radix-preact-pilot.md)
+- [ADR-0008: adopt Salesforce Lightning Design System (SLDS)](architecture/decisions/0008-slds.md)
 - [Shared UI primitives release evidence](releases/2026-11-14-ui-primitives.md)
 - [UI component and interaction implementation guide](development/ui-system.md)
 

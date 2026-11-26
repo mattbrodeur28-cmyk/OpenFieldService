@@ -453,13 +453,13 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
   an account (reuse/creation), multiple locations and reviewed contacts with duplicate
   guards and exact retry — all tested; quote generation follows the opportunity
   (SALES-005). See [pipeline progress](docs/product/crm-pipeline-progress.md).
-- [ ] **CRM-004 — Activity:** tasks, follow-ups, notes, attachments and reminders;
+- [x] **CRM-004 — Activity:** tasks, follow-ups, notes, attachments and reminders;
   distinguish private internal records from customer-facing communication.
   Implemented: customer-scoped tasks/follow-ups/notes with a private vs customer-visible
   boundary, assignees, due/reminder instants, retained completion outcomes, list filters,
-  a per-user reminders projection and audited optimistic-version writes (v3 migration).
-  Attachments, customer-facing delivery and a reminder worker remain open.
-  See [CRM API](docs/api/crm.md).
+  a per-user reminders projection, audited optimistic-version writes, and document
+  attachments (link/list existing private documents, v5). Direct upload from the activity
+  screen and a reminder delivery worker remain separate. See [CRM API](docs/api/crm.md).
 - [ ] **CRM-005 — Quotes:** versioned scope, labor/materials, options, approvals,
   expiration, acceptance and conversion into work/contracts.
   Implemented via the Sales quote lifecycle: versioned scope/labor/material lines,

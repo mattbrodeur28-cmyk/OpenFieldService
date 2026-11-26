@@ -272,6 +272,22 @@ export function mountCrm(app, { crm, check }) {
       return c.json(crm.activities.reminders(user));
     }),
   );
+  app.get(
+    "/customers/:customerId/activities/:activityId/attachments",
+    route((c) => {
+      const user = check(c);
+      return c.json(crm.attachments.list(user, c.req.param("customerId"), c.req.param("activityId")));
+    }),
+  );
+  app.post(
+    "/customers/:customerId/activities/:activityId/attachments",
+    route(async (c) => {
+      const user = check(c);
+      requireWriter(user);
+      const data = await body(c);
+      return c.json(crm.attachments.link(user, c.req.param("customerId"), c.req.param("activityId"), data), 201);
+    }),
+  );
 
   app.put(
     "/customers/:customerId/account",

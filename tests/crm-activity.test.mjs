@@ -341,6 +341,21 @@ test("CRM communications link to a contact with outbound consent enforcement", (
   );
 });
 
+test("CRM activities link and list private document attachments", (t) => {
+  const f = setup(t);
+  const activity = f.crm.activities.save(owner, f.account, null, { kind: "task", title: "Attach quote", assigneeId: member.id, dueAt: "2026-12-01T09:00:00Z" }).activity;
+  f.db.exec("CREATE TABLE _document_blobs(id TEXT PRIMARY KEY,sha256 TEXT NOT NULL UNIQUE,size_bytes INTEGER NOT NULL,media_type TEXT NOT NULL,bytes BLOB NOT NULL)");
+  f.db.exec("CREATE TABLE _document_records(id TEXT PRIMARY KEY,blob_id TEXT NOT NULL REFERENCES _document_blobs(id),actor_id TEXT NOT NULL,title TEXT NOT NULL,original_name TEXT NOT NULL,tags_json TEXT NOT NULL,archived INTEGER NOT NULL DEFAULT 0,version INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
+  const docId = randomUUID();
+  f.db.prepare("INSERT INTO _document_blobs(id,sha256,size_bytes,media_type,bytes) VALUES(?,?,?,?,?)").run(randomUUID(), "x".repeat(64), 4, "application/pdf", new Uint8Array([1, 2, 3, 4]));
+  f.db.prepare("INSERT INTO _document_records(id,blob_id,actor_id,title,original_name,tags_json) VALUES(?,?,?,?,?,?)").run(docId, f.db.prepare("SELECT id FROM _document_blobs").get().id, owner.id, "Quote PDF", "quote.pdf", "[]");
+  const link = f.crm.attachments.link(owner, f.account, activity.id, { documentId: docId });
+  assert.equal(link.attachment.documentTitle, "Quote PDF");
+  assert.equal(f.crm.attachments.list(owner, f.account, activity.id).attachments.length, 1);
+  assert.throws(() => f.crm.attachments.link(owner, f.account, activity.id, { documentId: docId }), /already attached/);
+  assert.throws(() => f.crm.attachments.link(owner, f.account, activity.id, { documentId: randomUUID() }), /available document/);
+});
+
 test("CRM v3 upgrades an existing v2 database without rewriting contacts", async (t) => {
   const { migrate } = await import("../src/server/platform/sqlite.mjs"),
     { crmSchema } = await import("../src/server/crm/schema.mjs"),

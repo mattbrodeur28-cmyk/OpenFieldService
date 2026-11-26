@@ -244,3 +244,10 @@ direction, subject, summary and an external reference. Outbound records enforce 
 contact's email/phone/SMS consent; inbound records (customer-initiated) are allowed.
 This logs activity performed elsewhere — it does not send mail/SMS or read provider
 mailboxes; automatic provider mail/channel linking and delivery remain separate.
+
+## CRM-004: activity attachments
+
+2026-11-26. `GET/POST /customers/:customerId/activities/:activityId/attachments` links an
+already-uploaded private document to a customer activity (v5 ledger, soft document
+reference validated at link time). Upload stays in the shared document module; the link
+is immutable and audited. Direct upload from the activity screen remains separate work.

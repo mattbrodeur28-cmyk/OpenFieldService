@@ -87,8 +87,8 @@ the shifted date is what preview, generation and skips use, so an occurrence is 
 scheduled on a closed day. Changing the operating-hours configuration can shift future
 due dates and should be reviewed.
 
-Remaining: checklist completion evidence links into the execution workflow, entitlement
-usage/allocation (CONTRACT-005), renewal-driven plans, historical ownership
-reconstruction, populated v5→v6 upgrade/restore, concurrency, browser workbench and real
-LXC/provider qualification. Do not mark M5 complete from a green due-work preview or a
-created PM Job.
+Remaining: checklist completion-evidence enforcement in the execution workflow
+(TECH-008), renewal-driven plans, historical ownership reconstruction, populated
+v5→v9 upgrade/restore, concurrency, browser workbench and real LXC/provider
+qualification. Do not mark M5 complete from a green due-work preview or a created PM
+Job.

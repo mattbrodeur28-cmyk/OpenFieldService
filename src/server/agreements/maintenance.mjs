@@ -8,7 +8,8 @@ const hash = value => createHash('sha256').update(typeof value === 'string' ? va
 const requiredDate = z.string().refine(v => /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, 'Choose a valid Company date.');
 const reason = z.string().trim().min(10).max(2000);
 const checklistItem = z.object({ label: z.string().trim().min(1).max(200), required: z.boolean() });
-const planInput = z.object({ id: uuid, requestKey: uuid, expectedVersion: z.number().int().nonnegative().safe(), title: z.string().trim().min(1).max(200), description: z.string().trim().max(2000), frequency: z.enum(['monthly', 'quarterly', 'annual']), firstDue: requiredDate, horizonDays: z.number().int().min(1).max(730), seasonalMonths: z.array(z.number().int().min(1).max(12)).max(12), checklist: z.array(checklistItem).min(1).max(100), assetIds: z.array(uuid).min(1).max(500), archived: z.boolean(), reason, reviewAttested: z.literal(true) }).strict().refine(d => new Set(d.seasonalMonths).size === d.seasonalMonths.length, 'Seasonal months must not repeat.').refine(d => new Set(d.assetIds).size === d.assetIds.length, 'Equipment must not repeat.');
+const evidenceKinds = ['checklist', 'photo', 'reading', 'signature'];
+const planInput = z.object({ id: uuid, requestKey: uuid, expectedVersion: z.number().int().nonnegative().safe(), title: z.string().trim().min(1).max(200), description: z.string().trim().max(2000), frequency: z.enum(['monthly', 'quarterly', 'annual']), firstDue: requiredDate, horizonDays: z.number().int().min(1).max(730), seasonalMonths: z.array(z.number().int().min(1).max(12)).max(12), checklist: z.array(checklistItem).min(1).max(100), requiredEvidence: z.array(z.enum(evidenceKinds)).max(4).default([]), assetIds: z.array(uuid).min(1).max(500), archived: z.boolean(), reason, reviewAttested: z.literal(true) }).strict().refine(d => new Set(d.seasonalMonths).size === d.seasonalMonths.length, 'Seasonal months must not repeat.').refine(d => new Set(d.assetIds).size === d.assetIds.length, 'Equipment must not repeat.').refine(d => new Set(d.requiredEvidence).size === d.requiredEvidence.length, 'Required evidence kinds must not repeat.');
 const generateInput = z.object({ id: uuid, requestKey: uuid, from: requiredDate.optional(), to: requiredDate.optional(), reason, reviewAttested: z.literal(true) }).strict().refine(d => !d.from || !d.to || d.from <= d.to, 'End date must not precede start date.');
 const skipInput = z.object({ id: uuid, requestKey: uuid, planId: uuid, assetId: uuid, dueOn: requiredDate, reason, reviewAttested: z.literal(true) }).strict();
 const previewQuery = z.object({ from: requiredDate.optional(), to: requiredDate.optional() }).strict();
@@ -72,9 +73,9 @@ export function createAgreementMaintenance({ db, repo, get, timeZone = () => 'UT
         }
         return date;
     }
-    const projectRevision = ({ seasonal_months_json, checklist_json, asset_ids_json, ...row }) => ({ ...row, seasonalMonths: JSON.parse(seasonal_months_json), checklist: JSON.parse(checklist_json), assetIds: JSON.parse(asset_ids_json) });
+    const projectRevision = ({ seasonal_months_json, checklist_json, asset_ids_json, required_evidence_json, ...row }) => ({ ...row, seasonalMonths: JSON.parse(seasonal_months_json), checklist: JSON.parse(checklist_json), assetIds: JSON.parse(asset_ids_json), requiredEvidence: JSON.parse(required_evidence_json ?? '[]') });
     const revisionHead = id => {
-        const row = db.prepare('SELECT plan_id AS planId,version,title,description,frequency,first_due AS firstDue,horizon_days AS horizonDays,seasonal_months_json,checklist_json,asset_ids_json,actor_id AS actorId,reason,created_at AS createdAt FROM _agreement_plan_revisions WHERE plan_id=? ORDER BY version DESC LIMIT 1').get(id);
+        const row = db.prepare('SELECT plan_id AS planId,version,title,description,frequency,first_due AS firstDue,horizon_days AS horizonDays,seasonal_months_json,checklist_json,asset_ids_json,required_evidence_json,actor_id AS actorId,reason,created_at AS createdAt FROM _agreement_plan_revisions WHERE plan_id=? ORDER BY version DESC LIMIT 1').get(id);
         return row ? projectRevision(row) : null;
     };
     const planRow = id => {
@@ -134,7 +135,7 @@ export function createAgreementMaintenance({ db, repo, get, timeZone = () => 'UT
             else
                 db.prepare('INSERT INTO _agreement_maintenance_plans(id,agreement_id,title,archived,version,updated_by) VALUES(?,?,?,?,?,?)').run(d.id, agreementId, d.title, Number(d.archived), 1, user.id);
             const version = d.expectedVersion + 1;
-            db.prepare('INSERT INTO _agreement_plan_revisions(plan_id,version,title,description,frequency,first_due,horizon_days,seasonal_months_json,checklist_json,asset_ids_json,actor_id,reason) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run(d.id, version, d.title, d.description, d.frequency, d.firstDue, d.horizonDays, JSON.stringify(d.seasonalMonths), JSON.stringify(d.checklist), JSON.stringify(d.assetIds), user.id, d.reason);
+            db.prepare('INSERT INTO _agreement_plan_revisions(plan_id,version,title,description,frequency,first_due,horizon_days,seasonal_months_json,checklist_json,asset_ids_json,required_evidence_json,actor_id,reason) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(d.id, version, d.title, d.description, d.frequency, d.firstDue, d.horizonDays, JSON.stringify(d.seasonalMonths), JSON.stringify(d.checklist), JSON.stringify(d.assetIds), JSON.stringify(d.requiredEvidence), user.id, d.reason);
             db.prepare('DELETE FROM _agreement_plan_assets WHERE plan_id=?').run(d.id);
             for (const assetId of d.assetIds)
                 db.prepare('INSERT INTO _agreement_plan_assets(plan_id,asset_id) VALUES(?,?)').run(d.id, assetId);
@@ -201,7 +202,7 @@ export function createAgreementMaintenance({ db, repo, get, timeZone = () => 'UT
                     if (db.prepare('SELECT 1 FROM _agreement_due_work WHERE plan_id=? AND asset_id=? AND due_on=?').get(planId, asset.id, dueOn))
                         continue;
                     const blockedReason = scopeBlock(agreementId, asset.id, dueOn);
-                    const item = { planId, assetId: asset.id, assetName: asset.name, dueOn, planTitle: plan.title, checklist: plan.checklist };
+                    const item = { planId, assetId: asset.id, assetName: asset.name, dueOn, planTitle: plan.title, checklist: plan.checklist, requiredEvidence: plan.requiredEvidence };
                     (blockedReason ? blocked : due).push({ ...item, blockedReason });
                 }
             }
@@ -231,7 +232,7 @@ export function createAgreementMaintenance({ db, repo, get, timeZone = () => 'UT
             const { due, blocked } = pending(agreementId, from, to);
             const generated = [];
             for (const item of due) {
-                const plan = planRow(item.planId), jobId = randomUUID(), checklistText = item.checklist.map(c => (c.required ? '• ' : '○ ') + c.label).join('\n'), notes = [plan.title, plan.description, 'Preventive maintenance checklist:', checklistText].filter(Boolean).join('\n\n');
+                const plan = planRow(item.planId), jobId = randomUUID(), checklistText = item.checklist.map(c => (c.required ? '• ' : '○ ') + c.label).join('\n'), evidenceText = item.requiredEvidence.length ? 'Required evidence:\n' + item.requiredEvidence.map(kind => '• ' + kind).join('\n') : '', notes = [plan.title, plan.description, 'Preventive maintenance checklist:', checklistText, evidenceText].filter(Boolean).join('\n\n');
                 const job = jobs.createInTransaction(user, { id: jobId, customerId: get(agreementId).customer_id, siteId: db.prepare('SELECT site_id AS siteId FROM assets WHERE id=?').get(item.assetId).siteId, assetId: item.assetId, serviceTypeId: null, planningDate: item.dueOn, durationMinutes: 60, title: plan.title, notes });
                 db.prepare('INSERT INTO _agreement_due_work(id,plan_id,asset_id,due_on,job_id) VALUES(?,?,?,?,?)').run(randomUUID(), item.planId, item.assetId, item.dueOn, jobId);
                 generated.push({ planId: item.planId, assetId: item.assetId, assetName: item.assetName, dueOn: item.dueOn, job });

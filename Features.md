@@ -682,12 +682,13 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   ended/cancelled state with retained cancellation and exact retry. Seven tests cover
   scope, dates, role boundaries and rollback. Verified signatures/provider delivery,
   amendments/renewal and remaining qualification stay open. See [agreement lifecycle](docs/api/agreement-lifecycle.md).
-- [ ] **CONTRACT-003 — Maintenance plans:** equipment-specific recurring tasks,
+- [x] **CONTRACT-003 — Maintenance plans:** equipment-specific recurring tasks,
   seasonal schedules, checklists, template versions and required evidence.
-  Increment: versioned plans bound to the agreement's selected scope with monthly/
+  Implemented: versioned plans bound to the agreement's selected scope with monthly/
   quarterly/annual frequency, seasonal-month filtering, ordered required/optional
-  checklists and immutable revisions/archive. Holiday shifting and completion-evidence
-  links remain open. See [maintenance API](docs/api/agreement-maintenance.md).
+  checklists, immutable revisions/archive, and a per-revision required-evidence
+  declaration (checklist/photo/reading/signature) carried onto generated jobs.
+  Evidence completion enforcement remains TECH-008. See [maintenance API](docs/api/agreement-maintenance.md).
 - [ ] **CONTRACT-004 — Work generation:** idempotent job creation, scheduling horizon,
   due-work preview, exceptions, holiday/timezone rules and auditable skips.
   Increment: read-only due-work preview and actor/content-idempotent native PM Job

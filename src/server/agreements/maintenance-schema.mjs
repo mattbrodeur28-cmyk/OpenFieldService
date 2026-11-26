@@ -11,3 +11,8 @@ ${['_agreement_plan_revisions', '_agreement_due_work'].flatMap(table => ['UPDATE
 CREATE TRIGGER _agreement_plan_identity BEFORE UPDATE OF id,agreement_id,created_at ON _agreement_maintenance_plans BEGIN SELECT RAISE(ABORT,'AGREEMENT_PLAN_IDENTITY_IMMUTABLE'); END;
 CREATE TRIGGER _agreement_plan_no_delete BEFORE DELETE ON _agreement_maintenance_plans BEGIN SELECT RAISE(ABORT,'AGREEMENT_PLAN_IMMUTABLE'); END;
 `;
+
+// Additive v9: plans declare required completion evidence per revision.
+export const requiredEvidenceSchema = `
+ALTER TABLE _agreement_plan_revisions ADD COLUMN required_evidence_json TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(required_evidence_json));
+`;

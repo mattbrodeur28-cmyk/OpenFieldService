@@ -1,6 +1,6 @@
 import { activationSchema } from "./activation-schema.mjs";
 import { entitlementSchema } from "./entitlement-schema.mjs";
-import { maintenanceSchema } from "./maintenance-schema.mjs";
+import { maintenanceSchema, requiredEvidenceSchema } from "./maintenance-schema.mjs";
 import { renewalSchema } from "./renewal-schema.mjs";
 import { offerSchema } from "./offer-schema.mjs";
 import { documentSchema } from "./document-schema.mjs";
@@ -20,7 +20,7 @@ CREATE TRIGGER _agreement_draft_no_delete BEFORE DELETE ON _agreement_drafts BEG
 `;
 export function createAgreementRepository(storage) {
     const db = storage.database;
-    migrate(db, '_agreement_draft_migrations', [{ version: 1, sql }, { version: 2, sql: reviewSchema }, { version: 3, sql: documentSchema }, { version: 4, sql: offerSchema }, { version: 5, sql: activationSchema }, { version: 6, sql: maintenanceSchema }, { version: 7, sql: entitlementSchema }, { version: 8, sql: renewalSchema }]);
+    migrate(db, '_agreement_draft_migrations', [{ version: 1, sql }, { version: 2, sql: reviewSchema }, { version: 3, sql: documentSchema }, { version: 4, sql: offerSchema }, { version: 5, sql: activationSchema }, { version: 6, sql: maintenanceSchema }, { version: 7, sql: entitlementSchema }, { version: 8, sql: renewalSchema }, { version: 9, sql: requiredEvidenceSchema }]);
     const project = row => {
         if (!row)
             return null;

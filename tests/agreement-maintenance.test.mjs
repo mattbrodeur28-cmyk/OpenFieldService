@@ -124,3 +124,17 @@ test('due dates falling on closed days shift to the next business day', t => {
     assert.equal(f.a.maintenance.skip(owner, f.draft.id, skip).skipped, true);
     assert.throws(() => f.a.maintenance.skip(owner, f.draft.id, { ...skip, id: randomUUID(), requestKey: randomUUID(), dueOn: '2027-01-16' }), /not a scheduled occurrence/);
 });
+
+test('plans retain required completion evidence and carry it onto generated jobs', t => {
+    const f = authorized(t);
+    const saved = f.a.maintenance.save(owner, f.draft.id, plan(f, { requiredEvidence: ['photo', 'reading'] }));
+    assert.deepEqual(saved.plan.requiredEvidence, ['photo', 'reading']);
+    assert.throws(() => f.a.maintenance.save(owner, f.draft.id, { ...plan(f), requiredEvidence: ['photo', 'photo'] }), /must not repeat/);
+    f.setTime('2027-01-01T15:00:00Z');
+    const result = f.a.maintenance.generate(owner, f.draft.id, { id: randomUUID(), requestKey: randomUUID(), from: '2027-01-01', to: '2027-01-31', reason, reviewAttested: true });
+    assert.equal(result.generated.length, 1);
+    const job = f.db.prepare('SELECT notes FROM jobs WHERE id=?').get(result.generated[0].job.id);
+    assert.match(job.notes, /Required evidence/);
+    assert.match(job.notes, /photo/);
+    assert.match(job.notes, /reading/);
+});

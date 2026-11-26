@@ -16,10 +16,22 @@ export function InvoiceDetail() {
 
   return (
     <div class="page">
-      <div class="page-header">
-        <button class="btn btn-back" onClick={() => navigate("/invoices")}>
-          <ArrowLeft size={16} /> Back
-        </button>
+      <div class="record-header">
+        <div class="record-header-main">
+          <button class="btn btn-back" onClick={() => navigate("/invoices")}>
+            <ArrowLeft size={16} /> Back
+          </button>
+          <div>
+            <h1 class="record-header-title">{invoice.identifier}</h1>
+            <div class="record-header-subtitle">
+              <StatusBadge status={invoice.status} />
+              <span>{invoice.customer_name || "—"}</span>
+              <span>Due {invoice.due_date || "not set"}</span>
+              {invoice.paid_date && <span>Paid {invoice.paid_date}</span>}
+              <span>${invoice.total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
         <div class="page-header-right">
           <button class="btn btn-danger" disabled={hasPayments} title={hasPayments?"Accounting history must be retained":"Delete invoice"} onClick={() => deleteInvoice(invoice.id)}>
             <Trash2 size={14} /> Delete
@@ -29,11 +41,6 @@ export function InvoiceDetail() {
 
       <div class="detail-layout">
         <div class="detail-main">
-          <div class="detail-title-row">
-            <span class="identifier-lg">{invoice.identifier}</span>
-            <StatusBadge status={invoice.status} />
-          </div>
-
           <div class="detail-meta-grid">
             <div class="detail-meta-item">
               <span class="detail-meta-label">Customer</span>

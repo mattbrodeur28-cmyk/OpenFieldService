@@ -112,3 +112,15 @@ test('seasonal months restrict occurrences to the configured season', t => {
     f.a.maintenance.save(owner, f.draft.id, plan(f, { seasonalMonths: [1, 3] }));
     assert.deepEqual(f.a.maintenance.preview(owner, f.draft.id, { from: '2027-01-01', to: '2027-05-31' }).due.map(x => x.dueOn), ['2027-01-15', '2027-03-15']);
 });
+
+test('due dates falling on closed days shift to the next business day', t => {
+    const f = authorized(t);
+    f.a.maintenance.save(owner, f.draft.id, plan(f, { firstDue: '2027-01-16' }));
+    f.db.prepare('UPDATE _dispatch_operating_settings SET enabled=1 WHERE id=1').run();
+    const preview = f.a.maintenance.preview(owner, f.draft.id, { from: '2027-01-01', to: '2027-02-28' });
+    assert.deepEqual(preview.due.map(x => x.dueOn), ['2027-01-18', '2027-02-16']);
+    // A skipped occurrence uses the shifted date.
+    const skip = { id: randomUUID(), requestKey: randomUUID(), planId: preview.due[0].planId, assetId: f.draft.assetIds[0], dueOn: '2027-01-18', reason, reviewAttested: true };
+    assert.equal(f.a.maintenance.skip(owner, f.draft.id, skip).skipped, true);
+    assert.throws(() => f.a.maintenance.skip(owner, f.draft.id, { ...skip, id: randomUUID(), requestKey: randomUUID(), dueOn: '2027-01-16' }), /not a scheduled occurrence/);
+});

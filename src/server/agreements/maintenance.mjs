@@ -27,12 +27,12 @@ function addDays(dateStr, days) {
     base.setUTCDate(base.getUTCDate() + days);
     return base.toISOString().slice(0, 10);
 }
-function occurrences(rev, from, to) {
+function occurrences(rev, from, to, shift = (d) => d) {
     const step = frequencyMonths[rev.frequency], seasonal = new Set(rev.seasonalMonths), out = [];
     let cursor = rev.firstDue, n = 0;
     while (cursor <= to && n <= 100000) {
         if (cursor >= from && (seasonal.size === 0 || seasonal.has(Number(cursor.slice(5, 7)))))
-            out.push(cursor);
+            out.push(shift(cursor));
         n += 1;
         cursor = addMonths(rev.firstDue, step * n);
     }
@@ -47,6 +47,31 @@ export function createAgreementMaintenance({ db, repo, get, timeZone = () => 'UT
         return value;
     }
     function today() { return companyDay(now(), timeZone()); }
+    // CONTRACT-004: shift a due date that falls on a company-closed day (weekend or a
+    // dated holiday exception in Dispatcher operating hours) to the next open day.
+    // When hours are not configured, no shifting occurs.
+    function isOpen(date) {
+        if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_dispatch_operating_settings'").get())
+            return true;
+        const settings = db.prepare('SELECT enabled FROM _dispatch_operating_settings WHERE id=1').get();
+        if (!settings?.enabled)
+            return true;
+        const special = db.prepare('SELECT open FROM _dispatch_operating_exceptions WHERE date=?').get(date);
+        if (special)
+            return special.open === 1;
+        const weekday = new Date(date + 'T12:00:00Z').getUTCDay();
+        const weekly = db.prepare('SELECT open FROM _dispatch_operating_weekly WHERE weekday=?').get(weekday);
+        return weekly ? weekly.open === 1 : true;
+    }
+    function nextOpenDay(date) {
+        let cursor = date;
+        for (let i = 0; i < 400; i++) {
+            if (isOpen(cursor))
+                return cursor;
+            cursor = addDays(cursor, 1);
+        }
+        return date;
+    }
     const projectRevision = ({ seasonal_months_json, checklist_json, asset_ids_json, ...row }) => ({ ...row, seasonalMonths: JSON.parse(seasonal_months_json), checklist: JSON.parse(checklist_json), assetIds: JSON.parse(asset_ids_json) });
     const revisionHead = id => {
         const row = db.prepare('SELECT plan_id AS planId,version,title,description,frequency,first_due AS firstDue,horizon_days AS horizonDays,seasonal_months_json,checklist_json,asset_ids_json,actor_id AS actorId,reason,created_at AS createdAt FROM _agreement_plan_revisions WHERE plan_id=? ORDER BY version DESC LIMIT 1').get(id);
@@ -172,7 +197,7 @@ export function createAgreementMaintenance({ db, repo, get, timeZone = () => 'UT
         for (const { id: planId } of rows) {
             const plan = planRow(planId);
             for (const asset of plan.assets) {
-                for (const dueOn of occurrences(plan, from, to)) {
+                for (const dueOn of occurrences(plan, from, to, nextOpenDay)) {
                     if (db.prepare('SELECT 1 FROM _agreement_due_work WHERE plan_id=? AND asset_id=? AND due_on=?').get(planId, asset.id, dueOn))
                         continue;
                     const blockedReason = scopeBlock(agreementId, asset.id, dueOn);
@@ -228,7 +253,7 @@ export function createAgreementMaintenance({ db, repo, get, timeZone = () => 'UT
             const plan = inAgreement(d.planId, agreementId);
             if (!plan.assets.some(a => a.id === d.assetId))
                 fail('Choose equipment within this maintenance plan.', 409);
-            if (!occurrences(plan, d.dueOn, d.dueOn).length)
+            if (!occurrences(plan, plan.firstDue, d.dueOn, nextOpenDay).includes(d.dueOn))
                 fail('This date is not a scheduled occurrence for the plan.', 409);
             if (db.prepare('SELECT 1 FROM _agreement_due_work WHERE plan_id=? AND asset_id=? AND due_on=?').get(d.planId, d.assetId, d.dueOn))
                 fail('This occurrence is already generated or skipped.', 409);

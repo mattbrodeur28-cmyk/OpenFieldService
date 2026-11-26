@@ -692,8 +692,9 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   due-work preview, exceptions, holiday/timezone rules and auditable skips.
   Increment: read-only due-work preview and actor/content-idempotent native PM Job
   generation gated on an active authorized term and current accepted-scope ownership,
-  with auditable per-occurrence skips. Holiday/timezone shifting and populated-migration
-  qualification remain open.
+  with auditable per-occurrence skips. Due dates falling on a company-closed day
+  (weekend or dated holiday exception in Dispatcher operating hours) shift to the next
+  business day; populated-migration qualification remains open.
 - [x] **CONTRACT-005 — Entitlements:** included visits/hours, response priority,
   billable exceptions and coverage exhaustion with explainable decisions.
   Implemented: optional included visits/hours and response priority bind immutably to

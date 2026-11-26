@@ -79,8 +79,16 @@ and immutability triggers. v1–v5 SQL stays unchanged. Generated Jobs and due-w
 commit atomically; a late acknowledgment failure rolls both back and leaves accepted
 scope untouched. Back up both application databases before upgrading.
 
-Remaining: holiday/timezone shifting of due dates, checklist completion evidence links
-into the execution workflow, entitlement usage/allocation (CONTRACT-005), renewal-driven
-plans, historical ownership reconstruction, populated v5→v6 upgrade/restore, concurrency,
-browser workbench and real LXC/provider qualification. Do not mark M5 complete from a
-green due-work preview or a created PM Job.
+Occurrences fall on a Company-date schedule derived from `firstDue` and the plan
+frequency; when a due date lands on a company-closed day (a weekend or a dated holiday
+exception in Dispatcher operating hours), it shifts forward to the next open business
+day. Shifting is deterministic and only applies when company service hours are enabled;
+the shifted date is what preview, generation and skips use, so an occurrence is never
+scheduled on a closed day. Changing the operating-hours configuration can shift future
+due dates and should be reviewed.
+
+Remaining: checklist completion evidence links into the execution workflow, entitlement
+usage/allocation (CONTRACT-005), renewal-driven plans, historical ownership
+reconstruction, populated v5→v6 upgrade/restore, concurrency, browser workbench and real
+LXC/provider qualification. Do not mark M5 complete from a green due-work preview or a
+created PM Job.

@@ -1535,7 +1535,7 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 /* Dispatcher: data-dense workspace on desktop, explicit assignment forms on phones. */
 .dispatcher-page { padding-bottom: 40px; }
 .dispatcher-page { padding: 16px 20px; }
-.dispatch-title { display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap; }
+.dispatch-title { display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:0 0 12px;border-bottom:1px solid var(--border);flex-wrap:wrap; }
 .dispatch-title > div:first-child { margin-right:auto; }
 .dispatch-title h1 { font-size:22px;letter-spacing:-.5px;margin:0; }
 .dispatch-metrics { display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-right:12px; }

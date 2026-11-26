@@ -193,6 +193,40 @@ export function mountCrm(app, { crm, check }) {
     }),
   );
 
+  // CRM-004: customer-scoped activities (tasks, follow-ups, notes) with reminders.
+  app.get(
+    "/customers/:customerId/activities",
+    route((c) => {
+      const user = check(c);
+      return c.json(crm.activities.list(user, c.req.param("customerId"), c.req.query()));
+    }),
+  );
+  app.post(
+    "/customers/:customerId/activities",
+    route(async (c) => {
+      const user = check(c);
+      requireWriter(user);
+      const data = await body(c);
+      return c.json(crm.activities.save(user, c.req.param("customerId"), null, data), 201);
+    }),
+  );
+  app.put(
+    "/customers/:customerId/activities/:id",
+    route(async (c) => {
+      const user = check(c);
+      requireWriter(user);
+      const data = await body(c);
+      return c.json(crm.activities.save(user, c.req.param("customerId"), c.req.param("id"), data));
+    }),
+  );
+  app.get(
+    "/activities/reminders",
+    route((c) => {
+      const user = check(c);
+      return c.json(crm.activities.reminders(user));
+    }),
+  );
+
   app.put(
     "/customers/:customerId/account",
     route(async (c) => {

@@ -180,7 +180,7 @@ export function createService({ storage, currentUser, people }) {
   purchasing = mountPurchasing(app, { storage, inventory, check });
   const accounting=mountJobAccounting(app,{storage,company,check});
   // CRM-001: contacts, roles and billing links hang off the existing customer/site records.
-  const crm = createCrmService({ storage,salesSummaryInTransaction:(user,id)=>storage.salesCustomerOverviewInTransaction?.(user,id)??null,timeZone:()=>company.read().timeZone,invoiceSummaryInTransaction:accounting.receivables.customerSummaryInTransaction });
+  const crm = createCrmService({ storage,salesSummaryInTransaction:(user,id)=>storage.salesCustomerOverviewInTransaction?.(user,id)??null,timeZone:()=>company.read().timeZone,invoiceSummaryInTransaction:accounting.receivables.customerSummaryInTransaction,people });
   mountCrm(app, { crm, check });
   const documents = createDocumentModule({
     storage,

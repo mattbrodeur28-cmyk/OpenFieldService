@@ -1,7 +1,9 @@
 import {createCrmProspectHandoff} from "./prospect-handoff.mjs";
+import { createCrmActivities } from "./activity.mjs";
 import { randomUUID } from "node:crypto";
 import { transaction, migrate } from "../platform/sqlite.mjs";
 import { reviewSchema } from "./review-schema.mjs";
+import { activitySchema } from "./activity-schema.mjs";
 import { crmSchema } from "./schema.mjs";
 import {
   CrmError,
@@ -22,10 +24,11 @@ export function installCrm(db) {
   migrate(db, "_crm_migrations", [
     { version: 1, sql: crmSchema },
     { version: 2, sql: reviewSchema },
+    { version: 3, sql: activitySchema },
   ]);
 }
 
-export function createCrmService({ storage, invoiceSummaryInTransaction, salesSummaryInTransaction, timeZone }) {
+export function createCrmService({ storage, invoiceSummaryInTransaction, salesSummaryInTransaction, timeZone, people = () => [], clock = () => new Date() }) {
   const db = storage.database;
   installCrm(db);
 
@@ -593,8 +596,11 @@ export function createCrmService({ storage, invoiceSummaryInTransaction, salesSu
     }
   }
 
+  const activities = createCrmActivities({ storage, customer, audit, people, clock });
+
   return {
     prospects:createCrmProspectHandoff({storage,createContactInTransaction,audit,timeZone}),
+    activities,
     listContacts,
     createContact,
     updateContact,

@@ -193,3 +193,30 @@ to load the new projection into a running preview. Tests/build/browser/runtime
 qualification are deferred: cover absent-capability fallback, empty/large datasets,
 counts/order, current customer reassignment vs frozen offer context, Company timezone,
 role boundaries, native links and snapshot consistency before release.
+
+## CRM-004: customer activities (tasks, follow-ups and notes)
+
+Additive `_crm_migrations` v3, 2026-11-26. Customer-scoped activity records with a
+`private` vs `customer_visible` boundary, assignees, due/reminder instants and retained
+completion outcomes. These commands record internal or customer-facing activity; they
+do not send email/SMS, post to a customer portal or write team messages.
+
+- `GET /customers/:customerId/activities?page=&status=&visibility=&kind=` — up to 50
+  rows/page, total, ordered by due date then created time. Status/visibility/kind
+  filters are literal and default to all.
+- `POST /customers/:customerId/activities` — create (201). `PUT .../:id` — update with
+  `expectedVersion`. Strict command: `{kind:note|task|follow_up,visibility:private|
+  customer_visible,title,details,assigneeId,dueAt,reminderAt,status:open|done,outcome,
+  expectedVersion}`. Title1–200, details≤8000, outcome≤4000, reminder at or before due.
+  Notes have no assignee/due/reminder and are recorded done; tasks and follow-ups need
+  an assignee and due date. Completing to `done` requires a ≥3-char outcome and stamps
+  `completedBy`/`completedAt` once.
+- `GET /activities/reminders` — the signed-in user's open activities whose reminder is
+  now due, newest first.
+
+Writes are Owner/Admin/Member (Viewers read), assignee must be an active writer, and
+every create/update is audited in one transaction (a late audit failure rolls the
+activity back). Replay and cross-account scoping follow the existing CRM contact rules.
+
+Remaining: activity attachments, customer-facing delivery (CRM-007), reminder delivery
+worker, per-user record visibility (ARCH-017) and browser workbench qualification.

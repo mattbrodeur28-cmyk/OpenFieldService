@@ -453,6 +453,11 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
   duplicate guards and exact retry recovery; qualification remains deferred. See [pipeline progress](docs/product/crm-pipeline-progress.md).
 - [ ] **CRM-004 — Activity:** tasks, follow-ups, notes, attachments and reminders;
   distinguish private internal records from customer-facing communication.
+  Implemented: customer-scoped tasks/follow-ups/notes with a private vs customer-visible
+  boundary, assignees, due/reminder instants, retained completion outcomes, list filters,
+  a per-user reminders projection and audited optimistic-version writes (v3 migration).
+  Attachments, customer-facing delivery and a reminder worker remain open.
+  See [CRM API](docs/api/crm.md).
 - [ ] **CRM-005 — Quotes:** versioned scope, labor/materials, options, approvals,
   expiration, acceptance and conversion into work/contracts.
 - [ ] **CRM-006 — Data quality:** searchable/filterable records, validated import
@@ -1430,3 +1435,8 @@ a billable exception, and per-report consumption detail. Preview restarted after
 consistent two-database backup; additive v7 loads on the live snapshot. Amendments/
 renewal, billable-exception invoicing, response-priority effects and browser/provider
 gates stay open.
+
+CRM activity checkpoint:270/270 tests, TypeScript and production build pass. Six new
+customer-activity cases cover private vs customer-facing notes, assignee/due/reminder
+validation, reminders and list filters, role boundaries, audited rollback, HTTP
+guards and the v2→v3 upgrade. Attachments and reminder delivery remain open.

@@ -259,3 +259,13 @@ is immutable and audited. Direct upload from the activity screen remains separat
 validation errors; `POST /api/service/customers/import` commits valid rows as native
 customers + classification, skipping invalid and duplicate rows (normalized email or
 name). Owner/Admin only. A reviewed duplicate-merge policy remains separate work.
+
+## CRM-006: reviewed merge
+
+2026-11-26. `POST /api/service/customers/merge` (Owner/Admin) moves a source customer's
+live references (sites, assets, jobs, invoices, contacts, activities, communications,
+agreement drafts, opportunities, billing links) onto a surviving target, marks the
+source inactive and retains an immutable `_crm_merges` ledger (v6). Immutable historical
+snapshots keep their original customer id. Deferred FK enforcement makes the move atomic;
+a protected record (e.g. a site held by a quoted service contract) aborts the whole
+merge for review.

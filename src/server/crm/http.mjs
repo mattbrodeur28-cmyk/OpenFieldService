@@ -94,6 +94,15 @@ export function mountCrm(app, { crm, check }) {
       return c.json(crm.importer.commit(user, data));
     }),
   );
+  app.post(
+    "/customers/merge",
+    route(async (c) => {
+      const user = check(c);
+      requireWriter(user);
+      const data = await body(c);
+      return c.json(crm.merger.merge(user, data));
+    }),
+  );
 
   app.get(
     "/customers/:customerId/contacts",

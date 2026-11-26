@@ -375,6 +375,33 @@ test("customer import previews and commits valid rows, skipping duplicates and i
   assert.equal(again.skipped, 3);
 });
 
+test("customer merge remaps live references onto the surviving customer and retains history", (t) => {
+  const f = setup(t);
+  const reason = "Reviewed duplicate merge decision";
+  const source = randomUUID();
+  f.db.prepare("INSERT INTO customers(id,name,email) VALUES(?,?,?)").run(source, "Duplicate Co", "dup@test.test");
+  const contact = randomUUID();
+  f.db.prepare("INSERT INTO _crm_contacts(id,customer_id,name,email,version) VALUES(?,?,?,?,0)").run(contact, source, "Dup Contact", "dup@test.test");
+  const site = randomUUID();
+  f.db.prepare("INSERT INTO sites(id,customer_id,name) VALUES(?,?,?)").run(site, source, "Dup Site");
+  const asset = randomUUID();
+  f.db.prepare("INSERT INTO assets(id,customer_id,site_id,name,serial_number) VALUES(?,?,?,?,?)").run(asset, source, site, "Dup Asset", "SN-DUP");
+  const job = randomUUID();
+  f.db.prepare("INSERT INTO jobs(id,identifier,customer_id,asset_id,scheduled_date) VALUES(?,?,?,?,'2027-01-10')").run(job, "DUP-1", source, asset);
+  const result = f.crm.merger.merge(owner, { targetId: f.account, sourceId: source, reason, reviewAttested: true });
+  assert.equal(result.remapped._crm_contacts, 1);
+  assert.equal(result.remapped.sites, 1);
+  assert.equal(result.remapped.assets, 1);
+  assert.equal(result.remapped.jobs, 1);
+  assert.equal(f.crm.accountSettings(owner, source).accountType, "inactive");
+  assert.equal(f.db.prepare("SELECT customer_id FROM _crm_contacts WHERE id=?").get(contact).customer_id, f.account);
+  assert.equal(f.db.prepare("SELECT customer_id FROM sites WHERE id=?").get(site).customer_id, f.account);
+  assert.equal(f.db.prepare("SELECT customer_id FROM jobs WHERE id=?").get(job).customer_id, f.account);
+  assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM _crm_merges").get().n, 1);
+  assert.throws(() => f.db.prepare("UPDATE _crm_merges SET reason=?").run("x"), /IMMUTABLE/);
+  assert.throws(() => f.crm.merger.merge(owner, { targetId: f.account, sourceId: f.account, reason, reviewAttested: true }), /different/);
+});
+
 test("CRM v3 upgrades an existing v2 database without rewriting contacts", async (t) => {
   const { migrate } = await import("../src/server/platform/sqlite.mjs"),
     { crmSchema } = await import("../src/server/crm/schema.mjs"),

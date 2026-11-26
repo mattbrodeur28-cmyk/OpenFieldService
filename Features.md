@@ -465,13 +465,12 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
   Implemented via the Sales quote lifecycle: versioned scope/labor/material lines,
   approvals, expiration, recorded acceptance and accepted-quote conversion into work
   (SALES-005/006/008/009). Multiple customer-facing options (SALES-007) remain open.
-- [ ] **CRM-006 — Data quality:** searchable/filterable records, validated import
+- [x] **CRM-006 — Data quality:** searchable/filterable records, validated import
   preview, duplicate/merge policy, exports and appropriate PII controls.
-  Implemented: read-only duplicate candidates (`GET /customers/duplicates`), an
-  Owner/Admin customer export (`GET /customers/export`, JSON/CSV) with PII controls,
-  and a validated CSV import preview + commit (`POST /customers/import/preview` and
-  `/customers/import`) that skips invalid and duplicate rows. The reviewed merge
-  policy remains open.
+  Implemented: read-only duplicate candidates, an Owner/Admin customer export
+  (JSON/CSV) with PII controls, a validated CSV import preview + commit, and a reviewed
+  merge (`POST /customers/merge`) that remaps live references onto a surviving customer,
+  marks the source inactive and retains an immutable merge ledger (v6).
 - [ ] **CRM-007 — Communications:** link supported mail/channel activity to customer
   records with explicit access and consent boundaries.
   Implemented: a staff-recorded communication log linked to a customer and optional

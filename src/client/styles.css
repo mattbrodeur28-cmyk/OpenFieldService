@@ -1714,3 +1714,10 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .sales-path-step.is-current .sales-path-label { color: var(--text); font-weight: 600; }
 .sales-path-step.is-complete .sales-path-marker { background: var(--success); border-color: var(--success); color: #ffffff; }
 .sales-path-connector { flex: 1 1 20px; height: 1px; min-width: 16px; margin: 0 4px 0 0; background: var(--border); }
+
+/* Compact density */
+[data-density="compact"] .table td { height: 32px; padding-block: 6px; }
+[data-density="compact"] .table th { padding-block: 8px; }
+[data-density="compact"] .sidebar-item { min-height: 26px; }
+[data-density="compact"] .btn { min-height: 26px; padding-block: 2px; }
+[data-density="compact"] .record-tab { padding-block: 7px; }

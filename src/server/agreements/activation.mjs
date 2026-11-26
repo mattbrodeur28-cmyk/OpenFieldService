@@ -17,7 +17,7 @@ export function termState(activation, cancellation, companyDate) {
         return 'expired';
     return 'active';
 }
-const activateInput = z.object({ id: uuid, requestKey: uuid, offerId: uuid, expectedAcceptanceSequence: z.number().int().positive().safe(), expectedSnapshotHash: digest, expectedPdfHash: digest, reason, reviewAttested: z.literal(true) }).strict();
+const activateInput = z.object({ id: uuid, requestKey: uuid, offerId: uuid, expectedAcceptanceSequence: z.number().int().positive().safe(), expectedSnapshotHash: digest, expectedPdfHash: digest, reason, reviewAttested: z.literal(true), includedVisits: z.number().int().nonnegative().max(1000000).safe().nullable().optional(), includedHours: z.number().int().nonnegative().max(100000000).safe().nullable().optional(), responsePriority: z.enum(['normal', 'priority', 'emergency']).nullable().optional() }).strict();
 const cancelInput = z.object({ id: uuid, requestKey: uuid, activationId: uuid, expectedSourceToken: digest, effectiveOn: date, reason, reviewAttested: z.literal(true) }).strict();
 const coverageInput = z.object({ assetId: uuid, date: date.optional() }).strict();
 export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', clock = () => new Date() }) {
@@ -59,6 +59,24 @@ export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', c
             if (current.status === 'retired')
                 fail('Accepted equipment is retired. Review its replacement through an amendment.', 409);
         }
+    }
+    function computeEntitlement(id, effectiveDate) {
+        const current = inSnapshot(id), activation = current.activation;
+        const configured = { includedVisits: activation?.includedVisits ?? null, includedHours: activation?.includedHours ?? null, responsePriority: activation?.responsePriority ?? null };
+        let consumedVisits = 0, consumedHours = 0, detail = [];
+        if (activation) {
+            const offer = repo.offerById(activation.offerId), customerId = offer?.snapshot?.source?.document?.customerId ?? null, assetIds = offer?.snapshot?.source?.scope?.assets?.map(item => item.id) ?? [], reports = customerId ? repo.entitlementReports(customerId, assetIds) : [];
+            const included = reports.filter(row => termState(activation, current.cancellation, companyDay(new Date(row.visitStartAt), activation.timeZone)) === 'active');
+            consumedVisits = included.length;
+            consumedHours = included.reduce((sum, row) => sum + row.hours, 0);
+            detail = included.map(row => ({ ...row, companyDate: companyDay(new Date(row.visitStartAt), activation.timeZone) }));
+        }
+        const visitsRemaining = configured.includedVisits === null ? null : Math.max(0, configured.includedVisits - consumedVisits);
+        const hoursRemaining = configured.includedHours === null ? null : Math.max(0, configured.includedHours - consumedHours);
+        const visitsExhausted = configured.includedVisits !== null && consumedVisits >= configured.includedVisits;
+        const hoursExhausted = configured.includedHours !== null && consumedHours >= configured.includedHours;
+        const activeOnDate = termState(activation, current.cancellation, effectiveDate ?? current.companyDate) === 'active';
+        return { ...current, configured, consumed: { visits: consumedVisits, hours: consumedHours }, remaining: { visits: visitsRemaining, hours: hoursRemaining }, visitsExhausted, hoursExhausted, billingEntitlement: activeOnDate && configured.includedVisits !== null && configured.includedHours !== null && !visitsExhausted && !hoursExhausted, detail };
     }
     function summary(user, id) {
         reader(user);
@@ -108,7 +126,7 @@ export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', c
             const document = offer.snapshot.source.document, startsOn = parse(date, document.startsOn), endsOn = parse(date, document.endsOn), observed = now(), zone = timeZone(), authorizedOn = companyDay(observed, zone);
             if (startsOn > endsOn || endsOn < authorizedOn)
                 fail('Do not authorize an already-ended or invalid accepted term.', 409);
-            repo.addActivation(d, id, offer, event.id, startsOn, endsOn, zone, authorizedOn, observed.toISOString(), user);
+            repo.addActivation(d, id, offer, event.id, startsOn, endsOn, zone, authorizedOn, observed.toISOString(), user, d.includedVisits ?? null, d.includedHours ?? null, d.responsePriority ?? null);
             const result = { ...inSnapshot(id), agreementId: id, communicationSent: false, customerAcceptanceVerified: false };
             repo.acknowledge(d.requestKey, user, fingerprint, result);
             return result;
@@ -159,9 +177,19 @@ export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', c
                         decision = 'scope_eligible';
                 }
             }
-            return { agreementId: id, activationId: current.activation?.id ?? null, assetId: q.assetId, date: selected, observedAt: current.observedAt, decision, scopeEligible: decision === 'scope_eligible', basis: 'accepted_scope_current_native_ownership', billingEntitlement: false, includedVisits: null, includedHours: null, responsePriority: null, workGenerated: false };
+            const ent = computeEntitlement(id, selected);
+            return { agreementId: id, activationId: current.activation?.id ?? null, assetId: q.assetId, date: selected, observedAt: current.observedAt, decision, scopeEligible: decision === 'scope_eligible', basis: 'accepted_scope_current_native_ownership', billingEntitlement: decision === 'scope_eligible' && ent.billingEntitlement, includedVisits: ent.configured.includedVisits, includedHours: ent.configured.includedHours, responsePriority: ent.configured.responsePriority, workGenerated: false };
+        });
+    }
+    function entitlement(user, id) {
+        reader(user);
+        parse(uuid, id);
+        return repo.within(() => {
+            get(id);
+            const e = computeEntitlement(id);
+            return { agreementId: id, state: e.state, companyDate: e.companyDate, observedAt: e.observedAt, configured: e.configured, consumed: e.consumed, remaining: e.remaining, visitsExhausted: e.visitsExhausted, hoursExhausted: e.hoursExhausted, billingEntitlement: e.billingEntitlement, detail: e.detail, workGenerated: false };
         });
     }
     function decorateInSnapshot(user, rows) { reader(user); const observed = now(); return rows.map(row => { const result = inSnapshot(row.id, observed); return { ...row, operationalState: result.state, authorizationActive: result.authorizationActive, cancellationEffectiveOn: result.cancellation?.effectiveOn ?? null }; }); }
-    return { summary, authorize, cancel, coverage, decorateInSnapshot };
+    return { summary, authorize, cancel, coverage, entitlement, decorateInSnapshot };
 }

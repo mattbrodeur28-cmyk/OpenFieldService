@@ -49,6 +49,7 @@ export function createAgreementModule({ storage, currentUser, issuer, timeZone, 
     app.get('/documents/:documentId/download', c => { const { document, bytes } = agreements.downloadDocument(actor(c), c.req.param('documentId')), name = encodeURIComponent(document.originalName.replace(/\.[^.]*$/, '') + '.pdf').replace(/[!'()*]/g, ch => '%' + ch.charCodeAt(0).toString(16).toUpperCase()); return new Response(bytes, { headers: { 'Content-Type': 'application/pdf', 'Content-Length': String(bytes.length), 'Content-Disposition': `attachment; filename="proposed-contract.pdf"; filename*=UTF-8''${name}`, 'Cache-Control': 'private, no-store', 'Content-Security-Policy': "sandbox; default-src 'none'", 'X-Content-Type-Options': 'nosniff', 'Cross-Origin-Resource-Policy': 'same-origin' } }); });
     app.get('/:id/activation', c => c.json(agreements.activation.summary(actor(c), c.req.param('id'))));
     app.get('/:id/coverage', c => c.json(agreements.activation.coverage(actor(c), c.req.param('id'), c.req.query())));
+    app.get('/:id/entitlement', c => c.json(agreements.activation.entitlement(actor(c), c.req.param('id'))));
     for (const [suffix, method] of [['authorize', 'authorize'], ['cancel', 'cancel']])
         app.post('/:id/activation/' + suffix, async (c) => {
             let data;

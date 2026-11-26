@@ -1,4 +1,5 @@
 import { activationSchema } from "./activation-schema.mjs";
+import { entitlementSchema } from "./entitlement-schema.mjs";
 import { maintenanceSchema } from "./maintenance-schema.mjs";
 import { offerSchema } from "./offer-schema.mjs";
 import { documentSchema } from "./document-schema.mjs";
@@ -18,7 +19,7 @@ CREATE TRIGGER _agreement_draft_no_delete BEFORE DELETE ON _agreement_drafts BEG
 `;
 export function createAgreementRepository(storage) {
     const db = storage.database;
-    migrate(db, '_agreement_draft_migrations', [{ version: 1, sql }, { version: 2, sql: reviewSchema }, { version: 3, sql: documentSchema }, { version: 4, sql: offerSchema }, { version: 5, sql: activationSchema }, { version: 6, sql: maintenanceSchema }]);
+    migrate(db, '_agreement_draft_migrations', [{ version: 1, sql }, { version: 2, sql: reviewSchema }, { version: 3, sql: documentSchema }, { version: 4, sql: offerSchema }, { version: 5, sql: activationSchema }, { version: 6, sql: maintenanceSchema }, { version: 7, sql: entitlementSchema }]);
     const project = row => {
         if (!row)
             return null;
@@ -49,10 +50,16 @@ export function createAgreementRepository(storage) {
     return {
         activationIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_activations WHERE id=?').get(id),
         activationCancellationIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_activation_cancellations WHERE id=?').get(id),
-        activation: id => { const row = db.prepare('SELECT id,agreement_id AS agreementId,offer_id AS offerId,acceptance_event_id AS acceptanceEventId,snapshot_hash AS snapshotHash,pdf_hash AS pdfHash,starts_on AS startsOn,ends_on AS endsOn,time_zone AS timeZone,authorized_on AS authorizedOn,authorized_at AS authorizedAt,actor_id AS actorId,reason FROM _agreement_activations WHERE agreement_id=?').get(id); return row ? { ...row } : null; },
+        activation: id => { const row = db.prepare('SELECT id,agreement_id AS agreementId,offer_id AS offerId,acceptance_event_id AS acceptanceEventId,snapshot_hash AS snapshotHash,pdf_hash AS pdfHash,starts_on AS startsOn,ends_on AS endsOn,time_zone AS timeZone,authorized_on AS authorizedOn,authorized_at AS authorizedAt,actor_id AS actorId,reason,included_visits AS includedVisits,included_hours AS includedHours,response_priority AS responsePriority FROM _agreement_activations WHERE agreement_id=?').get(id); return row ? { ...row } : null; },
         activationCancellation: id => { const row = db.prepare('SELECT id,activation_id AS activationId,effective_on AS effectiveOn,recorded_at AS recordedAt,actor_id AS actorId,reason FROM _agreement_activation_cancellations WHERE activation_id=?').get(id); return row ? { ...row } : null; },
         activationAsset: id => { const row = db.prepare('SELECT id,customer_id AS customerId,site_id AS siteId,status FROM assets WHERE id=?').get(id); return row ? { ...row } : null; },
-        addActivation: (d, agreementId, offer, acceptanceEventId, startsOn, endsOn, zone, authorizedOn, authorizedAt, user) => db.prepare('INSERT INTO _agreement_activations(id,agreement_id,offer_id,acceptance_event_id,snapshot_hash,pdf_hash,starts_on,ends_on,time_zone,authorized_on,authorized_at,actor_id,reason) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(d.id, agreementId, offer.id, acceptanceEventId, offer.snapshotHash, offer.pdfHash, startsOn, endsOn, zone, authorizedOn, authorizedAt, user.id, d.reason),
+        addActivation: (d, agreementId, offer, acceptanceEventId, startsOn, endsOn, zone, authorizedOn, authorizedAt, user, includedVisits, includedHours, responsePriority) => db.prepare('INSERT INTO _agreement_activations(id,agreement_id,offer_id,acceptance_event_id,snapshot_hash,pdf_hash,starts_on,ends_on,time_zone,authorized_on,authorized_at,actor_id,reason,included_visits,included_hours,response_priority) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(d.id, agreementId, offer.id, acceptanceEventId, offer.snapshotHash, offer.pdfHash, startsOn, endsOn, zone, authorizedOn, authorizedAt, user.id, d.reason, includedVisits, includedHours, responsePriority),
+        entitlementReports: (customerId, assetIds) => {
+            if (!assetIds.length || !db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_service_reports'").get())
+                return [];
+            const placeholders = assetIds.map(() => '?').join(',');
+            return db.prepare('SELECT r.id AS reportId,r.job_id AS jobId,r.visit_start_at AS visitStartAt,r.visit_end_at AS visitEndAt,j.asset_id AS assetId FROM _service_reports r JOIN _service_report_reviews v ON v.report_id=r.id AND v.decision=\'approved\' JOIN jobs j ON j.id=r.job_id WHERE j.customer_id=? AND j.asset_id IN (' + placeholders + ')').all(customerId, ...assetIds).map(row => ({ ...row, hours: Number(db.prepare("SELECT COALESCE(SUM(worked_minutes),0) AS n FROM _service_time_entries WHERE report_id=? AND state='approved' AND work_type='work'").get(row.reportId).n) }));
+        },
         addActivationCancellation: (d, recordedAt, user) => db.prepare('INSERT INTO _agreement_activation_cancellations(id,activation_id,effective_on,recorded_at,actor_id,reason) VALUES(?,?,?,?,?,?)').run(d.id, d.activationId, d.effectiveOn, recordedAt, user.id, d.reason),
         offerIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_offers WHERE id=?').get(id),
         offerEventIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_offer_events WHERE id=?').get(id),

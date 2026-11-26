@@ -666,10 +666,13 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   qualification remain open.
 - [ ] **CONTRACT-005 — Entitlements:** included visits/hours, response priority,
   billable exceptions and coverage exhaustion with explainable decisions.
-  Increment: explainable equipment scope against accepted/authorized term and
-  current native ownership. No whole-building scope is inferred from a location;
-  included visits/hours/priority remain explicitly unknown. Allocation/exhaustion,
-  billable exceptions and qualification stay open. See [authorization API](docs/api/agreement-activation.md).
+  Increment: optional included visits/hours and response priority bind immutably to the
+  authorization; usage is a live projection of approved in-scope native reports (a visit)
+  and approved `work` minutes (hours) within the active term. Exhaustion and a per-report
+  consumption detail are explainable; `billingEntitlement` flips to a billable exception
+  when either included amount is exhausted. Amendments/renewal, billable-exception
+  invoicing handoff, response-priority dispatch effects and qualification remain open.
+  See [entitlement API](docs/api/agreement-entitlement.md).
 - [ ] **CONTRACT-006 — Renewals:** assigned tasks, reminders, repricing, customer
   approval and retained history; no renewal without the configured authority/terms.
 - [ ] **CONTRACT-007 — Acceptance/documents:** templates/PDFs, signature or documented
@@ -1417,3 +1420,11 @@ active-term gated due preview, idempotent native PM Job generation, auditable sk
 and late-ack rollback. Preview restarted after a consistent two-database backup;
 additive v6 loads on the live snapshot. Entitlement usage, holiday shifting,
 populated upgrade and browser/provider gates stay open.
+
+Entitlement usage checkpoint:264/264 tests, TypeScript and production build pass. Four
+new entitlement cases cover immutable included visits/hours/priority binding, approved
+in-scope visit/hour consumption within the active term, exhaustion flipping coverage to
+a billable exception, and per-report consumption detail. Preview restarted after a
+consistent two-database backup; additive v7 loads on the live snapshot. Amendments/
+renewal, billable-exception invoicing, response-priority effects and browser/provider
+gates stay open.

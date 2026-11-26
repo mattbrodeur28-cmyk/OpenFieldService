@@ -75,5 +75,6 @@ source changes, not published or production-qualified releases.
 - [Frozen agreement offers and recorded responses](api/agreement-lifecycle.md)
 - [Operational authorization and equipment scope](api/agreement-activation.md)
 - [Maintenance plans and idempotent work generation](api/agreement-maintenance.md)
+- [Agreement entitlement usage and exhaustion](api/agreement-entitlement.md)
 
 - [Automated qualification progress, 2026-11-25](releases/2026-11-25-automated-progress.md)

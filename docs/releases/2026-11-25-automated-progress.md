@@ -270,3 +270,31 @@ exhaustion with billable exceptions, holiday/timezone shifting of due dates, che
 completion evidence links, populated v5→v6 upgrade/restore, browser workbench and
 verified signatures/provider delivery. A created PM Job does not bill or recognize
 revenue; entitlement accounting remains unimplemented.
+
+
+## Entitlement usage and exhaustion checkpoint
+
+Full working-tree suite now passes264/264, zero failed/skipped/cancelled/todo;
+TypeScript and production build pass. Four new `tests/agreement-entitlement.test.mjs`
+cases exercise entitlement configuration and a live usage projection over approved
+native service evidence, not a copied allocation ledger.
+
+Coverage verifies entitlements are unknown unless reviewed at authorization; included
+visits/hours/priority bind immutably (additive v7 columns); a visit consumes one
+approved in-scope report and hours consume approved `work` minutes only during the
+active authorized term; out-of-term and unselected-equipment evidence is never counted;
+remaining visits/hours clamp at zero; exhaustion flips `billingEntitlement` to a
+billable exception with a per-report consumption detail; and per-asset coverage now
+carries real included values and exhaustion-aware billing entitlement.
+
+Preview restarted successfully after backing up both native/workspace databases at
+/private/tmp/ofs-dev-20261125/before-entitlement-1795712567771. Additive
+`_agreement_draft_migrations` v7 adds nullable included_visits/included_hours/
+response_priority columns to the immutable activation table; the
+`/api/agreements/:id/entitlement` route is live. This is local startup evidence, not
+populated real-contract restore, browser, concurrency or production qualification.
+
+Remaining M5 gates stay open: entitlement amendments/renewal, billable-exception
+invoicing handoff, response-priority dispatch effects, holiday/timezone shifting,
+populated v6→v7 upgrade/restore, browser workbench and verified signatures/provider
+delivery. A projected remaining-visit count does not invoice or recognize revenue.

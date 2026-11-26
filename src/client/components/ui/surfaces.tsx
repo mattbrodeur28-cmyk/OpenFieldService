@@ -10,7 +10,7 @@ export function Card({
   children: ComponentChildren;
   class?: string;
 }) {
-  return <section class={"ui-card " + className}>{children}</section>;
+  return <section class={"slds-card ui-card " + className}>{children}</section>;
 }
 export function Badge({
   children,
@@ -19,7 +19,7 @@ export function Badge({
   children: ComponentChildren;
   tone?: "neutral" | "info" | "success" | "warning" | "danger";
 }) {
-  return <span class={"ui-badge ui-badge-" + tone}>{children}</span>;
+  return <span class={"slds-badge ui-badge ui-badge-" + tone}>{children}</span>;
 }
 export function Avatar({ name }: { name: string }) {
   return (
@@ -45,7 +45,7 @@ export function Notice({
 }) {
   return (
     <div
-      class={"ui-notice ui-notice-" + tone}
+      class={"slds-alert " + (tone === "danger" ? "slds-alert_error " : tone === "warning" ? "slds-alert_warning " : "") + "ui-notice ui-notice-" + tone}
       role={tone === "danger" ? "alert" : "status"}
     >
       <div>{children}</div>

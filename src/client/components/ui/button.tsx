@@ -23,7 +23,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
         ref={ref}
         type={type}
-        class={`${size === "icon" ? "btn-icon" : "btn"} ui-button ui-button-${variant} ${variant === "primary" ? "btn-primary" : ""} ${className}`}
+        class={`${size === "icon" ? "btn-icon slds-button slds-button_icon" : "btn slds-button"} ui-button ui-button-${variant} ${variant === "primary" ? "btn-primary slds-button_brand" : variant === "danger" ? "slds-button_destructive" : variant === "ghost" ? "slds-button_neutral" : "slds-button_neutral"} ${className}`}
       />
     );
   },

@@ -1,6 +1,7 @@
 import { createAgreementActivation } from "./activation.mjs";
 import { createAgreementAmendment } from "./amendment.mjs";
 import { createAgreementAuthoritative } from "./authoritative.mjs";
+import { createAgreementLabor } from "./labor.mjs";
 import { createAgreementLifecycle } from "./lifecycle.mjs";
 import { createAgreementMaintenance } from "./maintenance.mjs";
 import { createAgreementRenewal } from "./renewal.mjs";
@@ -168,10 +169,11 @@ export function createAgreements({ storage, issuer, timeZone, clock, maintenance
         return repo.within(() => repo.options(q));
     }
     const lifecycle = createAgreementLifecycle({ repo, get, source, reviewState, issuer, timeZone, clock });
-    const activation = createAgreementActivation({ repo, get, timeZone, clock });
+    const labor = createAgreementLabor({ db: storage.database });
+    const activation = createAgreementActivation({ repo, get, timeZone, clock, laborRate: () => labor.read()?.rateCentsPerHour ?? null });
     const maintenance = createAgreementMaintenance({ db: storage.database, repo, get, timeZone, clock, jobs: maintenanceJobs });
     const renewal = createAgreementRenewal({ db: storage.database, repo, get });
     const amendment = createAgreementAmendment({ db: storage.database, repo, get });
     const authoritative = createAgreementAuthoritative({ db: storage.database, repo, get });
-    return { detail, list, save, history, options, review, reviewHistory, proposedDocument, uploadDocument, downloadDocument, lifecycle, activation, maintenance, renewal, amendment, authoritative };
+    return { detail, list, save, history, options, review, reviewHistory, proposedDocument, uploadDocument, downloadDocument, lifecycle, activation, maintenance, renewal, amendment, authoritative, labor };
 }

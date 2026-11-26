@@ -711,12 +711,12 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   role checks. Verified customer acceptance/signature, accepted artifacts, complete
   retention policy, browser and upgrade qualification remain open. See
   [agreement documents](docs/api/agreement-documents.md).
-- [ ] **CONTRACT-008 — Profitability:** actual labor/material cost and agreement
+- [x] **CONTRACT-008 — Profitability:** actual labor/material cost and agreement
   revenue with transparent allocation rules.
   Implemented: `GET /:id/profitability` projects authorized contract value (not
-  recognized revenue), net native material cost (usage minus return) on in-scope jobs
-  during the active term, and a per-job allocation; labor cost stays explicit null
-  until a reviewed labor cost-rate policy exists.
+  recognized revenue), net native material cost (usage minus return) and approved
+  labor cost from a reviewed company rate (cents/hour) on in-scope jobs during the
+  active term, with a per-job material allocation and explicit definitions.
 
 **Acceptance:** activate an agreement across assets, generate due work exactly once
 under retries, complete evidence/checklists, report to the customer and renew via a

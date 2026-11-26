@@ -114,7 +114,29 @@ test('profitability projects contract value and net material cost with explicit 
     assert.equal(p.contractValueCents, 10000);
     assert.equal(p.materialCostCents, 50);
     assert.equal(p.laborCostCents, null);
-    assert.equal(p.marginCents, 9950);
+    assert.equal(p.marginCents, null);
     assert.equal(p.allocation.length, 1);
     assert.equal(p.allocation[0].costCents, 50);
+});
+
+test('profitability applies a reviewed labor rate to approved in-scope work', t => {
+    const f = authorized(t);
+    f.setTime('2027-01-10T15:00:00Z');
+    f.a.labor.save(owner, { expectedVersion: 0, rateCentsPerHour: 6000, reason, reviewAttested: true });
+    assert.equal(f.a.labor.current(owner).rateCentsPerHour, 6000);
+    assert.throws(() => f.a.labor.save(owner, { expectedVersion: 0, rateCentsPerHour: 7000, reason, reviewAttested: true }), /changed/);
+    // 50 approved minutes on an in-scope job, then material cost 50 cents.
+    const job = randomUUID();
+    f.db.prepare("INSERT INTO jobs(id,identifier,customer_id,asset_id,scheduled_date) VALUES(?,?,?,?,'2027-01-10')").run(job, 'PM-' + job.slice(0, 8), f.draft.customerId, f.draft.assetIds[0]);
+    evidence(f, { startAt: '2027-01-10T14:00:00Z', endAt: '2027-01-10T15:00:00Z', workedMinutes: 50, jobId: job });
+    const material = randomUUID();
+    f.db.prepare('INSERT INTO materials(id,name) VALUES(?,?)').run(material, 'Filter');
+    f.db.prepare("INSERT INTO _inventory_movements(id,request_key,request_hash,actor_id,kind,material_id,quantity_milli,value_millicents,job_id,technician_id,reason,delegation_reason,before_json,after_json) VALUES(?,?,?,?,?,?,?,?,?,NULL,?,?,?,?)")
+        .run(randomUUID(), randomUUID(), 'x', owner.id, 'usage', material, 1000, '50000', job, 'Used on PM', '', '{}', '{}');
+    const p = f.a.activation.profitability(owner, f.draft.id);
+    assert.equal(p.laborMinutes, 50);
+    assert.equal(p.laborRateCentsPerHour, 6000);
+    assert.equal(p.laborCostCents, 5000);
+    assert.equal(p.materialCostCents, 50);
+    assert.equal(p.marginCents, 10000 - 50 - 5000);
 });

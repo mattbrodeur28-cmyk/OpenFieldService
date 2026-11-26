@@ -67,3 +67,11 @@ inventory-movement value), and a per-job allocation. `laborCostCents` is explici
 `null` until a reviewed labor cost-rate policy exists; margin is contract value minus
 material cost with that unknown labeled. No revenue recognition or provider posting is
 implied by this projection.
+
+## Labor cost rate
+
+CONTRACT-008, 2026-11-26. `GET/POST /api/agreements/labor-rate` maintains a reviewed
+company labor cost rate (cents per hour, versioned, Owner/Admin). Profitability then
+computes `laborCostCents = approved in-scope work minutes × rate ÷ 60`; an unconfigured
+rate leaves labor cost and margin explicit `null` (never free labor). Per-role rates are
+a separate future policy.

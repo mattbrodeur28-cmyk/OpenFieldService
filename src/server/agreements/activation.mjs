@@ -20,7 +20,7 @@ export function termState(activation, cancellation, companyDate) {
 const activateInput = z.object({ id: uuid, requestKey: uuid, offerId: uuid, expectedAcceptanceSequence: z.number().int().positive().safe(), expectedSnapshotHash: digest, expectedPdfHash: digest, reason, reviewAttested: z.literal(true), includedVisits: z.number().int().nonnegative().max(1000000).safe().nullable().optional(), includedHours: z.number().int().nonnegative().max(100000000).safe().nullable().optional(), responsePriority: z.enum(['normal', 'priority', 'emergency']).nullable().optional() }).strict();
 const cancelInput = z.object({ id: uuid, requestKey: uuid, activationId: uuid, expectedSourceToken: digest, effectiveOn: date, reason, reviewAttested: z.literal(true) }).strict();
 const coverageInput = z.object({ assetId: uuid, date: date.optional() }).strict();
-export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', clock = () => new Date() }) {
+export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', clock = () => new Date(), laborRate = () => null }) {
     function now() {
         const value = clock();
         if (!Number.isFinite(value.getTime()))
@@ -196,16 +196,19 @@ export function createAgreementActivation({ repo, get, timeZone = () => 'UTC', c
         return repo.within(() => {
             get(id);
             const current = inSnapshot(id), activation = current.activation;
-            let contractValueCents = null, material = { totalCents: 0, jobs: [] };
+            let contractValueCents = null, material = { totalCents: 0, jobs: [] }, laborMinutes = 0;
             if (activation) {
                 const offer = repo.offerById(activation.offerId), document = offer?.snapshot?.source?.document;
                 contractValueCents = document?.priceCents ?? null;
                 const customerId = document?.customerId, assetIds = offer?.snapshot?.source?.scope?.assets?.map(item => item.id) ?? [];
                 material = repo.materialCost(customerId, assetIds, activation.startsOn, activation.endsOn);
+                const included = repo.entitlementReports(customerId, assetIds).filter(row => termState(activation, current.cancellation, companyDay(new Date(row.visitStartAt), activation.timeZone)) === 'active');
+                laborMinutes = included.reduce((sum, row) => sum + row.hours, 0);
             }
-            const laborCostCents = null;
-            const marginCents = contractValueCents === null ? null : contractValueCents - material.totalCents - (laborCostCents ?? 0);
-            return { agreementId: id, state: current.state, companyDate: current.companyDate, observedAt: current.observedAt, contractValueCents, materialCostCents: material.totalCents, laborCostCents, marginCents, allocation: material.jobs, currency: 'USD', definitions: { contractValue: 'Authorized accepted-term proposed price (priceCents); a contract value, not recognized revenue.', materialCost: 'Net native inventory usage (usage minus return) movement value on in-scope jobs during the authorized term, in cents.', laborCost: 'Unknown until a reviewed labor cost-rate policy is configured.', margin: 'contractValue − materialCost (labor cost unknown).' } };
+            const rate = laborRate();
+            const laborCostCents = rate === null ? null : Math.round((laborMinutes * rate) / 60);
+            const marginCents = contractValueCents === null || laborCostCents === null ? null : contractValueCents - material.totalCents - laborCostCents;
+            return { agreementId: id, state: current.state, companyDate: current.companyDate, observedAt: current.observedAt, contractValueCents, materialCostCents: material.totalCents, laborMinutes, laborRateCentsPerHour: rate, laborCostCents, marginCents, allocation: material.jobs, currency: 'USD', definitions: { contractValue: 'Authorized accepted-term proposed price (priceCents); a contract value, not recognized revenue.', materialCost: 'Net native inventory usage (usage minus return) movement value on in-scope jobs during the authorized term, in cents.', laborCost: 'Approved in-scope work minutes × the reviewed company labor rate, or null until configured.', margin: 'contractValue − materialCost − laborCost.' } };
         });
     }
     function decorateInSnapshot(user, rows) { reader(user); const observed = now(); return rows.map(row => { const result = inSnapshot(row.id, observed); return { ...row, operationalState: result.state, authorizationActive: result.authorizationActive, cancellationEffectiveOn: result.cancellation?.effectiveOn ?? null }; }); }

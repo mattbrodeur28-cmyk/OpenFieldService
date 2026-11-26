@@ -22,6 +22,17 @@ export function createAgreementModule({ storage, currentUser, issuer, timeZone, 
     });
     app.get('/', c => c.json(agreements.list(actor(c), c.req.query())));
     app.get('/options', c => c.json(agreements.options(actor(c), c.req.query())));
+    app.get('/labor-rate', c => c.json({ rate: agreements.labor.current(actor(c)) }));
+    app.post('/labor-rate', async (c) => {
+        let data;
+        try {
+            data = await c.req.json();
+        }
+        catch (error) {
+            throw new AgreementError(error?.name === 'BodyLimitError' ? 'Agreement request too large.' : 'Send valid labor-rate JSON.', error?.name === 'BodyLimitError' ? 413 : 400);
+        }
+        return c.json(agreements.labor.save(actor(c), data));
+    });
     app.get('/:id/proposed-document', c => c.json(agreements.proposedDocument(actor(c), c.req.param('id'), c.req.query())));
     app.post('/:id/proposed-document/upload', async (c) => {
         let form;

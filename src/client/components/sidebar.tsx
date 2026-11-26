@@ -73,7 +73,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
   };
 
   return (
-    <aside id="workspace-navigation" aria-label="Workspace navigation" class={`sidebar workspace-sidebar ${collapsed ? "collapsed" : ""}`}>
+    <aside id="workspace-navigation" aria-label="Workspace navigation" class={`slds-nav-vertical sidebar workspace-sidebar ${collapsed ? "collapsed" : ""}`}>
       <div class="sidebar-brand">
         <div class="sidebar-brand-icon" aria-hidden="true">F</div>
         <span class="sidebar-brand-name">Field Service</span>

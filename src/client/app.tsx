@@ -114,7 +114,7 @@ export function App() {
         <Sidebar currentView={view} currentId={id} collapsed={sidebarCollapsed} />
         {!sidebarCollapsed && <button class="workspace-backdrop" aria-label="Close navigation" onClick={() => setSidebarCollapsed(true)} />}
         <main class="main-content workspace-main">
-          {<header class="workspace-header">
+          {<header class="slds-global-header workspace-header">
             <button class="btn-icon" aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
               aria-expanded={!sidebarCollapsed} aria-controls="workspace-navigation"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><PanelLeft size={16} /></button>

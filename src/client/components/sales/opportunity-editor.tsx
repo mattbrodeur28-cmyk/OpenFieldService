@@ -19,6 +19,7 @@ import { Badge, Notice, Sheet, Textarea } from "../ui/surfaces";
 import { ActivityPanel } from "./activities";
 import type { SalesMutation } from "../../sales-types";
 import { MoveForm } from "./move-form";
+import { PathHeader } from "./path-header";
 export function OpportunityEditor({
   row,
   pipeline,
@@ -151,6 +152,7 @@ export function OpportunityEditor({
           <X size={18} />
         </Button>
       </header>
+      {row && <PathHeader opportunity={row} pipeline={pipeline} />}
       {(error || localError) && (
         <Notice tone="danger">
           {localError || error}

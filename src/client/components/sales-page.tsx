@@ -22,7 +22,7 @@ import type {
   SalesBoard,
 } from "../sales-types";
 import { salesMoney, salesMinor } from "../sales-types";
-import { dateLabel } from "../sales-format";
+import { dateLabel, stageAge } from "../sales-format";
 import { PipelineEditor } from "./sales/pipeline-editor";
 import { FollowUpInbox, ReminderSummary } from "./sales/activities";
 import { OpportunityEditor } from "./sales/opportunity-editor";
@@ -432,6 +432,7 @@ function SalesWorkspace({ opportunityId }: { opportunityId: string | null }) {
         <span>{row.probability}%</span>
       </div>
       <small>Close {dateLabel(row.expected_close_date)}</small>
+      <small class="sales-stage-age" title={row.stageTiming?.enteredAt ? `Entered this stage ${row.stageTiming.enteredAt}; measured at ${row.stageTiming.observedAt}.` : "No reliable recorded stage-entry time. Notes and field edits do not reset stage age."}>{stageAge(row.stageTiming)}</small>
       {row.next_action && (
         <div class="sales-next-action">
           <ArrowRight size={13} />
@@ -702,7 +703,7 @@ function SalesWorkspace({ opportunityId }: { opportunityId: string | null }) {
                   <br />
                   <small>{row.customer_name || row.prospect_name}</small>
                 </td>
-                <td>{row.stage_name}</td>
+                <td>{row.stage_name}<small class="sales-stage-age">{stageAge(row.stageTiming)}</small></td>
                 <td>{name(row.owner_id)}</td>
                 <td>{salesMoney(row.expected_value)}</td>
                 <td>{dateLabel(row.expected_close_date)}</td>
@@ -750,6 +751,7 @@ function SalesWorkspace({ opportunityId }: { opportunityId: string | null }) {
           close={() => setEditor(null)}
           save={save}
           mutate={mutate}
+          converted={()=>{setEditor(null);setNotice("Prospect linked to native customer. Stage retained; no job or invoice created.");void initialize();void load();}}
           move={move}
           addNote={(row, content) =>
             mutate(

@@ -72,6 +72,7 @@ export function QuoteLineEditor({
     const next = value as EstimateKind;
     patch({
       kind: next,
+      materialMultiplier:undefined,materialMisc:undefined,laborRate:undefined,
       description: line.description === estimateLabels[line.kind] ? estimateLabels[next] : line.description,
       pricingPending: next === "material" ? true : undefined,
       pendingPricingNote: undefined,
@@ -125,7 +126,7 @@ export function QuoteLineEditor({
             material={line.materialId ? {id:line.materialId,name:material?.name??line.description,unit:material?.unit} : undefined}
             change={row=>{
               rememberMaterial(row);
-              patch({materialId:row.id,description:row.name,unitCost:row.unitCostCents===null?"":scaledText(row.unitCostCents,2),costOverrideReason:"",
+              patch({...(line.unitSell.trim()===""&&row.unitCostCents!==null?{unitSell:scaledText(row.unitCostCents,2)}:{}),materialId:row.id,description:row.name,unitCost:row.unitCostCents===null?"":scaledText(row.unitCostCents,2),costOverrideReason:"",
                 ...(row.unitCostCents===null?{pricingPending:true}:{}),});
             }}/>
           <Button disabled={disabled} onClick={()=>patch({materialId:null,unitCost:"",unitSell:"",costOverrideReason:"",pricingPending:true,pendingPricingNote:line.pendingPricingNote??"Awaiting supplier identification and pricing."})}>Use unlisted material</Button>

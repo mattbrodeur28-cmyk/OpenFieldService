@@ -1,3 +1,4 @@
+import {AgreementsPage} from "./components/agreements-page";
 import { BusinessSection } from "./components/business-section";
 import {PurchasingPage} from "./components/purchasing-page";
 import {FleetPage} from "./components/fleet-page";
@@ -66,6 +67,7 @@ export function App() {
   }, [view, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderMain = () => {
+    if (view === "agreements") return <AgreementsPage id={id}/>;
     if (view === "sales") return <SalesPage opportunityId={id} quoteId={subId} />;
     if (view === "inventory") return <InventoryPage locationId={id}/>;
     if (view === "fleet") return <FleetPage section={id}/>;

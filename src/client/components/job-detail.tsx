@@ -1,3 +1,6 @@
+import {CustomRecordFields} from "./custom-record-fields";
+import {JobSalesSource} from "./job-sales-source";
+import {JobAccounting} from "./finance/job-accounting";
 import {TicketDocuments} from "./ticket-documents";
 import { useState } from "preact/hooks";
 import { useApp } from "../context";
@@ -72,6 +75,8 @@ export function JobDetail() {
             <PriorityBadge priority={job.priority} />
           </div>
 
+          <JobSalesSource key={`sales:${job.id}`} jobId={job.id}/>
+          <JobAccounting key={job.id} jobId={job.id}/>
           <div class="detail-meta-grid">
             <div class="detail-meta-item">
               <User size={14} />
@@ -142,8 +147,8 @@ export function JobDetail() {
                 <span>Last completed service</span>
               </div>
               <div class="customer-context-item">
-                <strong>${(job.customer_lifetime_revenue ?? 0).toFixed(2)}</strong>
-                <span>Paid invoice revenue</span>
+                <strong>${(job.customer_recorded_receipts??job.customer_lifetime_revenue??0).toFixed(2)}</strong>{!!job.customer_financial_unresolved_count&&<small>{job.customer_financial_unresolved_count} invoices need reconciliation</small>}
+                <span>{job.customer_recorded_receipts !== undefined ? "Known recorded receipts" : "Paid invoice value"}</span>
               </div>
             </div>
           </section>
@@ -156,6 +161,7 @@ export function JobDetail() {
           )}
 
           <JobExecution key={"execution-"+job.id} jobId={job.id} jobVersion={job.schedule_version} equipmentId={job.asset_id}/>
+          <CustomRecordFields key={"fields-"+job.id} objectKey="service.job" recordId={job.id}/>
           <JobEquipment key={job.id} job={job} />
           <TicketDocuments key={"documents-"+job.id} target={{jobId:job.id}}/>
 

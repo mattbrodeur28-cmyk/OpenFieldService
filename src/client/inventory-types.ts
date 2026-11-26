@@ -18,6 +18,7 @@ export interface StockItem {
   version: number;
 }
 export interface StockOptions {
+  managedMaterialIds: string[];
   canManage: boolean;
   technicianId: string | null;
   locations: StockLocation[];

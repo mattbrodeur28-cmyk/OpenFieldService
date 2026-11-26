@@ -1,3 +1,4 @@
+import {CustomRecordFields} from "./custom-record-fields";
 import { useState } from "preact/hooks";
 import { useApp } from "../context";
 import { CustomerSales } from "./customer-sales";
@@ -113,6 +114,7 @@ export function CustomerDetail() {
             </>
           )}
 
+          <CustomRecordFields key={"fields-"+customer.id} objectKey="crm.customer" recordId={customer.id}/>
           <CustomerOverview key={"overview-"+customer.id} customerId={customer.id} />
           <CustomerRelationships key={"relationships-"+customer.id} customerId={customer.id}/>
           <CustomerContacts key={"contacts-"+customer.id} customerId={customer.id} />

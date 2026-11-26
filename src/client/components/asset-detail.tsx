@@ -1,3 +1,4 @@
+import {CustomRecordFields} from "./custom-record-fields";
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
 import { useApp } from "../context";
@@ -40,6 +41,7 @@ export function AssetDetail({ id }: { id: string }) {
     {error && <p class="equipment-error" role="alert">{error} <button class="btn" onClick={() => setRevision((n) => n + 1)}>Retry</button></p>}
     {loading ? <p role="status">Loading equipment…</p> : detail && <>
       <div class="equipment-record"><aside class="equipment-rail">
+      <CustomRecordFields key={id} objectKey="equipment.asset" recordId={id}/>
       <h1>{detail.asset.name}</h1><p class="text-muted">{detail.asset.customer_name} · {detail.asset.site_name}</p>
       <dl class="equipment-facts">{[
         ["Serial number", detail.asset.serial_number], ["Manufacturer", detail.asset.manufacturer], ["Model", detail.asset.model],

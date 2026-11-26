@@ -1,3 +1,4 @@
+import {randomUUID} from "node:crypto";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
@@ -55,7 +56,12 @@ test("standalone server preserves equipment workflows, restart data and live bac
   await api("POST", `/api/jobs/${jobs[0].id}/notes`, { content: "Controls checkout" }, 201);
   const invoice = await api("POST", `/api/jobs/${jobs[0].id}/invoice`, undefined, 201);
   assert.ok(invoice.invoice_id);
-  const technician = await api("POST", "/api/technicians", {name:"Dispatcher tech"}, 201);
+  await api("POST", "/api/technicians", {name:"Retired creation path"}, 409);
+  const staffId=randomUUID();
+  const createdStaff=await api("POST","/api/hr/staff",{id:staffId,requestKey:randomUUID(),expectedVersion:0,name:"Dispatcher tech",email:"",phone:"",title:"Service technician",employmentStatus:"active",startDate:"",supervisorId:null,technician:true,color:"#16a34a",reason:"Reviewed technician hire for dispatch",acknowledgeOpenWork:false});
+  assert.equal(createdStaff.staff.technician_id,staffId);
+  const roster=await api("GET","/api/hr/staff");assert.ok(roster.rows.some(person=>person.id===staffId));
+  const technician = {id:staffId};
   const original = (await api("GET", `/api/jobs/${jobs[0].id}`)).job;
   await api("PUT", `/api/dispatch/assignments/${jobs[0].id}`, {technicianId:technician.id,date:"2026-11-14",time:"09:00",duration:60,expectedVersion:original.schedule_version});
   const scheduled=(await api("GET", `/api/jobs/${jobs[0].id}`)).job;

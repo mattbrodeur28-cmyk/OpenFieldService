@@ -70,7 +70,7 @@ export function QuoteLifecyclePanel({id,revision,disabled,reloaded,refreshKey=0}
     {data.offer&&['offered','declined','expired','void'].includes(data.quoteStatus)&&<Button disabled={!editable} onClick={()=>setAction('revise')}>New draft revision</Button>}
    </div>
    <details><summary>Lifecycle evidence for this revision</summary>{data.history.map(row=><div class="quote-summary-line" key={row.id}><strong>{titles[row.action]}</strong><small>{formatTimestamp(row.recordedAt,company.timeZone??undefined)} · Actor {row.actorId}</small><p>{row.note}</p>{row.evidence.evidenceReference&&<p>{row.evidence.evidenceReference}</p>}</div>)}<div class="quote-actions"><Button disabled={page===1} onClick={()=>setPage(page-1)}>Newer</Button><Button disabled={!data.hasMore} onClick={()=>setPage(page+1)}>Older</Button></div></details>
-   <p class="workspace-help">External communication and signature verification are separate. Acceptance does not create a job or purchase order.</p>
+   <p class="workspace-help">External communication and signature verification are separate. Use Job / Work Order handoff to convert accepted work; purchase orders remain a separate action.</p>
   </>}
   {data&&action&&<LifecycleDialog data={data} action={action} close={()=>setAction(null)} saved={()=>{setAction(null);setRefresh(v=>v+1);reloaded();}}/>}
   {document&&data?.offer&&<QuoteDocumentPreview id={id} revision={revision} offered close={()=>setDocument(false)}/>}

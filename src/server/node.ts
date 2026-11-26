@@ -1,3 +1,8 @@
+import {createAgreementModule} from "./agreements/http.mjs";
+import {createHrDocuments} from "./hr/documents-http.mjs";
+import {createHr} from "./hr/http.mjs";
+import {createPlatform} from "./platform/http.mjs";
+import { createJobHandoff } from "./service/job-handoff.mjs";
 import { createService } from "./service/http.mjs";
 import { quoteMaterialSnapshots } from "./inventory/quote-pricing.mjs";
 import { createSales } from "./sales/http.mjs";
@@ -25,10 +30,22 @@ const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABA
 const auth = createAuth({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
 const dispatcher = createDispatcher({ storage, currentUser: auth.currentUser });
 const service = createService({storage,currentUser:auth.currentUser,people:auth.activeWriters});
-const sales = createSales({storage,currentUser:auth.currentUser,owners:auth.activeWriters,resolveMessage:auth.salesMessageReference,materialSnapshots:(ids: string[])=>quoteMaterialSnapshots(storage.database,ids)});
+const agreements=createAgreementModule({storage,currentUser:auth.currentUser});
+const hr=createHr({storage,currentUser:auth.currentUser});
+const hrDocuments=createHrDocuments({storage,currentUser:auth.currentUser});
+const jobHandoff = createJobHandoff({storage});
+const sales = createSales({storage,jobHandoff,crmHandoff:service.crm.prospects,currentUser:auth.currentUser,owners:auth.activeWriters,resolveMessage:auth.salesMessageReference,materialSnapshots:(ids: string[])=>quoteMaterialSnapshots(storage.database,ids)});
+const platform=createPlatform({storage,currentUser:auth.currentUser});
 const app = new Hono();
 app.use("/api/*", auth.guard);
 app.route("/api/auth", auth.app);
+app.route("/api/platform",platform.app);
+app.route("/api/agreements",agreements.app);
+app.route("/api/hr",hr.app);
+app.route("/api/hr-documents",hrDocuments.app);
+app.post("/api/technicians",c=>c.json({error:"Create staff and enable technician availability through HR → Staff."},409));
+app.put("/api/technicians/:id",c=>c.json({error:"Technician identity and availability are managed through HR → Staff."},409));
+app.delete("/api/technicians/:id",c=>c.json({error:"Retain technician history; manage employment and field availability through HR → Staff."},409));
 app.route("/api/service",service.app);
 app.route("/api/documents",service.documents.app);
 app.route("/api/dispatch", dispatcher.app);
@@ -39,6 +56,11 @@ app.route("/api/integrations", integrations.app);
 app.get("/healthz", async (c) => {
   await storage.query("SELECT 1");
   return c.json({ status: "ok" });
+});
+// Do not let the legacy price-plus-used-materials shortcut double-bill a quote.
+app.post("/api/jobs/:id/invoice", (c,next) => {
+  if(jobHandoff.invoiceBlocked(c.req.param("id")))return c.json({error:"Accepted quote invoicing requires the quoted billing workflow; the legacy material-addition shortcut is blocked."},409);
+  return next();
 });
 app.all("/api/*", (c) => api.fetch(c.req.raw, { STORAGE: storage }));
 app.all("/api", (c) => api.fetch(c.req.raw, { STORAGE: storage }));

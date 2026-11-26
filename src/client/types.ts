@@ -1,4 +1,4 @@
-export type View = "hr" | "finance" | "purchasing" | "fleet" | "inventory" | "timesheets" | "sales" | "dispatcher" | "calendar" | "team" | "users" | "website" | "environment" | "chat" | "knowledge" | "integrations" | "builder" | "settings" | "assets" | "dashboard" | "schedule" | "jobs" | "customers" | "technicians" | "services" | "invoices" | "materials";
+export type View = "agreements" | "hr" | "finance" | "purchasing" | "fleet" | "inventory" | "timesheets" | "sales" | "dispatcher" | "calendar" | "team" | "users" | "website" | "environment" | "chat" | "knowledge" | "integrations" | "builder" | "settings" | "assets" | "dashboard" | "schedule" | "jobs" | "customers" | "technicians" | "services" | "invoices" | "materials";
 
 export type JobStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled";
 export type Priority = "low" | "normal" | "high" | "urgent";
@@ -33,6 +33,8 @@ export interface Job {
   service_type_color?: string | null;
   customer_job_count?: number;
   customer_lifetime_revenue?: number;
+  customer_recorded_receipts?: number;
+  customer_financial_unresolved_count?: number;
   customer_last_service_id?: string | null;
   customer_last_service_identifier?: string | null;
   customer_last_service_date?: string | null;

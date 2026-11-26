@@ -1,6 +1,6 @@
 export interface DBEnv {
   DB?: { prepare(sql: string): { bind(...params: unknown[]): { all(): Promise<{ results?: Record<string, unknown>[] }>; first(): Promise<Record<string, unknown> | null>; run(): Promise<{ meta?: { changes?: number; last_row_id?: number } }> } } };
-  STORAGE?: { validateSchedule?(job: Record<string, unknown>): boolean; schedulingState?(id: string): { version: number; managed: number } | undefined; query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[]; meta?: { changes?: number; last_row_id?: number } }> };
+  STORAGE?: { customerFinancialSummary?(customerId: string): {recordedReceipts:number;unresolvedCount:number}; validateSchedule?(job: Record<string, unknown>): boolean; schedulingState?(id: string): { version: number; managed: number } | undefined; query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[]; meta?: { changes?: number; last_row_id?: number } }> };
 }
 let current: DBEnv;
 export function initDB(env: DBEnv) { current = env; }

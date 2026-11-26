@@ -115,10 +115,17 @@ export const estimateLine = z
     costOverrideReason: text(1000),
     travelGroup: text(80),
     includesFuel: z.boolean(),
+    materialPricing: z.object({
+      multiplierBasisPoints:z.number().int().min(0).max(100000),
+      miscCents:cents,
+    }).strict().optional(),
+    laborRate:z.enum(['ot','dt']).optional(),
   })
   .strict()
   .superRefine((l, c) => {
     const fail = (message) => c.addIssue({ code: "custom", message });
+    if(l.materialPricing&&l.kind!=="material")fail("Material worksheet adjustments apply only to materials.");
+    if(l.laborRate&&!["technician","apprentice","after_hours"].includes(l.kind))fail("OT/DT rates apply only to labor.");
     if (l.pricingPending) {
       if (l.kind !== "material") fail("Pending pricing applies only to material draft lines.");
       if ((l.pendingPricingNote?.length ?? 0) < 10) fail("Describe the pending supplier pricing in at least 10 characters.");
@@ -184,11 +191,16 @@ export function calculateEstimate(rawLines, rawProfile) {
         "Fuel is already included in this travel group. Remove the duplicate fuel charge.",
       );
   const result = lines.map((l) => {
-    const q = BigInt(l.quantityMilli) * BigInt(l.headcount),
-      cost = l.unitCostCents === null ? null : round(q * BigInt(l.unitCostCents), 1000n),
-      gross = l.unitSellCents === null ? null : round(q * BigInt(l.unitSellCents), 1000n),
-      discount = gross === null ? null : round(gross * BigInt(l.discountBasisPoints), 10000n),
-      after = gross === null ? null : gross - discount;
+    const q = BigInt(l.quantityMilli) * BigInt(l.headcount);
+    // New worksheet terms are optional. Old saved inputs retain their exact math.
+    const premium=l.laborRate==='ot'?15000n:l.laborRate==='dt'?20000n:10000n;
+    const effectiveCost=l.unitCostCents===null?null:round(BigInt(l.unitCostCents)*premium,10000n);
+    const effectiveSell=l.unitSellCents===null?null:round(BigInt(l.unitSellCents)*premium*BigInt(10000+(l.materialPricing?.multiplierBasisPoints??0)),100000000n);
+    const misc=BigInt(l.materialPricing?.miscCents??0);
+    const cost=effectiveCost===null?null:round(q*effectiveCost,1000n),
+      gross=effectiveSell===null?null:round(q*effectiveSell,1000n)+misc,
+      discount=gross===null?null:round(gross*BigInt(l.discountBasisPoints),10000n),
+      after=gross===null?null:gross-discount;
     const category = lineTaxCategory[l.kind],
       rule = category
         ? profile.rules.find((r) => r.kind === category)
@@ -209,6 +221,10 @@ export function calculateEstimate(rawLines, rawProfile) {
       total = after === null ? null : rule.treatment === "exclusive" ? after + tax : after;
     return {
       ...l,
+      ...(l.materialPricing||l.laborRate?{
+        effectiveUnitCostCents:effectiveCost===null?null:bounded(effectiveCost),
+        effectiveUnitSellCents:effectiveSell===null?null:bounded(effectiveSell),
+      }:{}),
       costCents: cost === null ? null : bounded(cost),
       grossCents: gross === null ? null : bounded(gross),
       discountCents: discount === null ? null : bounded(discount),
@@ -227,7 +243,7 @@ export function calculateEstimate(rawLines, rawProfile) {
   const ratio = (d) =>
     d && profitCents !== null ? Number((BigInt(profitCents) * 10000n) / BigInt(d)) : null;
   return {
-    calculationVersion: hasPendingPricing({lines:result}) ? 2 : 1,
+    calculationVersion: lines.some(l=>l.materialPricing||l.laborRate) ? 3 : hasPendingPricing({lines:result}) ? 2 : 1,
     ...(hasPendingPricing({lines:result}) ? {pricingComplete:false, pendingLineIds:result.filter(l=>l.pricingPending).map(l=>l.id), knownTotals:Object.fromEntries(["costCents","grossCents","discountCents","netCents","taxCents","totalCents"].map(key=>[key,known(key)]))} : {}),
     currency: "USD",
     rounding: "half_up_per_line_cent",

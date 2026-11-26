@@ -47,7 +47,7 @@ export function QuoteDocumentPreview({ id, revision, close, offered=false }: { i
       <h3>Pricing</h3><p class="workspace-help">Labor quantities are per person. Unit rates follow the shown tax treatment; net excludes tax. Inclusive rates already contain tax.</p>
       <Table label={offered?"Offered quote prices":"Customer quote draft prices"}><thead><tr><th>Description</th><th>Quantity</th><th>Unit rate</th><th>Discount</th><th>Net</th><th>Tax</th><th>Total</th></tr></thead>
         <tbody>{data.lines.map((line,index) => <tr key={index}>
-          <td><strong>{line.description}</strong><small>{estimateLabels[line.kind]}</small></td>
+          <td><strong>{line.description}</strong><small>{estimateLabels[line.kind]}{line.laborRate?` · ${line.laborRate.toUpperCase()}`:""}</small>{!!line.miscCents&&<small>Includes {salesMoney(line.miscCents)} miscellaneous charge before discount</small>}</td>
           <td>{(line.quantityMilli/1000).toFixed(3)}{line.headcount>1 ? ` × ${line.headcount} people` : ""}</td>
           <td>{salesMoney(line.unitSellCents)}<small>{line.taxTreatment.replaceAll("_", " ")}</small></td>
           <td>{salesMoney(line.discountCents)}</td><td>{salesMoney(line.netCents)}</td>

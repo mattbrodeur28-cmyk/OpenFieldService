@@ -28,6 +28,7 @@ milestone sequence, acceptance criteria and definition of done.
 
 ## Maintainer reference
 
+- [Extensible Twenty-style business platform direction](architecture/decisions/0007-extensible-business-platform.md)
 - [Architecture and module ownership](architecture/overview.md)
 - [Domain glossary](product/glossary.md)
 - [Development and delivery standard](development/delivery.md)
@@ -52,3 +53,23 @@ PostgreSQL and Kubernetes qualification remain planned in Features.md.
 - [Document storage decision](architecture/decisions/0006-private-documents.md)
 - [Ticket/PO document release evidence](releases/2026-11-15-documents.md)
 - [Purchasing API](api/purchasing.md)
+
+## Working-source increments awaiting qualification
+
+- [Typed native custom-field backend](api/custom-fields.md)
+- [HR staff and native technician lifecycle](api/hr-staff.md)
+- [Person-linked private personnel documents](api/hr-personnel-documents.md)
+- [Native module/object contracts and metadata API](api/platform-metadata.md)
+- [Prospect to native customer conversion](api/sales-prospect-conversion.md)
+- [CRM pipeline progress and current-stage aging](product/crm-pipeline-progress.md)
+- [Job costing spreadsheet and clarified multipliers](product/job-costing-spreadsheet.md)
+- [Accepted quote to native Job review workflow](product/quote-job-conversion.md)
+- [Weekly timesheet and accounting reference links](product/weekly-timesheet-accounting.md)
+- [Native Job references and invoice receipts API](api/job-accounting.md)
+
+Testing is currently deferred at the owner's request. These guides describe local
+source changes, not published or production-qualified releases.
+
+- [Native agreement draft foundation](api/agreements.md)
+
+- [Automated qualification progress, 2026-11-25](releases/2026-11-25-automated-progress.md)

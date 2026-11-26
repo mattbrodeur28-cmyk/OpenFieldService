@@ -1,3 +1,4 @@
+import {createCrmProspectHandoff} from "./prospect-handoff.mjs";
 import { randomUUID } from "node:crypto";
 import { transaction, migrate } from "../platform/sqlite.mjs";
 import { reviewSchema } from "./review-schema.mjs";
@@ -24,7 +25,7 @@ export function installCrm(db) {
   ]);
 }
 
-export function createCrmService({ storage }) {
+export function createCrmService({ storage, invoiceSummaryInTransaction, salesSummaryInTransaction, timeZone }) {
   const db = storage.database;
   installCrm(db);
 
@@ -131,18 +132,19 @@ export function createCrmService({ storage }) {
     return rows.map(shape);
   }
 
-  function createContact(user, customerId, input) {
+  function createContactInTransaction(user, customerId, input, suppliedId) {
     requireWriter(user);
     const data = parse(contactInput, input);
     validateContact(data);
-    return transaction(db, () => {
+    if(!db.isTransaction)throw new Error("Contact handoff requires a caller-owned transaction.");
+    {
       customer(customerId);
       if (data.siteId) {
         const owner = site(data.siteId);
         if (owner.customer_id !== customerId)
           throw new CrmError("That site belongs to a different customer.");
       }
-      const id = randomUUID();
+      const id = suppliedId || randomUUID();
       db.prepare(
         "INSERT INTO _crm_contacts(id,customer_id,site_id,name,title,email,phone,email_ok,phone_ok,sms_ok,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
       ).run(
@@ -165,7 +167,12 @@ export function createCrmService({ storage }) {
       const row = contactRow(id);
       audit(user, "contact", id, "create", null, shape(row));
       return shape(row);
-    });
+    }
+  }
+
+  function createContact(user,customerId,input){
+    requireWriter(user);
+    return transaction(db,()=>createContactInTransaction(user,customerId,input));
   }
 
   function updateContact(user, id, input, customerId) {
@@ -507,7 +514,9 @@ export function createCrmService({ storage }) {
 
     // Invoices: outstanding balance is the useful number, but only if the table exists.
     let invoices = null;
-    if (hasTable("invoices")) {
+    if(hasTable("invoices")&&invoiceSummaryInTransaction) {
+      invoices=invoiceSummaryInTransaction(customerId);
+    } else if (hasTable("invoices")) {
       const totals = db
         .prepare(
           "SELECT COUNT(*) AS n, COALESCE(SUM(CASE WHEN status IN ('sent','overdue','paid') THEN CAST(ROUND(total*100) AS INTEGER) ELSE 0 END),0) AS billed, " +
@@ -525,7 +534,9 @@ export function createCrmService({ storage }) {
 
     // Sales: open opportunities across pipelines, if the Sales module has ever run.
     let sales = null;
-    if (hasTable("_sales_opportunities") && hasTable("_sales_stages")) {
+    if(salesSummaryInTransaction){
+      sales=salesSummaryInTransaction(user,customerId);
+    } else if (hasTable("_sales_opportunities") && hasTable("_sales_stages")) {
       const row = db
         .prepare(
           "SELECT COUNT(*) AS open, COALESCE(SUM(expected_value),0) AS value " +
@@ -583,6 +594,7 @@ export function createCrmService({ storage }) {
   }
 
   return {
+    prospects:createCrmProspectHandoff({storage,createContactInTransaction,audit,timeZone}),
     listContacts,
     createContact,
     updateContact,

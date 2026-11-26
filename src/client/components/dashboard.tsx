@@ -64,7 +64,7 @@ export function Dashboard() {
           </div>
           <div class="stat-info">
             <div class="stat-value">${stats.revenue.toLocaleString()}</div>
-            <div class="stat-label">Revenue</div>
+            <div class="stat-label">Completed job value</div>
           </div>
         </div>
         <button class="stat-card" onClick={() => navigate("/invoices")}>

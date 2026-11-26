@@ -3,9 +3,10 @@ import {accountRequest,AccountRequestError} from "../auth";
 import {commandFailureIsDefinite} from "../command-recovery.mjs";
 
 /** Exact in-memory command recovery for modal mutations. No durable queue is implied. */
-export function useGuardedCommand<Command,Result>(path:string,onSuccess:(result:Result)=>void){
+export function useGuardedCommand<Command,Result>(path:string,onSuccess:(result:Result)=>void,send?:(path:string,command:Command)=>Promise<Result>){
   const [busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState("");
   const pending=useRef<Command|null>(null),alive=useRef(true),success=useRef(onSuccess),guard=useRef({busy:false,uncertain:false,dirty:false});
+  const sender=useRef(send);sender.current=send;
   success.current=onSuccess;
   useEffect(()=>{
     alive.current=true;
@@ -21,7 +22,7 @@ export function useGuardedCommand<Command,Result>(path:string,onSuccess:(result:
     const recovering=guard.current.uncertain;
     pending.current??=command;guard.current.busy=true;guard.current.dirty=true;setBusy(true);setError("");
     try{
-      const result=await accountRequest<Result>(path,"POST",pending.current);
+      const result=sender.current?await sender.current(path,pending.current):await accountRequest<Result>(path,"POST",pending.current);
       if(!alive.current)return;
       pending.current=null;guard.current={busy:false,uncertain:false,dirty:false};setUncertain(false);success.current(result);
     }catch(error){

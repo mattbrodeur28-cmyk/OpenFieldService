@@ -34,7 +34,9 @@ export function customerQuoteDocument(quote, identity) {
       kind: line.kind,
       quantityMilli: line.quantityMilli,
       headcount: line.headcount,
-      unitSellCents: line.unitSellCents,
+      unitSellCents: line.effectiveUnitSellCents ?? line.unitSellCents,
+      ...(line.materialPricing?{miscCents:line.materialPricing.miscCents}:{}),
+      ...(line.laborRate?{laborRate:line.laborRate}:{}),
       discountBasisPoints: line.discountBasisPoints,
       grossCents: line.grossCents,
       discountCents: line.discountCents,
@@ -63,7 +65,7 @@ export function renderCustomerQuoteHtml(doc) {
   const e = escape;
   const offered=doc.kind==="offered";
   const rows = doc.lines.map(line => `<tr>
-<td><strong>${e(line.description)}</strong><small>${e(line.kind.replaceAll("_", " "))}</small></td>
+<td><strong>${e(line.description)}</strong><small>${e(line.kind.replaceAll("_", " "))}${line.laborRate?` · ${e(line.laborRate.toUpperCase())}`:""}${line.miscCents?` · Includes ${e(money(line.miscCents))} miscellaneous charge before discount`:""}</small></td>
 <td>${e(quantity(line))}</td><td>${e(money(line.unitSellCents))}<small>${e(line.taxTreatment.replaceAll("_", " "))}</small></td>
 <td>${e(money(line.discountCents))}</td><td>${e(money(line.netCents))}</td>
 <td>${e(money(line.taxCents))}<small>${e((line.taxRateBasisPoints / 100).toFixed(2))}%</small></td><td>${e(money(line.totalCents))}</td></tr>`).join("");

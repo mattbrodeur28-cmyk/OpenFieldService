@@ -326,3 +326,12 @@ advance; one-time axes clear on recurring plans and non-recurring plans deactiva
 Due/overdue state is calculated on reads from company date and recorded mileage.
 There is no background reminder delivery, automated odometer feed, live position API
 or map yet. Exact locations are not collected by this Fleet pilot.
+
+## HR-owned technician source follow-up — 2026-11-25
+
+Working source, unqualified: [HR Staff](hr-staff.md) now owns employee identity and
+field availability. Existing technician UUIDs and account mappings remain unchanged.
+Technician link setup is reached from HR but keeps this API's Owner/Admin boundary;
+HR capability alone cannot authorize service execution or change privileged access.
+Standalone legacy technician mutations return409 directing callers to HR. Read/list
+IDs stay native. Testing and populated migration qualification remain deferred.

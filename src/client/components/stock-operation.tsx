@@ -36,6 +36,7 @@ export function StockOperation({
   jobId,
   usage,
   movementId,
+  initialMaterialId,
   disabled,
   close,
   saved,
@@ -47,12 +48,13 @@ export function StockOperation({
   jobId?: string;
   usage?: StockUsage;
   movementId?: string;
+  initialMaterialId?: string;
   disabled: boolean;
   close(): void;
   saved(): void;
 }) {
   const [material, setMaterial] = useState(
-      usage?.material_id ||
+      initialMaterialId || usage?.material_id ||
         source.stock.find((s) => s.quantity_milli > 0)?.material_id ||
         source.stock[0]?.material_id ||
         catalog[0]?.id ||
@@ -74,7 +76,15 @@ export function StockOperation({
   const needsDestination = kind === "transfer" || kind === "return",
     locked = disabled || busy || attempt !== null,
     item = source.stock.find((s) => s.material_id === material),
-    selected = catalog.find((m) => m.id === material);
+    selected = catalog.find((m) => m.id === material),
+    managed = options.managedMaterialIds.includes(material),
+    needsOpening = kind === "receipt" && !managed && (selected?.in_stock ?? 0) > 0;
+  useEffect(()=>{
+    if(kind !== "receipt") return;
+    setOpening(needsOpening);
+    setQuantity(needsOpening ? String(selected!.in_stock) : "");
+    setCost("");
+  },[material,kind,needsOpening,selected?.in_stock]);
   useEffect(() => {
     let live = true;
     setDest(null);
@@ -197,7 +207,7 @@ export function StockOperation({
         </Button>
       </header>
       <p class="workspace-help">
-        {source.location.name} · quantities use the shared material catalog
+        {kind === "receipt" ? "Receiving location: " : "Source location: "}{source.location.name} · quantities use the shared material catalog
         unit. Every posted movement retains its source and reason.
       </p>
       {error && <Notice tone="danger">{error}</Notice>}
@@ -236,9 +246,7 @@ export function StockOperation({
         )}
         {kind !== "reversal" && (
           <TextField
-            label={
-              kind === "adjustment" ? "Physically counted quantity" : "Quantity"
-            }
+            label={needsOpening ? "Existing stock to assign" : kind === "adjustment" ? "Physically counted quantity" : "Quantity"}
             inputMode="decimal"
             required
             value={quantity}
@@ -247,7 +255,9 @@ export function StockOperation({
             hint={
               kind === "return"
                 ? undefined
-                : `Available here: ${units(item?.quantity_milli || 0)} ${item?.unit || selected?.unit || ""}`
+                : needsOpening
+                  ? `Existing catalog stock awaiting allocation: ${selected?.in_stock} ${selected?.unit}. Currently assigned here: ${units(item?.quantity_milli ?? 0)}.`
+                  : `At ${source.location.name}: ${units(item?.quantity_milli ?? 0)} ${item?.unit || selected?.unit || ""}. Company total: ${selected?.in_stock ?? 0} ${selected?.unit || ""}.`
             }
           />
         )}
@@ -266,19 +276,19 @@ export function StockOperation({
             }
           />
         )}
-        {kind === "receipt" && (
+        {kind === "receipt" && !managed && (
           <>
             <Checkbox
               label="Adopt existing catalog stock as an opening balance"
               checked={opening}
-              disabled={locked}
+              disabled={locked || needsOpening}
               onChange={(e) => setOpening(e.currentTarget.checked)}
             />
             {opening && (
               <Notice tone="warning">
                 Opening quantity must match the existing catalog stock:{" "}
                 {selected?.in_stock ?? 0} {selected?.unit}. Adoption does not
-                add new purchased stock.
+                add new purchased stock. The whole existing balance is assigned once; use a transfer afterward to split it between locations.
               </Notice>
             )}
           </>
@@ -358,7 +368,7 @@ export function StockOperation({
             ? "Posting…"
             : attempt
               ? "Retry same request"
-              : "Post stock movement"}
+              : opening ? "Assign existing stock to location" : "Post stock movement"}
         </Button>
       </form>
     </Sheet>

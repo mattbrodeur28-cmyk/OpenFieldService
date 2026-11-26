@@ -176,7 +176,7 @@ test("quote v1 upgrade adds template storage without changing native records or 
   assert.equal(upgraded.quotes.detail(member,f.source.id).quote.template,null);
   const replay=upgraded.quotes.save(member,f.quoteCommand);
   assert.equal(replay.quote.id,f.source.id);assert.ok(!('template' in replay.quote));
-  assert.deepEqual(legacy.database.prepare("SELECT version FROM _sales_quote_migrations ORDER BY version").all().map(row=>row.version),[1,2,3,4]);
+  assert.deepEqual(legacy.database.prepare("SELECT version FROM _sales_quote_migrations ORDER BY version").all().map(row=>row.version),[1,2,3,4,5]);
   assert.equal(legacy.database.prepare("PRAGMA foreign_key_check").all().length,0);
 });
 

@@ -1,3 +1,5 @@
+import {createSalesCustomerOverview} from "./customer-overview.mjs";
+import {createProspectConversion} from "./prospect-conversion.mjs";
 import { renderCustomerQuoteHtml } from "./quote-document.mjs";
 import { createQuotes } from "./quotes.mjs";
 import { createBillingProfiles } from "./billing-profiles.mjs";
@@ -13,8 +15,10 @@ export function createSales({
   resolveMessage,
   materialSnapshots,
   clock,
+  jobHandoff,
+  crmHandoff,
 }) {
-  const service = createSalesService({ storage, owners }),
+  const service = createSalesService({ storage, owners, clock }),
     app = new Hono();
   const billingProfiles = createBillingProfiles({
     storage,
@@ -26,14 +30,17 @@ export function createSales({
     sales: service,
     pricing: billingProfiles,
     clock,
+    jobHandoff,
     materialSnapshots,
   });
+  const prospects=createProspectConversion({storage,sales:service,crmHandoff});
   const activities = createActivities({
     storage,
     sales: service,
     owners,
     resolveMessage,
   });
+  storage.salesCustomerOverviewInTransaction=createSalesCustomerOverview({storage,clock});
   app.use(
     "*",
     bodyLimit({
@@ -84,6 +91,11 @@ export function createSales({
     c.header("Cache-Control", "private, no-store");
     return check(c);
   };
+  app.get("/quotes/:id/conversion/options",c=>c.json(quotes.conversion.options(templateActor(c),c.req.param("id"),c.req.query())));
+  app.get("/converted-jobs/:id",c=>c.json(quotes.conversion.forJob(templateActor(c),c.req.param("id"))));
+  app.get("/quotes/:id/conversion",c=>c.json(quotes.conversion.summary(templateActor(c),c.req.param("id"))));
+  app.post("/quotes/:id/conversion",async c=>{const data=await body(c);return c.json(quotes.conversion.convert(templateActor(c),c.req.param("id"),data));});
+  app.post("/quotes/:id/conversion/cancel",async c=>{const data=await body(c);return c.json(quotes.conversion.cancel(templateActor(c),c.req.param("id"),data));});
   app.get("/quote-issuer", c=>c.json(quotes.lifecycle.issuer.detail(templateActor(c),c.req.query())));
   app.post("/quote-issuer",async c=>{const data=await body(c);return c.json(quotes.lifecycle.issuer.save(templateActor(c),data));});
   app.get("/quotes/:id/lifecycle",c=>c.json(quotes.lifecycle.summary(templateActor(c),c.req.param("id"),c.req.query())));
@@ -177,6 +189,9 @@ export function createSales({
     c.json(service.customerContext(c.req.param("id"), c.req.query("page"))),
   );
   app.get("/options", (c) => c.json(service.options(c.req.query())));
+  app.get("/opportunities/:id/prospect-conversion",c=>c.json(prospects.summary(templateActor(c),c.req.param("id"))));
+  app.get("/opportunities/:id/prospect-conversion/options",c=>c.json(prospects.options(templateActor(c),c.req.param("id"),c.req.query())));
+  app.post("/opportunities/:id/prospect-conversion",async c=>{const data=await body(c);return c.json(prospects.convert(templateActor(c),c.req.param("id"),data));});
   app.get("/opportunities", (c) => c.json(service.list(c.req.query())));
   app.get("/opportunities/:id", (c) =>
     c.json(service.detail(c.req.param("id"))),

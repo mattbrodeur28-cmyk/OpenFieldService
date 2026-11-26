@@ -28,21 +28,23 @@ import {
   Sheet,
   Table,
 } from "./ui/surfaces";
-export function StockInventoryPage({ locationId, locationKind }: { locationId?: string | null; locationKind?: "truck" }) {
+export function StockInventoryPage({ locationId, locationKind, materialId }: { locationId?: string | null; locationKind?: "truck"; materialId?: string | null }) {
   const { readOnly } = useConnectivity(),
-    { navigate } = useApp(),
+    { navigate, refreshMaterials } = useApp(),
     company = useCompanyTimeZone();
   const [options, setOptions] = useState<StockOptions | null>(null),
     [catalog, setCatalog] = useState<CatalogItem[]>([]),
     [selected, setSelected] = useState(locationId || ""),
     [data, setData] = useState<StockDetail | null>(null),
     [page, setPage] = useState(1),
+    [ledgerOpen, setLedgerOpen] = useState(false),
     [revision, setRevision] = useState(0),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [operation, setOperation] = useState<{
       kind: StockAction;
       movementId?: string;
+      materialId?: string;
     } | null>(null),
     [editing, setEditing] = useState<StockLocation | "new" | null>(null),
     [policy, setPolicy] = useState<StockItem | null>(null);
@@ -89,11 +91,13 @@ export function StockInventoryPage({ locationId, locationKind }: { locationId?: 
       live = false;
     };
   }, [selected, page, revision]);
+  useEffect(()=>setLedgerOpen(false),[selected]);
   const saved = () => {
     setOperation(null);
     setEditing(null);
     setPolicy(null);
     setNotice("Inventory change saved.");
+    void refreshMaterials().catch(()=>setError("Movement saved. Refresh the material catalog to reload company totals."));
     setRevision(revision + 1);
   };
   return (
@@ -160,6 +164,10 @@ export function StockInventoryPage({ locationId, locationKind }: { locationId?: 
       {selected && !data && !error && (
         <p role="status">Loading stock ledger…</p>
       )}
+      {data && options && materialId && catalog.some(m=>m.id===materialId) && <Notice>
+        {catalog.filter(m=>m.id===materialId).map(m=><div key={m.id}><strong>{m.name}</strong> · Company stock: {m.in_stock} {m.unit}. In {data.location.name}: {units(data.stock.find(s=>s.material_id===m.id)?.quantity_milli ?? 0)} {m.unit}.
+          {!options.managedMaterialIds.includes(m.id) && m.in_stock>0 ? <><p>These {m.in_stock} {m.unit} are not yet assigned. Choose their actual stock location above, then review the opening allocation. This assigns the existing stock without buying or adding it again. To split it across locations, allocate it once, then transfer the required quantities.</p><Button disabled={readOnly || !options.canManage || !data.location.active} onClick={()=>setOperation({kind:"receipt",materialId:m.id})}>Assign existing stock here</Button></> : <p>Use transfers to move existing location stock. Receive stock only for a new delivery.</p>}</div>)}
+      </Notice>}
       {data && options && (
         <>
           <div class="inventory-toolbar">
@@ -258,8 +266,8 @@ export function StockInventoryPage({ locationId, locationKind }: { locationId?: 
               </tbody>
             </Table>
           )}
-          <section class="sales-details">
-            <h2>Movement ledger</h2>
+          <details class="sales-details inventory-movement-ledger" open={ledgerOpen} onToggle={e=>setLedgerOpen(e.currentTarget.open)}>
+            <summary>Movement ledger</summary>
             {data.history.length === 0 ? (
               <p class="workspace-help">No stock movements yet.</p>
             ) : (
@@ -350,11 +358,12 @@ export function StockInventoryPage({ locationId, locationKind }: { locationId?: 
                 Next movements
               </Button>
             </div>
-          </section>
+          </details>
           {operation && (
             <StockOperation
               key={operation.kind + "-" + (operation.movementId || "")}
               kind={operation.kind}
+              initialMaterialId={operation.materialId}
               movementId={operation.movementId}
               source={data}
               options={options}
@@ -577,7 +586,8 @@ function ReorderForm({
 
 export function InventoryPage({locationId,initialTab}:{locationId?:string|null;initialTab?:string}) {
   const {user}=useAccount();
+  const [materialId,setMaterialId]=useState<string | null>(null);
   const [tab,setTab]=useState(initialTab || (user.role==='viewer'?'catalog':'stock'));
   useEffect(()=>{setTab(initialTab || (user.role==='viewer'?'catalog':'stock'));},[initialTab,locationId,user.role]);
-  return <section class="business-section"><header class="business-section-header"><strong>Inventory</strong><nav aria-label="Inventory pages">{user.role!=='viewer'&&<button type="button" class={tab==='stock'?'active':''} onClick={()=>setTab('stock')}>Stock</button>}<button type="button" class={tab==='catalog'?'active':''} onClick={()=>setTab('catalog')}>Material catalog</button></nav></header>{tab==='catalog'?<MaterialList/>:<StockInventoryPage key={locationId||'stock'} locationId={locationId}/>}</section>;
+  return <section class="business-section"><header class="business-section-header"><strong>Inventory</strong><nav aria-label="Inventory pages">{user.role!=='viewer'&&<button type="button" class={tab==='stock'?'active':''} onClick={()=>setTab('stock')}>Stock</button>}<button type="button" class={tab==='catalog'?'active':''} onClick={()=>setTab('catalog')}>Material catalog</button></nav></header>{tab==='catalog'?<MaterialList onManageStock={id=>{setMaterialId(id);setTab('stock');}}/>:<StockInventoryPage key={locationId||'stock'} locationId={locationId} materialId={materialId}/>}</section>;
 }

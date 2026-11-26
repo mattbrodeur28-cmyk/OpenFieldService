@@ -33,6 +33,8 @@ export function editLine(line) {
   return {
     id: line.id,
     kind: line.kind,
+    ...(line.materialPricing ? {materialMultiplier:scaledText(line.materialPricing.multiplierBasisPoints,2),materialMisc:scaledText(line.materialPricing.miscCents,2)} : {}),
+    ...(line.laborRate ? {laborRate:line.laborRate} : {}),
     description: line.description,
     quantity: scaledText(line.quantityMilli, 3),
     headcount: String(line.headcount),
@@ -50,6 +52,8 @@ export function lineInput(line) {
   return {
     id: line.id,
     kind: line.kind,
+    ...(line.kind==="material"&&(line.materialMultiplier!==undefined||line.materialMisc!==undefined)?{materialPricing:{multiplierBasisPoints:scaledInput(line.materialMultiplier??"0",2,"Material multiplier",100000),miscCents:scaledInput(line.materialMisc??"0",2,"Miscellaneous material charge",1_000_000_000)}}:{}),
+    ...(line.laborRate ? {laborRate:line.laborRate} : {}),
     description: line.description,
     quantityMilli: quantityInput(line.quantity),
     headcount: headcountInput(line.headcount),

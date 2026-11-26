@@ -142,3 +142,54 @@ Contacts, and Locations & equipment; CRM is not a separate sidebar app. Client
 requests use the `/api/service` prefix. Same-window CRM changes refresh the summary.
 The equipment API `/api/customers/:id/assets?siteId=<uuid>&search=...` scopes count
 and pagination to the selected native location. A foreign location returns 400.
+
+## Prospect conversion source follow-through
+
+Unqualified 2026-11-25 source adds the CRM-owned transactional native customer/site/
+contact handoff used by [Sales prospect conversion](sales-prospect-conversion.md).
+Public contact writes and handoff share the same internal contact operation. No
+second customer master is introduced and no customer communication is sent.
+Testing and populated migration qualification remain deferred.
+
+
+## Customer 360 Sales composition follow-up (source, unqualified)
+
+Standalone Sales registers `salesCustomerOverviewInTransaction`, an owning-module
+read capability. CRM receives a deferred callback, so native service initialization
+can precede Sales initialization. Customer360 invokes it inside its existing native
+read snapshot. It creates no customer, opportunity, activity, quote or summary row.
+Compatibility callers without the capability retain the existing aggregate-only
+projection; missing modules remain distinguishable from empty collections.
+
+`sales` retains openOpportunities/pipelineValue/currency and adds:
+
+- `observedAt`: UTC observation instant used for overdue counting.
+- `activities`: up to ten native activity metadata rows, total/open/overdue counts,
+  limit10. Open activities first, then due instant and ID. Overdue means strictly
+  before observedAt while open; no reminder delivery is inferred. Rows include title,
+  kind, status, assignee ID, due/reminder/completed instants and native opportunity
+  identity/title. No team-message bodies/IDs, note bodies or external mail is exposed.
+- `proposals`: up to ten latest native quote heads, total, limit10 and explicit
+  `relationship:current_opportunity_customer`. IDs, Q-number, current revision/status,
+  updated time and opportunity identity/title only. No draft pricing JSON, internal
+  revision body or frozen offer document is embedded. These are quotes reached through
+  currently linked opportunities; frozen offers retain their historical customer
+  context and must be reviewed in their own workflow.
+
+All counts cover native records linked by the current opportunity customer UUID.
+They do not match names/emails, infer unconverted prospects, or treat a different
+billing party as the account owner. The summary uses existing authenticated Sales
+read visibility; no narrower owner policy or broadened team-content access is added.
+Centralized granular visibility remains ARCH-017.
+
+Customer UI shows bounded follow-ups and proposal links, empty vs unavailable and
+explicit truncation. Activity due times use Company Settings timezone without a
+visible zone label; if unavailable the UI says so rather than choosing a device zone.
+This is an internal operational view, not customer-facing communication, accepted
+contract coverage, full historical timeline or recognized revenue.
+
+No migrations or source-record mutations are required. Backend restart is required
+to load the new projection into a running preview. Tests/build/browser/runtime
+qualification are deferred: cover absent-capability fallback, empty/large datasets,
+counts/order, current customer reassignment vs frozen offer context, Company timezone,
+role boundaries, native links and snapshot consistency before release.

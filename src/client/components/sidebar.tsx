@@ -13,6 +13,7 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "dispatcher", path: "/dispatcher", label: "Dispatcher", icon: CalendarClock },
   { view: "jobs", path: "/jobs", label: "Jobs", icon: Briefcase },
   { view: "customers", path: "/customers", label: "Customers", icon: Users },
+  { view: "agreements", path: "/agreements", label: "Agreements", icon: Briefcase },
   { view: "timesheets", path: "/timesheets", label: "Timesheets", icon: CalendarClock },
   { view: "technicians", path: "/technicians", label: "Technicians", icon: Wrench },
   { view: "inventory", path: "/inventory", label: "Inventory", icon: Package },

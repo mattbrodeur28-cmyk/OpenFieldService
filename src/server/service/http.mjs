@@ -1,3 +1,4 @@
+import {mountJobAccounting} from "../finance/http.mjs";
 import { createDocumentModule } from "../documents/http.mjs";
 import { createCrmService } from "../crm/service.mjs";
 import { mountCrm } from "../crm/http.mjs";
@@ -177,8 +178,9 @@ export function createService({ storage, currentUser, people }) {
     check,
   });
   purchasing = mountPurchasing(app, { storage, inventory, check });
+  const accounting=mountJobAccounting(app,{storage,company,check});
   // CRM-001: contacts, roles and billing links hang off the existing customer/site records.
-  const crm = createCrmService({ storage });
+  const crm = createCrmService({ storage,salesSummaryInTransaction:(user,id)=>storage.salesCustomerOverviewInTransaction?.(user,id)??null,timeZone:()=>company.read().timeZone,invoiceSummaryInTransaction:accounting.receivables.customerSummaryInTransaction });
   mountCrm(app, { crm, check });
   const documents = createDocumentModule({
     storage,
@@ -196,6 +198,7 @@ export function createService({ storage, currentUser, people }) {
     inventory,
     fleet,
     purchasing,
+    accounting,
     crm,
   };
 }

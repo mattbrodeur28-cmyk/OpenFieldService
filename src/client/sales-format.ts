@@ -16,3 +16,12 @@ export const dateLabel = (value: string) =>
             },
       )
     : "Not set";
+
+/** Completed elapsed periods as of the server read; never local-time calendar days. */
+export function stageAge(timing?: {status:string;elapsedMinutes:number|null}) {
+ if(!timing || timing.status !== 'known' || timing.elapsedMinutes === null) return 'Stage age unavailable';
+ const minutes=timing.elapsedMinutes;
+ if(minutes<60)return `${minutes}m in stage`;
+ if(minutes<1440)return `${Math.floor(minutes/60)}h in stage`;
+ return `${Math.floor(minutes/1440)}d in stage`;
+}

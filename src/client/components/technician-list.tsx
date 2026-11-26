@@ -1,120 +1,14 @@
-import {TechnicianAccounts} from "./technician-accounts";
-import {useAccount,isAdministrator} from "../auth";
-import {useConnectivity} from "../hooks/use-connectivity";
-import {Button} from "./ui/button";
 import { useState } from "preact/hooks";
-import { useApp } from "../context";
-import { CreateTechnician } from "./create-technician";
-import { Plus, Trash2, Edit3 } from "lucide-preact";
-
+import { PersonnelDocumentsDialog } from "./personnel-documents";
+import { useAccount, canManagePeople } from '../auth';
+import { useApp } from '../context';
+import { Button } from './ui/button';
+import { Badge, Table, EmptyState } from './ui/surfaces';
 export function TechnicianList() {
-  const {user}=useAccount();
-  const {readOnly}=useConnectivity();
-  const [accountsOpen,setAccountsOpen]=useState(false);
-  const { technicians, updateTechnician, deleteTechnician, isAgent } = useApp();
-  const [showCreate, setShowCreate] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", email: "", phone: "", color: "" });
-
-  const startEdit = (t: typeof technicians[0]) => {
-    setEditForm({ name: t.name, email: t.email, phone: t.phone, color: t.color });
-    setEditingId(t.id);
-  };
-
-  const saveEdit = async (id: string) => {
-    await updateTechnician(id, editForm);
-    setEditingId(null);
-  };
-
-  return (
-    <div class="page">
-      <div class="page-header">
-        <h1>Technicians</h1>
-        {isAdministrator(user)&&<Button disabled={readOnly} onClick={()=>setAccountsOpen(true)}>Link user accounts</Button>}
-        <button class="btn btn-primary" onClick={() => setShowCreate(true)}>
-          <Plus size={16} /> Add Technician
-        </button>
-      </div>
-
-      <div class="table-scroll">
-        {technicians.length === 0 ? (
-          <div class="empty-state">
-            <p>No technicians yet</p>
-            <button class="btn" onClick={() => setShowCreate(true)}>
-              Add your first technician
-            </button>
-          </div>
-        ) : (
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Color</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Active Jobs</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {technicians.map((t) => (
-                <tr key={t.id} class="table-row">
-                  {editingId === t.id ? (
-                    <>
-                      <td>
-                        <input type="color" value={editForm.color} onChange={(e) => setEditForm({ ...editForm, color: (e.target as HTMLInputElement).value })} style={{ width: 32, height: 24 }} />
-                      </td>
-                      <td><input type="text" value={editForm.name} onInput={(e) => setEditForm({ ...editForm, name: (e.target as HTMLInputElement).value })} class="inline-input" /></td>
-                      <td><input type="email" value={editForm.email} onInput={(e) => setEditForm({ ...editForm, email: (e.target as HTMLInputElement).value })} class="inline-input" /></td>
-                      <td><input type="tel" value={editForm.phone} onInput={(e) => setEditForm({ ...editForm, phone: (e.target as HTMLInputElement).value })} class="inline-input" /></td>
-                      <td>{t.job_count || 0}</td>
-                      <td>
-                        <span class={`status-badge-sm ${t.active ? "active" : "inactive"}`}>
-                          {t.active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td>
-                        <div class="action-btns">
-                          <button class="btn btn-sm" onClick={() => saveEdit(t.id)}>Save</button>
-                          <button class="btn btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
-                        </div>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td><span class="color-swatch" style={{ background: t.color }} /></td>
-                      <td class="text-bold">{t.name}</td>
-                      <td class="text-muted">{t.email || "—"}</td>
-                      <td class="text-muted">{t.phone || "—"}</td>
-                      <td>{t.job_count || 0}</td>
-                      <td>
-                        <button
-                          class={`status-badge-sm clickable ${t.active ? "active" : "inactive"}`}
-                          onClick={() => updateTechnician(t.id, { active: t.active ? 0 : 1 })}
-                        >
-                          {t.active ? "Active" : "Inactive"}
-                        </button>
-                      </td>
-                      <td>
-                        <div class="action-btns">
-                          <button class="btn-icon" onClick={() => startEdit(t)}><Edit3 size={14} /></button>
-                          {isAgent && (
-                            <button class="btn-icon danger" onClick={() => deleteTechnician(t.id)}><Trash2 size={14} /></button>
-                          )}
-                        </div>
-                      </td>
-                    </>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {accountsOpen&&<TechnicianAccounts disabled={readOnly} close={()=>setAccountsOpen(false)}/>}
-      {showCreate && <CreateTechnician onClose={() => setShowCreate(false)} />}
-    </div>
-  );
+    const [documents, setDocuments] = useState<{
+        id: string;
+        name: string;
+    } | null>(null);
+    const { user } = useAccount(), { technicians, navigate } = useApp();
+    return <div class="page"><header class="page-header"><h1>Technicians</h1>{canManagePeople(user) && <Button onClick={() => navigate('/hr/staff')}>Manage staff in HR</Button>}</header><p class="workspace-help">Technician profiles and field availability are managed in HR → Staff. This view shows the same native resources used by Dispatcher, jobs and timecards.</p>{technicians.length ? <Table label="Field Service technicians"><thead><tr><th>Color</th><th>Name</th><th>Email</th><th>Phone</th><th>Open jobs</th><th>Availability</th>{canManagePeople(user) && <th>Personnel</th>}</tr></thead><tbody>{technicians.map(t => <tr key={t.id}><td><span class="color-swatch" style={{ background: t.color }}/></td><th scope="row">{t.name}</th><td>{t.email || '—'}</td><td>{t.phone || '—'}</td><td>{t.job_count ?? 0}</td><td><Badge tone={t.active ? 'success' : 'neutral'}>{t.active ? 'Available' : 'Unavailable'}</Badge></td>{canManagePeople(user) && <td><Button onClick={() => setDocuments({ id: t.id, name: t.name })}>Documents</Button></td>}</tr>)}</tbody></Table> : <EmptyState title="No technicians yet">Create a staff member and enable field technician availability through HR → Staff.</EmptyState>}{documents && <PersonnelDocumentsDialog staffId={documents.id} name={documents.name} close={() => setDocuments(null)}/>}</div>;
 }

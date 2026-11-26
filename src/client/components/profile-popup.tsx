@@ -1,5 +1,6 @@
 import "./profile-settings.css";
 import { lazy, Suspense } from "preact/compat";
+const CustomFieldSettings = lazy(() => import("./custom-field-settings").then(m => ({default:m.CustomFieldSettings})));
 const BillingProfileSettings = lazy(() =>
   import("./billing-profile-settings").then((m) => ({
     default: m.BillingProfileSettings,
@@ -267,6 +268,7 @@ export function ProfilePopup({
                 </header>
                 <div class="workspace-settings-stack">
                   {admin && <CompanySettings />}
+                  {admin && <Suspense fallback={<p>Loading custom fields…</p>}><CustomFieldSettings /></Suspense>}
                   {admin && (
                     <Suspense fallback={<p>Loading billing profiles…</p>}>
                       <BillingProfileSettings />

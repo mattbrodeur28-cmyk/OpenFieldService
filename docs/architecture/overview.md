@@ -11,6 +11,7 @@ prove AI/OAuth availability or workspace database health.
 
 | Responsibility | Implementation | Persistence / contract |
 | --- | --- | --- |
+| Native module/object registration | `src/server/platform/module-registry.mjs`, `native-modules.mjs`, `http.mjs` | Source-only contract catalog and admin metadata reads; no generic CRUD/custom fields |
 | HTTP composition, static assets, shutdown | `src/server/node.ts` | Node 24; single process |
 | Business records and validation | `src/server/index.ts`, `db.ts` | `schema.sql`; `/api/openapi.json` |
 | Standalone service storage | `src/server/sqlite.mjs` | `DATABASE_PATH`, default `data/openfieldservice.sqlite` |
@@ -64,3 +65,12 @@ Technician account links live in `src/server/service/identity.mjs`, exposed by t
 `service/http.mjs` routes. Identity's `activeWriters` contract supplies eligible IDs
 and names to both Sales and service modules; service identity does not read auth
 tables or match display names. See [service API](../api/service.md).
+
+## Enterprise extension direction
+
+[ADR-0007](decisions/0007-extensible-business-platform.md) records the owner’s
+Twenty-style platform target: shared metadata, permissions, views, workflows and app
+contracts. [Native module metadata](../api/platform-metadata.md) is an unqualified
+source foundation, not completion of those services. PostgreSQL is the intended
+shared-state production target; current SQLite remains the single-instance profile
+and no PostgreSQL migration or multi-replica qualification is claimed.

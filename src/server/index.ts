@@ -170,6 +170,8 @@ const JobSchema = z.object({
   service_type_color: z.string().nullable().optional(),
   customer_job_count: z.number().int().optional(),
   customer_lifetime_revenue: z.number().optional(),
+  customer_recorded_receipts: z.number().optional(),
+  customer_financial_unresolved_count: z.number().int().nonnegative().optional(),
   customer_last_service_id: z.string().uuid().nullable().optional(),
   customer_last_service_identifier: z.string().nullable().optional(),
   customer_last_service_date: z.string().nullable().optional(),
@@ -357,6 +359,8 @@ app.openapi(getJob, async (c) => {
     [id]
   );
   if (!job) return c.json({ error: "Job not found" }, 404);
+  const finance=c.env.STORAGE?.customerFinancialSummary?.(job.customer_id);
+  if(finance){delete job.customer_lifetime_revenue;job.customer_recorded_receipts=finance.recordedReceipts;job.customer_financial_unresolved_count=finance.unresolvedCount;}
   const scheduling = c.env.STORAGE?.schedulingState?.(id);
   const notes = await query<z.infer<typeof JobNoteSchema>>(
     "SELECT * FROM job_notes WHERE job_id = ? ORDER BY created_at DESC", [id]

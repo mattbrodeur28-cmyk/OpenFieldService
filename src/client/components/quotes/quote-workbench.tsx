@@ -1,3 +1,6 @@
+import {QuoteConversionPanel} from "./quote-conversion";
+import {CostingSheet} from "./costing-sheet";
+import {Dialog,DialogTitle} from "../ui/dialog";
 import {QuoteLifecyclePanel} from "./quote-lifecycle";
 import { BidReviewPanel } from "./bid-review";
 import { commandFailureIsDefinite } from "../../command-recovery.mjs";
@@ -86,6 +89,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
   const [documentOpen, setDocumentOpen] = useState(false),
     [publishingTemplate,setPublishingTemplate] = useState(false),
     [templateRefresh,setTemplateRefresh] = useState(0),
+    [lineDetails,setLineDetails] = useState<string|null>(null),
     [reviewRefresh,setReviewRefresh] = useState(0),
     [template,setTemplate] = useState<TemplateReference|null>(null);
   const [error, setError] = useState(""),
@@ -672,56 +676,9 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                 </label>
               </Card>
               <section aria-label="Estimate lines">
-                <div class="quote-lines-heading">
-                  <h2>Estimate lines</h2>
-                  <Button
-                    disabled={disabled || lines.length >= 100}
-                    onClick={() => {
-                      changed();
-                      setLines((current) => [...current, freshLine()]);
-                    }}
-                  >
-                    Add estimate line
-                  </Button>
-                </div>
-                {!lines.length && (
-                  <EmptyState title="No estimate lines">
-                    Add labor, materials, permits or other job costs.
-                  </EmptyState>
-                )}
-                {lines.map((line, index) => (
-                  <QuoteLineEditor
-                    key={line.id}
-                    line={line}
-                    index={index}
-                    opportunityId={opportunity?.id ?? ""}
-                    material={
-                      line.materialId ? materials[line.materialId] : undefined
-                    }
-                    disabled={disabled}
-                    onRefreshing={(active) =>
-                      setRefreshingLines((current) =>
-                        active
-                          ? [...new Set([...current, line.id])]
-                          : current.filter((id) => id !== line.id),
-                      )
-                    }
-                    rememberMaterial={(row) => {
-                      changed();
-                      setMaterials((current) => ({
-                        ...current,
-                        [row.id]: row,
-                      }));
-                    }}
-                    patch={(patch) => patchLine(line.id, patch)}
-                    remove={() => {
-                      changed();
-                      setLines((current) =>
-                        current.filter((item) => item.id !== line.id),
-                      );
-                    }}
-                  />
-                ))}
+                <h2>Job costing</h2>
+                <CostingSheet lines={lines} preview={preview} disabled={disabled} replace={next=>{changed();setLines(next);}} details={setLineDetails}/>
+                {lineDetails&&lines.some(l=>l.id===lineDetails)&&<Dialog class="bid-review-dialog" close={()=>setLineDetails(null)}><DialogTitle>Costing row details</DialogTitle>{lines.filter(l=>l.id===lineDetails).map(line=><QuoteLineEditor key={line.id} line={line} index={lines.findIndex(l=>l.id===line.id)} opportunityId={opportunity?.id??""} material={line.materialId?materials[line.materialId]:undefined} disabled={disabled} onRefreshing={active=>setRefreshingLines(current=>active?[...new Set([...current,line.id])]:current.filter(id=>id!==line.id))} rememberMaterial={row=>{changed();setMaterials(current=>({...current,[row.id]:row}));}} patch={patch=>patchLine(line.id,patch)} remove={()=>{changed();setLines(current=>current.filter(l=>l.id!==line.id));setLineDetails(null);}}/>)}<Button disabled={resourceBusy} onClick={()=>setLineDetails(null)}>Done</Button></Dialog>}
               </section>
             </section>
             <aside class="quote-summary" aria-label="Quote pricing summary">
@@ -850,6 +807,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                 </Card>
               )}
               {saved && <QuoteLifecyclePanel key={`lifecycle:${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} refreshKey={reviewRefresh} reloaded={()=>void load()}/>}
+              {saved && <QuoteConversionPanel key={`conversion:${saved.id}:${saved.revision}`} refreshKey={`${saved.status}:${saved.updatedAt}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} reloaded={()=>void load()}/>}
               {saved && <BidReviewPanel key={`${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} onChanged={()=>setReviewRefresh(value=>value+1)}/>}
             </aside>
           </div>

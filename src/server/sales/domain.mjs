@@ -139,7 +139,7 @@ export const noteInput = z
 export function checkStage(stage, data) {
   if (stage.kind === "won")
     throw new SalesError(
-      "Won is reserved for accepted quote conversion. Quote-to-job conversion is the next Sales module.",
+      "Won is reserved for accepted quote conversion. Use Convert accepted quote to create the linked native job.",
       409,
     );
   const fields = JSON.parse(stage.required_fields);

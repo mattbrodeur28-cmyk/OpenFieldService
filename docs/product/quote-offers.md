@@ -68,6 +68,7 @@ in memory, not a durable offline queue. Pricing approval and issuer/policy saves
 refresh offer readiness. Server transaction checks remain authoritative.
 
 PDF generation, provider-backed delivery, public acceptance links/e-signatures,
-verified evidence attachment ingestion, job conversion and accepted-material
-procurement remain separate milestones. Browser coverage and remaining qualification
+verified evidence attachment ingestion and accepted-material procurement remain
+separate milestones. [Native job conversion](quote-job-conversion.md) is implemented
+in working source with qualification deferred; acceptance alone does not invoke it. Browser coverage and remaining qualification
 are recorded in the release evidence; backend tests do not establish every UI path.

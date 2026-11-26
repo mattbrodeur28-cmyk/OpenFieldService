@@ -1,3 +1,4 @@
+import {weeklyTimesheet} from "./weekly-timesheet.mjs";
 import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
 import { migrate, transaction } from "../platform/sqlite.mjs";
@@ -167,6 +168,7 @@ export function createTimesheets({ storage, identity, company }) {
     return {
       technicianId: data.technicianId,
       weekStart: data.weekStart,
+      weekly:weeklyTimesheet(entries,{weekStart:data.weekStart,timeZone}),
       timeZone,
       startAt,
       endAt,

@@ -64,6 +64,7 @@ export interface AppContextValue {
 
   // Technicians
   technicians: Technician[];
+  refreshTechnicians: () => Promise<void>;
   addTechnician: (data: Partial<Technician>) => Promise<void>;
   updateTechnician: (id: string, data: Partial<Technician>) => Promise<void>;
   deleteTechnician: (id: string) => Promise<void>;
@@ -76,6 +77,7 @@ export interface AppContextValue {
 
   // Materials
   materials: Material[];
+  refreshMaterials: () => Promise<void>;
   addMaterial: (data: Partial<Material>) => Promise<void>;
   updateMaterial: (id: string, data: Partial<Material>) => Promise<void>;
   deleteMaterial: (id: string) => Promise<void>;

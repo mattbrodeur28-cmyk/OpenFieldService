@@ -40,3 +40,27 @@ idempotent retries, custody/role isolation, rollback injection, original-cost re
 company-wide repricing and retained history. Full suite: 91 passing tests. TypeScript,
 production build and whitespace checks pass. JS 452.85kB (134.73 gzip), CSS 82.64kB
 (14.81 gzip). Browser proof is localhost only; LXC deployment remains unverified.
+
+## Catalog allocation UI follow-up — 2026-11-25
+
+Source-only, qualification deferred at the owner's request. Movement Ledger is a
+native disclosure at the bottom of the location stock view, closed by default;
+opening it retains paginated history and reversal actions. Changing location
+remounts the disclosure closed.
+
+Catalog quantities are company totals, not availability at the selected location.
+Unmanaged legacy catalog balances are labelled not assigned. Owner/Admin can
+choose Assign stock to location from the catalog, select the physical location,
+and review its opening allocation. Receiving an unmanaged item with positive
+catalog stock selects opening mode and prefills the existing full quantity.
+Reviewed cost and movement reason remain explicit. The existing server command
+requires the full original quantity, adopts once transactionally, and rejects stale
+versions or a second adoption. No new purchase or duplicate stock is invented;
+subsequent splitting uses the existing atomic transfer command. Already-managed
+materials show location and company totals separately, without an opening option.
+Material totals reload when the catalog opens and after inventory writes.
+
+No migration or stock mutation was performed for this UI change. Browser and
+regression checks remain deferred; verify 100 kits unassigned → opening 100 kits
+at the chosen location → transfer a subset, unchanged company total, refresh,
+permissions, concurrent adoption and retained weighted-average valuation later.

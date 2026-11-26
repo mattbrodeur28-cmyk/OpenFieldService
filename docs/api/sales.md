@@ -160,3 +160,11 @@ is created. Company-wide Sales read visibility still applies.
 Reviewed billing profiles in Settings and exact server-side estimate preview are
 implemented separately: [pricing contracts](sales-pricing.md). Preview is not a
 saved quote, customer offer/acceptance, invoice, conversion or stock reservation.
+
+## Current-stage timing (unqualified source, 2026-11-25)
+
+Opportunity list/detail now project `stageTiming` over the owning audit; see
+[CRM pipeline progress](../product/crm-pipeline-progress.md) for field definitions,
+unknown/review states and deferred coverage. No migration, extra stage ledger or
+change to transition permissions. Current-page age is not a full forecast/cohort
+report or proof of a completed M4.

@@ -11,6 +11,8 @@ export interface EstimateLine {
   headcount: number;
   unitCostCents: number | null;
   unitSellCents: number | null;
+  materialPricing?: {multiplierBasisPoints:number;miscCents:number};
+  laborRate?: "ot" | "dt";
   pricingPending?: true;
   pendingPricingNote?: string;
   discountBasisPoints: number;
@@ -20,6 +22,8 @@ export interface EstimateLine {
   includesFuel: boolean;
 }
 export interface PricedLine extends EstimateLine {
+  effectiveUnitCostCents?: number | null;
+  effectiveUnitSellCents?: number | null;
   costCents: number | null;
   grossCents: number | null;
   discountCents: number | null;
@@ -144,6 +148,9 @@ export interface LookupPage<T> {
   pageSize: number;
 }
 export interface DraftLine {
+  materialMultiplier?: string;
+  materialMisc?: string;
+  laborRate?: "ot" | "dt";
   pricingPending?: true;
   pendingPricingNote?: string;
   id: string;
@@ -186,6 +193,8 @@ export interface CustomerQuoteDocument {
     quantityMilli: number;
     headcount: number;
     unitSellCents: number;
+    miscCents?:number;
+    laborRate?:"ot"|"dt";
     discountBasisPoints: number;
     grossCents: number | null;
     discountCents: number | null;

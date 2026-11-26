@@ -1,3 +1,5 @@
+import {InvoiceAccounting} from "./finance/invoice-accounting";
+import {useEffect,useState} from "preact/hooks";
 import { StatusBadge } from "./status-badge";
 import { useApp } from "../context";
 import { ArrowLeft, Trash2 } from "lucide-preact";
@@ -6,8 +8,10 @@ import type { InvoiceStatus } from "../types";
 const ALL_STATUSES: InvoiceStatus[] = ["draft", "sent", "paid", "overdue", "cancelled"];
 
 export function InvoiceDetail() {
-  const { selectedInvoice: invoice, navigate, updateInvoice, deleteInvoice } = useApp();
+  const { selectedInvoice: invoice, navigate, updateInvoice, deleteInvoice, setError } = useApp();
 
+  const [hasPayments,setHasPayments]=useState(false);
+  useEffect(()=>setHasPayments(false),[invoice?.id]);
   if (!invoice) return null;
 
   return (
@@ -17,7 +21,7 @@ export function InvoiceDetail() {
           <ArrowLeft size={16} /> Back
         </button>
         <div class="page-header-right">
-          <button class="btn btn-danger" onClick={() => deleteInvoice(invoice.id)}>
+          <button class="btn btn-danger" disabled={hasPayments} title={hasPayments?"Accounting history must be retained":"Delete invoice"} onClick={() => deleteInvoice(invoice.id)}>
             <Trash2 size={14} /> Delete
           </button>
         </div>
@@ -37,8 +41,8 @@ export function InvoiceDetail() {
             </div>
             {invoice.job_identifier && (
               <div class="detail-meta-item">
-                <span class="detail-meta-label">Job</span>
-                <span class="identifier">{invoice.job_identifier}</span>
+                <span class="detail-meta-label">Job / Work Order #</span>
+                <button class="btn btn-ghost" onClick={()=>navigate("/jobs/"+invoice.job_id)}>{invoice.job_identifier}</button>
               </div>
             )}
             <div class="detail-meta-item">
@@ -52,6 +56,8 @@ export function InvoiceDetail() {
               </div>
             )}
           </div>
+
+          <InvoiceAccounting key={invoice.id} invoiceId={invoice.id} onLedgerChange={setHasPayments}/>
 
           {/* Line items */}
           <div class="detail-section">
@@ -103,11 +109,11 @@ export function InvoiceDetail() {
           <div class="detail-sidebar-section">
             <h4>Status</h4>
             <div class="status-buttons">
-              {ALL_STATUSES.map((s) => (
+              {ALL_STATUSES.filter(s=>s!=="paid").map((s) => (
                 <button
                   key={s}
                   class={`status-btn ${invoice.status === s ? "active" : ""}`}
-                  onClick={() => updateInvoice(invoice.id, { status: s, ...(s === "paid" ? { paid_date: new Date().toISOString().split("T")[0] } : {}) })}
+                  onClick={() => void updateInvoice(invoice.id, { status: s }).catch(e=>setError((e as Error).message))}
                 >
                   {s}
                 </button>

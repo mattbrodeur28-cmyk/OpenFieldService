@@ -1,3 +1,5 @@
+import {CustomRecordFields} from "../custom-record-fields";
+import {ProspectConversion,ProspectConversionRecord} from "./prospect-conversion";
 import { useState, useEffect } from "preact/hooks";
 import { X, ArrowRight } from "lucide-preact";
 import { accountRequest } from "../../auth";
@@ -30,6 +32,7 @@ export function OpportunityEditor({
   move,
   addNote,
   mutate,
+  converted,
 }: {
   row: Opportunity | null;
   pipeline: SalesPipeline;
@@ -42,8 +45,10 @@ export function OpportunityEditor({
   save(id: string | null, data: unknown): Promise<boolean>;
   move(row: Opportunity, stage: string, reason: string): Promise<boolean>;
   mutate: SalesMutation;
+  converted(row: Opportunity): void;
   addNote(row: Opportunity, content: string): Promise<boolean>;
 }) {
+  const [converting,setConverting]=useState(false);
   const [title, setTitle] = useState(row?.title || ""),
     [prospect, setProspect] = useState(row?.prospect_name || ""),
     [owner, setOwner] = useState(row?.owner_id || userId),
@@ -130,6 +135,8 @@ export function OpportunityEditor({
       value: row.customer_id,
       label: row.customer_name || "Linked customer",
     });
+  const hasDraftEdits = !!row && JSON.stringify([title,prospect,owner,customer,site,asset,stage,segment,value,probability,closeDate,nextAction,nextDate,contact,email,phone,source,notes]) !== JSON.stringify([row.title,row.prospect_name,row.owner_id,row.customer_id||'none',row.site_id||'none',row.asset_id||'none',row.stage_id,row.segment,(row.expected_value/100).toFixed(2),row.probability,row.expected_close_date,row.next_action,row.next_action_date,row.contact_name,row.contact_email,row.contact_phone,row.source,row.notes]);
+  const hasUnsavedConversionInput = hasDraftEdits || !!note.trim();
   const named = (id: string) =>
     options.owners.find((owner) => owner.id === id)?.name ||
     (id === "system" ? "System" : "Former team member");
@@ -157,6 +164,9 @@ export function OpportunityEditor({
           Owned by {named(row.owner_id)} · Created {dateLabel(row.created_at)}
         </p>
       )}
+      {row && row.stage_kind==='open' && !row.customer_id && (admin || row.owner_id===userId) && <section class="sales-details"><Button disabled={readOnly||hasUnsavedConversionInput} onClick={()=>setConverting(true)}>Convert prospect to customer</Button><p class="workspace-help">{hasUnsavedConversionInput ? 'Save or discard your opportunity edits before reviewing conversion.' : 'Reuse a native customer or create a reviewed account with service locations and a contact.'}</p></section>}
+      {row && row.customer_id && (admin || row.owner_id===userId) && <ProspectConversionRecord row={row} actorName={named}/>}
+      {converting && row && <ProspectConversion row={row} disabled={disabled} close={()=>setConverting(false)} saved={next=>{setConverting(false);converted(next);}}/>}
       <form
         class="sales-form"
         onSubmit={(e) => {
@@ -478,6 +488,8 @@ export function OpportunityEditor({
                     <strong>
                       {item.action === "move" || item.action === "reopen"
                         ? `${before.stage_name} → ${after.stage_name}`
+                        : item.action === "prospect_conversion"
+                          ? "Prospect linked to native customer"
                         : item.action === "create"
                           ? "Opportunity created"
                           : item.action === "activity"
@@ -494,6 +506,7 @@ export function OpportunityEditor({
           </section>
         </>
       )}
+      {row && <CustomRecordFields key={row.id} objectKey="sales.opportunity" recordId={row.id}/>}
     </Sheet>
   );
 }

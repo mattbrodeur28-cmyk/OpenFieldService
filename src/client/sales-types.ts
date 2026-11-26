@@ -13,6 +13,13 @@ export interface SalesPipeline {
   stages: SalesStage[];
 }
 export interface Opportunity {
+  stageTiming?: {
+    status: "known" | "missing_history" | "history_mismatch" | "invalid_timestamp" | "clock_review";
+    enteredAt: string | null;
+    elapsedMinutes: number | null;
+    observedAt: string;
+    auditId: number | null;
+  };
   id: string;
   title: string;
   pipeline_id: string;

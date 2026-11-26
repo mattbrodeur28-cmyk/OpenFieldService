@@ -1,3 +1,4 @@
+import {createStageTiming} from "./stage-timing.mjs";
 import { randomUUID } from "node:crypto";
 import { transaction } from "../platform/sqlite.mjs";
 import { installSales, projection, audit } from "./storage.mjs";
@@ -18,9 +19,10 @@ import {
 } from "./domain.mjs";
 
 // Synchronous application service, independent of HTTP. Identity lookups expose names/IDs only.
-export function createSalesService({ storage, owners = () => [] }) {
+export function createSalesService({ storage, owners = () => [], clock }) {
   const db = storage.database;
   installSales(db);
+  const stageTiming=createStageTiming({database:db,clock});
   const pipeline = (id) => {
     if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id))
       throw new SalesError("Choose a valid pipeline.");
@@ -354,6 +356,24 @@ export function createSalesService({ storage, owners = () => [] }) {
       return result;
     });
   }
+  // Called only inside accepted quote conversion's transaction, after native Job
+  // creation and its immutable unique conversion relation have succeeded.
+  function winConvertedInTransaction(user,id,data) {
+    if(!db.isTransaction)throw new Error("Won conversion requires a caller-owned transaction.");
+    if(!isSalesAdmin(user))throw new SalesError("Owner or administrator access required.",403);
+    const old=opportunity(id);expected(old,data.expectedVersion);
+    if(old.stage_kind!=="open")throw new SalesError("Only open work can be converted.",409);
+    if(!db.prepare("SELECT 1 FROM _sales_quote_conversions WHERE id=? AND opportunity_id=? AND job_id=?").get(data.conversionId,id,data.jobId))throw new SalesError("Create the linked native job before marking Won.",409);
+    const target=db.prepare("SELECT * FROM _sales_stages WHERE pipeline_id=? AND active=1 AND kind='won'").get(old.pipeline_id);
+    if(!target)throw new SalesError("Configure an active Won stage.",409);
+    const allowed=JSON.parse(target.allowed_from);
+    if(allowed.length&&!allowed.includes(old.stage_id))throw new SalesError("This transition is not allowed by the pipeline configuration.",409);
+    const mapped={...inputRecord(old),customerId:data.customerId,siteId:data.siteId,assetId:data.assetId};
+    for(const field of JSON.parse(target.required_fields))if(!mapped[field])throw new SalesError(`This stage requires ${field}.`,409);
+    db.prepare("UPDATE _sales_opportunities SET customer_id=?,site_id=?,asset_id=?,stage_id=?,probability=100,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND version=?").run(data.customerId,data.siteId,data.assetId,target.id,id,data.expectedVersion);
+    const result=opportunity(id);audit(db,user,"opportunity",id,"convert_won",old,result,data.reason);
+    return result;
+  }
   function note(user, id, input) {
     const data = parse(noteInput, input);
     return transaction(db, () => {
@@ -445,7 +465,7 @@ export function createSalesService({ storage, owners = () => [] }) {
         .all(...params);
       return {
         pipelineId: query.pipelineId,
-        opportunities: rows,
+        opportunities: stageTiming(rows),
         total,
         page,
         pageSize: 50,
@@ -456,7 +476,7 @@ export function createSalesService({ storage, owners = () => [] }) {
   }
   function detail(id) {
     return transaction(db, () => ({
-      opportunity: opportunity(id),
+      opportunity: stageTiming([opportunity(id)])[0],
       activity: db
         .prepare(
           "SELECT id,actor_id,action,reason,created_at,before_json,after_json FROM _sales_audit WHERE entity_type='opportunity' AND entity_id=? ORDER BY id DESC LIMIT 100",
@@ -561,6 +581,7 @@ export function createSalesService({ storage, owners = () => [] }) {
     pipeline,
     savePipeline,
     saveOpportunity,
+    winConvertedInTransaction,
     move,
     note,
     list,

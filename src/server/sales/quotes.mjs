@@ -1,3 +1,5 @@
+import {quoteConversionSchema} from "./quote-conversion-schema.mjs";
+import {createQuoteConversion} from "./quote-conversion.mjs";
 import {quoteLifecycleSchema} from "./quote-lifecycle-schema.mjs";
 import {createQuoteLifecycle} from "./quote-lifecycle.mjs";
 import { hasPendingPricing } from "./estimating-domain.mjs";
@@ -47,17 +49,20 @@ const saveInput = z
 const pageInput = z.coerce.number().int().min(1).max(1000000);
 
 /** Draft pricing owns immutable revisions; lifecycle commands own frozen offers and recorded responses. */
-export function createQuotes({ storage, sales, pricing, materialSnapshots, clock }) {
+export function createQuotes({ storage, sales, pricing, materialSnapshots, clock, jobHandoff }) {
   const db = storage.database;
   migrate(db, "_sales_quote_migrations", [
     { version: 1, sql: quoteSchema },
     { version: 2, sql: quoteTemplateSchema },
     { version: 3, sql: quoteReviewSchema },
     { version: 4, sql: quoteLifecycleSchema },
+    { version: 5, sql: quoteConversionSchema },
   ]);
   const templates = createQuoteTemplates({ storage, sales, materialSnapshots });
   const review = createQuoteReview({ storage, sales });
   const lifecycle = createQuoteLifecycle({storage,sales,review,pricing,source:lifecycleSource,documentInTransaction,clock});
+
+  const conversion = createQuoteConversion({storage,sales,source:lifecycleSource,jobHandoff});
 
   function head(id) {
     parse(uuid, id);
@@ -331,5 +336,5 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots, clock
       };
     });
   }
-  return { list, detail, save, options, document, templates, review, lifecycle };
+  return { list, detail, save, options, document, templates, review, lifecycle, conversion };
 }

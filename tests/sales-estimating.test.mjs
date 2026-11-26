@@ -634,3 +634,21 @@ test("Earlier split-labor pilot profiles require explicit admin review without c
     original,
   );
 });
+
+test('worksheet material multiplier adds thirty percent, retains acquisition cost and applies flat Misc once',()=>{
+ const result=calculateEstimate([line({kind:'material',materialId:randomUUID(),description:'Material worksheet',quantityMilli:2000,headcount:1,unitCostCents:10000,unitSellCents:10000,discountBasisPoints:1000,materialPricing:{multiplierBasisPoints:3000,miscCents:500}})],profile());
+ assert.equal(result.calculationVersion,3);assert.equal(result.lines[0].effectiveUnitSellCents,13000);assert.equal(result.costCents,20000);assert.equal(result.grossCents,26500);assert.equal(result.discountCents,2650);assert.equal(result.netCents,23850);assert.equal(result.taxCents,1729);assert.equal(result.totalCents,25579);
+});
+test('worksheet OT and DT apply one-and-a-half and double labor rates with the common labor tax category',()=>{
+ for(const kind of ['technician','apprentice','after_hours'])for(const [laborRate,rate,cost] of [['ot',22500,7500],['dt',30000,10000]]){
+  const result=calculateEstimate([line({kind,quantityMilli:1000,headcount:1,unitCostCents:5000,unitSellCents:15000,laborRate})],profile());assert.equal(result.lines[0].effectiveUnitSellCents,rate);assert.equal(result.lines[0].effectiveUnitCostCents,cost);assert.equal(result.grossCents,rate);assert.equal(result.lines[0].taxCategory,'labor');
+ }
+ assert.throws(()=>calculateEstimate([line({kind:'permit',laborRate:'ot'})],profile()),/only to labor/);assert.throws(()=>calculateEstimate([line({kind:'technician',materialPricing:{multiplierBasisPoints:3000,miscCents:0}})],profile()),/only to materials/);
+});
+test('worksheet additions leave old inputs on their original calculation version and retain pending unknowns',()=>{
+ const original=line({quantityMilli:1000,headcount:1});const old=calculateEstimate([original],profile());assert.equal(old.calculationVersion,1);assert.equal(old.grossCents,10000);assert.equal(old.costCents,3000);assert.equal(old.lines[0].effectiveUnitSellCents,undefined);
+ const pending=calculateEstimate([line({kind:'material',quantityMilli:1000,headcount:1,unitCostCents:null,unitSellCents:null,pricingPending:true,pendingPricingNote:'Waiting for supply house quotation.',materialPricing:{multiplierBasisPoints:3000,miscCents:500}})],profile());assert.equal(pending.calculationVersion,3);assert.equal(pending.pricingComplete,false);assert.equal(pending.costCents,null);assert.equal(pending.totalCents,null);assert.equal(pending.lines[0].effectiveUnitSellCents,null);assert.equal(pending.knownTotals.totalCents,0);
+});
+test('permit, licensing, subcontractor, fuel, distance and service rows remain outside labor/material tax',()=>{
+ for(const kind of ['permit','license','subcontractor','fuel','distance','service']){const result=calculateEstimate([line({kind,quantityMilli:1000,headcount:1,travelGroup:['fuel','distance'].includes(kind)?'travel-test':''})],profile());assert.equal(result.taxCents,0);assert.equal(result.lines[0].taxCategory,null);}
+});

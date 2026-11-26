@@ -1661,3 +1661,12 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .crm-account-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0 24px;align-items:end}.crm-account-form>.ui-check{align-self:center}.crm-account-form>.btn{justify-self:start}.crm-account-form+.c360-list{margin-top:12px}@media(max-width:640px){.crm-account-form{grid-template-columns:minmax(0,1fr)}}
 
 .location-selector{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}.equipment-location{padding:18px;border:1px solid var(--border);border-radius:var(--radius);display:grid;gap:16px;margin-top:16px}.equipment-location-details p{margin-top:8px}@media(max-width:640px){.location-selector{grid-template-columns:minmax(0,1fr)}}
+
+/* Inventory history stays below current stock, closed until requested. */
+.inventory-movement-ledger>summary{display:list-item;list-style:disclosure-closed;margin:0;padding:4px 0;cursor:pointer}.inventory-movement-ledger[open]>summary{list-style:disclosure-open;margin-bottom:16px}.material-stock-basis{display:block;color:var(--text-muted);font-size:12px;margin-top:4px}
+
+.sales-stage-age{display:block;font-size:12px;color:var(--text-muted);margin-top:5px}
+
+.prospect-conversion-dialog{display:flex;flex-direction:column;gap:16px}.prospect-conversion-dialog h3{font-size:15px;margin:8px 0}.prospect-location{border:1px solid var(--border);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}.prospect-location legend{font-size:13px;padding:0 6px}.prospect-conversion-dialog .finance-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+
+.c360-record-meta{display:block;color:var(--text-muted);font-size:12px;margin-top:5px;overflow-wrap:anywhere}

@@ -84,6 +84,8 @@ export function createQuoteTemplates({ storage, sales, materialSnapshots }) {
       const document=JSON.parse(revision.document_json), price=JSON.parse(revision.pricing_json);
       if (hasPendingPricing(price)) throw new SalesError("Complete pending supplier pricing before publishing a reusable template.",409);
       const lines=price.lines.map(line=>({
+        ...(line.materialPricing?{materialPricing:line.materialPricing}:{}),
+        ...(line.laborRate?{laborRate:line.laborRate}:{}),
         sourceLineId:line.id,kind:line.kind,description:line.description,
         quantityMilli:line.quantityMilli,headcount:line.headcount,
         unitCostCents:line.kind==="material"?null:line.unitCostCents,
@@ -123,6 +125,8 @@ export function createQuoteTemplates({ storage, sales, materialSnapshots }) {
         const cost=line.materialId?materials.get(line.materialId).unitCostCents:line.unitCostCents;
         if (cost!==null && (!Number.isSafeInteger(cost)||cost<0||cost>1000000000)) throw new SalesError("Current material cost cannot be applied. Review inventory pricing.",422);
         return { id:randomUUID(),kind:line.kind,description:line.description,
+          ...(line.materialPricing?{materialPricing:line.materialPricing}:{}),
+          ...(line.laborRate?{laborRate:line.laborRate}:{}),
           quantityMilli:line.quantityMilli,headcount:line.headcount,unitCostCents:cost,
           unitSellCents:line.unitSellCents,discountBasisPoints:line.discountBasisPoints,
           materialId:line.materialId,costOverrideReason:"",travelGroup:line.travelGroup,includesFuel:line.includesFuel };

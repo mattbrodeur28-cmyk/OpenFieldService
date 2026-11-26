@@ -5,5 +5,8 @@ export function createSales(options: {
   currentUser(c: Context): unknown;
   resolveMessage?(user: unknown, messageId: string): { teamId: string } | null;
   materialSnapshots?(ids: string[]): unknown[];
+  jobHandoff?: ReturnType<typeof import("../service/job-handoff.mjs").createJobHandoff>;
+  crmHandoff?: ReturnType<typeof import("../crm/prospect-handoff.mjs").createCrmProspectHandoff>;
+  clock?(): Date;
   owners(): { id: string; name: string }[];
 }): { app: Hono };

@@ -1,0 +1,24 @@
+.finance-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.finance-heading h2{font-size:17px;margin:0}
+.finance-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:12px 0}
+.finance-ledger-row{display:grid;gap:6px;padding:15px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+.finance-ledger-row>.btn{justify-self:start}
+.finance-dialog .ui-field{margin:16px 0}
+.finance-dialog .ui-notice{display:block}
+.finance-dialog textarea{min-height:90px}
+@media(max-width:600px){.finance-actions>.btn{flex:1 1 150px}}
+
+.receivables-filters{display:grid;grid-template-columns:minmax(220px,2fr) repeat(2,minmax(180px,1fr));gap:14px;margin:18px 0}
+.receivables-aging{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:18px 0}
+.receivables-aging button{display:grid;text-align:left;gap:8px;color:inherit;font:inherit;cursor:pointer}
+.receivables-aging button.active{outline:2px solid var(--info);outline-offset:-2px}
+.receivables-aging button>span,.receivables-aging small{font-size:12px;color:var(--text-muted)}
+.receivables-aging strong{font-size:20px;font-variant-numeric:tabular-nums}
+.finance-table-scroll{overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
+.finance-table{width:100%;min-width:950px;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.finance-table td,.finance-table th{padding:12px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+.finance-table th{background:var(--surface-sunken,#f5f6f8);font-weight:600}
+.finance-table td small{display:block;font-size:11px;color:var(--text-muted);margin-top:5px}
+.finance-table td>.btn{padding:0;height:auto;min-height:24px}
+.finance-note-text{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:850px){.receivables-filters{grid-template-columns:1fr}.receivables-aging{grid-template-columns:repeat(2,minmax(0,1fr))}}

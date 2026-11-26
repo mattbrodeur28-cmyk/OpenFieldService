@@ -47,15 +47,32 @@ export function createAgreementModule({ storage, currentUser, issuer, timeZone, 
         return c.json(agreements.uploadDocument(actor(c), c.req.param('id'), metadata, bytes, file.name));
     });
     app.get('/documents/:documentId/download', c => { const { document, bytes } = agreements.downloadDocument(actor(c), c.req.param('documentId')), name = encodeURIComponent(document.originalName.replace(/\.[^.]*$/, '') + '.pdf').replace(/[!'()*]/g, ch => '%' + ch.charCodeAt(0).toString(16).toUpperCase()); return new Response(bytes, { headers: { 'Content-Type': 'application/pdf', 'Content-Length': String(bytes.length), 'Content-Disposition': `attachment; filename="proposed-contract.pdf"; filename*=UTF-8''${name}`, 'Cache-Control': 'private, no-store', 'Content-Security-Policy': "sandbox; default-src 'none'", 'X-Content-Type-Options': 'nosniff', 'Cross-Origin-Resource-Policy': 'same-origin' } }); });
+    app.get('/:id/activation', c => c.json(agreements.activation.summary(actor(c), c.req.param('id'))));
+    app.get('/:id/coverage', c => c.json(agreements.activation.coverage(actor(c), c.req.param('id'), c.req.query())));
+    for (const [suffix, method] of [['authorize', 'authorize'], ['cancel', 'cancel']])
+        app.post('/:id/activation/' + suffix, async (c) => {
+            let data;
+            try {
+                data = await c.req.json();
+            }
+            catch (error) {
+                throw new AgreementError(error?.name === 'BodyLimitError' ? 'Agreement request too large.' : 'Send valid authorization JSON.', error?.name === 'BodyLimitError' ? 413 : 400);
+            }
+            return c.json(agreements.activation[method](actor(c), c.req.param('id'), data));
+        });
     app.get('/:id/lifecycle', c => c.json(agreements.lifecycle.summary(actor(c), c.req.param('id'))));
     app.get('/:id/lifecycle/history', c => c.json(agreements.lifecycle.history(actor(c), c.req.param('id'), c.req.query())));
     for (const [suffix, method] of [['offer', 'offer'], ['response', 'record']])
-        app.post('/:id/lifecycle/' + suffix, async (c) => { let data; try {
-            data = await c.req.json();
-        }
-        catch (error) {
-            throw new AgreementError(error?.name === 'BodyLimitError' ? 'Agreement request too large.' : 'Send valid lifecycle JSON.', error?.name === 'BodyLimitError' ? 413 : 400);
-        } return c.json(agreements.lifecycle[method](actor(c), c.req.param('id'), data)); });
+        app.post('/:id/lifecycle/' + suffix, async (c) => {
+            let data;
+            try {
+                data = await c.req.json();
+            }
+            catch (error) {
+                throw new AgreementError(error?.name === 'BodyLimitError' ? 'Agreement request too large.' : 'Send valid lifecycle JSON.', error?.name === 'BodyLimitError' ? 413 : 400);
+            }
+            return c.json(agreements.lifecycle[method](actor(c), c.req.param('id'), data));
+        });
     app.get('/:id/review-history', c => c.json(agreements.reviewHistory(actor(c), c.req.param('id'), c.req.query())));
     app.post('/:id/review', async (c) => {
         let data;

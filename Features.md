@@ -647,14 +647,21 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   proposed PDF, native issuer revision, recipient and expiry. External delivery and
   customer acceptance/decline are separately attributed records; seven focused
   tests cover source/role/replay/expiry/rollback and streamed-body checks. Accepted
-  scope is protected. Verified signatures/provider delivery, activation, amendments
-  and remaining qualification stay open. See [agreement lifecycle](docs/api/agreement-lifecycle.md).
+  scope is protected. Explicit operational authorization now freezes accepted term/
+  Company timezone/source, validates native ownership and projects scheduled/active/
+  ended/cancelled state with retained cancellation and exact retry. Seven tests cover
+  scope, dates, role boundaries and rollback. Verified signatures/provider delivery,
+  amendments/renewal and remaining qualification stay open. See [agreement lifecycle](docs/api/agreement-lifecycle.md).
 - [ ] **CONTRACT-003 — Maintenance plans:** equipment-specific recurring tasks,
   seasonal schedules, checklists, template versions and required evidence.
 - [ ] **CONTRACT-004 — Work generation:** idempotent job creation, scheduling horizon,
   due-work preview, exceptions, holiday/timezone rules and auditable skips.
 - [ ] **CONTRACT-005 — Entitlements:** included visits/hours, response priority,
   billable exceptions and coverage exhaustion with explainable decisions.
+  Increment: explainable equipment scope against accepted/authorized term and
+  current native ownership. No whole-building scope is inferred from a location;
+  included visits/hours/priority remain explicitly unknown. Allocation/exhaustion,
+  billable exceptions and qualification stay open. See [authorization API](docs/api/agreement-activation.md).
 - [ ] **CONTRACT-006 — Renewals:** assigned tasks, reminders, repricing, customer
   approval and retained history; no renewal without the configured authority/terms.
 - [ ] **CONTRACT-007 — Acceptance/documents:** templates/PDFs, signature or documented
@@ -1387,3 +1394,11 @@ The offer/delivery/response workbench and immutable exact-context backend now re
 attributed acceptance separately from activation/signature verification. Preview
 startup after consistent backup loads v4; remaining M5/browser/provider gates stay
 open in the qualification record.
+
+Agreement authorization checkpoint:254/254 tests, TypeScript and production build
+pass. Seven activation cases plus a shared lifecycle fixture cover accepted-term
+authorization, scheduled→active projection, frozen timezone, retained cancellation,
+per-asset equipment-scope eligibility and exact retry/rollback boundaries. Preview
+restarted after a consistent two-database backup; additive v5 loads on the live
+snapshot. Remaining M5 maintenance/entitlement/work-generation and browser/provider
+gates stay open in the qualification record.

@@ -200,3 +200,43 @@ published base. The lifecycle increment must pass isolated tree qualification be
 its own publication. Recorded acceptance is explicitly staff-attributed evidence,
 not verified signatures, automatic renewal, activation, entitlements or generated
 maintenance work. Those remaining M5 requirements stay open.
+
+
+## Agreement authorization checkpoint
+
+Full working-tree suite now passes254/254, zero failed/skipped/cancelled/todo;
+TypeScript and production build pass (main chunk ~632 kB minified, bundle-size warning
+remains). Seven new `tests/agreement-activation.test.mjs` cases and a shared
+`tests/helpers/agreement-lifecycle-fixture.mjs` exercise explicit operational
+authorization over the frozen accepted offer, without creating another editable
+contract/customer/equipment master.
+
+Coverage verifies future accepted terms authorize as Scheduled and become Active only
+on the accepted Company start date; exact accepted offer/PDF/source binding; current
+native location/equipment ownership with retired/unselected/moved assets rejected;
+retained cancellation with a future effective date that does not erase earlier
+eligible dates, accepted evidence or native Jobs; per-asset explainable scope
+decisions with explicitly unknown entitlement quantities (billingEntitlement:false,
+includedVisits/includedHours/responsePriority null); Owner/Admin-only writes with HR/
+ordinary-reader boundaries; actor/content-bound exact retry, stale source/sequence/hash
+rejection and duplicate authorization/cancellation conflicts; late acknowledgment
+failure rolling back authorization/cancellation while leaving the accepted offer
+untouched; frozen Company timezone surviving later Settings changes;
+pre-authorization/ended-term refusal with no backdating; and streamed-JSON writer
+revocation with private/no-store coverage reads. The shared fixture now feeds the
+existing lifecycle suite without duplicated setup rules.
+
+Preview restarted successfully after backing up both native/workspace databases at
+/private/tmp/ofs-dev-20261125/before-agreement-authorization-1795711377921. Additive
+`_agreement_draft_migrations` v5 initializes the immutable activation and single
+cancellation tables with real Agreement/Offer/Acceptance foreign keys; the
+`/api/agreements/:id/activation` route is live. This is local startup evidence, not
+populated real-contract restore, browser/modal, concurrency, verified-signature or
+production qualification. No agreement was authorized or cancelled in the preview.
+
+Remaining M5 gates stay open: CONTRACT-003 maintenance plans, CONTRACT-004 idempotent
+native work generation, included visits/hours/priority allocation and exhaustion,
+billable exceptions, amendments/reactivation/renewal, historical ownership
+reconstruction, verified customer signatures and provider delivery. Operational
+authorization, billing entitlement and generated maintenance work remain distinct
+states.

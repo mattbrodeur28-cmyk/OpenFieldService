@@ -577,43 +577,133 @@ export const nativeModules = [
       "sales"
     ],
     "objects": [
-  {
-    "id": "e9004d26-456e-54c4-8542-646c930448d1",
-    "key": "agreements.draft",
-    "label": "Agreement draft",
-    "kind": "record",
-    "storageProfile": "service",
-    "writeMode": "domain_commands",
-    "fields": [
       {
-        "key": "id",
-        "label": "Native identity",
-        "type": "identifier",
-        "systemManaged": true
+        "id": "e9004d26-456e-54c4-8542-646c930448d1",
+        "key": "agreements.draft",
+        "label": "Agreement draft",
+        "kind": "record",
+        "storageProfile": "service",
+        "writeMode": "domain_commands",
+        "fields": [
+          {
+            "key": "id",
+            "label": "Native identity",
+            "type": "identifier",
+            "systemManaged": true
+          },
+          {
+            "key": "title",
+            "label": "Draft title",
+            "type": "text",
+            "systemManaged": false
+          },
+          {
+            "key": "version",
+            "label": "Draft revision",
+            "type": "integer",
+            "systemManaged": true
+          }
+        ],
+        "relations": [
+          {
+            "key": "customer",
+            "target": "crm.customer",
+            "cardinality": "many_to_one",
+            "required": true
+          }
+        ]
       },
       {
-        "key": "title",
-        "label": "Draft title",
-        "type": "text",
-        "systemManaged": false
+        "id": "02e4e8cf-cd37-5777-97ff-122b0f61268c",
+        "key": "agreements.offer",
+        "label": "Agreement offer",
+        "kind": "snapshot",
+        "storageProfile": "service",
+        "writeMode": "domain_commands",
+        "fields": [
+          {
+            "key": "id",
+            "label": "Native identity",
+            "type": "identifier",
+            "systemManaged": true
+          },
+          {
+            "key": "version",
+            "label": "Offered revision",
+            "type": "integer",
+            "systemManaged": true
+          },
+          {
+            "key": "valid_until",
+            "label": "Offer valid through",
+            "type": "date",
+            "systemManaged": true
+          },
+          {
+            "key": "snapshot_hash",
+            "label": "Frozen source SHA-256",
+            "type": "text",
+            "systemManaged": true
+          }
+        ],
+        "relations": [
+          {
+            "key": "agreement",
+            "target": "agreements.draft",
+            "cardinality": "many_to_one",
+            "required": true
+          }
+        ]
       },
       {
-        "key": "version",
-        "label": "Draft revision",
-        "type": "integer",
-        "systemManaged": true
-      }
-    ],
-    "relations": [
-      {
-        "key": "customer",
-        "target": "crm.customer",
-        "cardinality": "many_to_one",
-        "required": true
+        "id": "4b4ddbec-fee0-5b96-acca-0178cc24f967",
+        "key": "agreements.authorization",
+        "label": "Agreement authorization",
+        "kind": "ledger",
+        "storageProfile": "service",
+        "writeMode": "domain_commands",
+        "fields": [
+          {
+            "key": "id",
+            "label": "Native identity",
+            "type": "identifier",
+            "systemManaged": true
+          },
+          {
+            "key": "starts_on",
+            "label": "Accepted start",
+            "type": "date",
+            "systemManaged": true
+          },
+          {
+            "key": "ends_on",
+            "label": "Accepted end",
+            "type": "date",
+            "systemManaged": true
+          },
+          {
+            "key": "authorized_on",
+            "label": "Authorization date",
+            "type": "date",
+            "systemManaged": true
+          }
+        ],
+        "relations": [
+          {
+            "key": "agreement",
+            "target": "agreements.draft",
+            "cardinality": "many_to_one",
+            "required": true
+          },
+          {
+            "key": "offer",
+            "target": "agreements.offer",
+            "cardinality": "many_to_one",
+            "required": true
+          }
+        ]
       }
     ]
-  }
-]
   },
   {
     "id": "015d02d3-04db-503b-b4ff-8df291f82530",

@@ -187,3 +187,10 @@ The [frozen offer/evidence lifecycle](agreement-lifecycle.md) now binds reviewed
 issuer, PDF, recipient, exact approved revision and external response evidence.
 It protects open/accepted scope and explicitly separates recorded acceptance from
 verified signatures, activation, amendments, entitlement and generated maintenance.
+
+## Operational authorization follow-up
+
+[Accepted-term authorization](agreement-activation.md) now binds exact accepted
+source/PDF, validates native ownership, freezes Company timezone and projects future/
+active/ended/cancelled terms. Scope eligibility remains distinct from included labor/
+visits, billable exceptions, pricing and generated maintenance work.

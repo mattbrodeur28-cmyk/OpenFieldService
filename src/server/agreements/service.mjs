@@ -1,3 +1,4 @@
+import { createAgreementActivation } from "./activation.mjs";
 import { createAgreementLifecycle } from "./lifecycle.mjs";
 import { identifyFile, MAX_DOCUMENT_BYTES } from "../documents/service.mjs";
 import { createHash } from 'node:crypto';
@@ -123,7 +124,8 @@ export function createAgreements({ storage, issuer, timeZone, clock }) {
         return repo.within(() => {
             if (q.customerId)
                 repo.customer(q.customerId);
-            return repo.list(q);
+            const page = repo.list(q);
+            return { ...page, rows: activation.decorateInSnapshot(user, page.rows) };
         });
     }
     function save(user, raw) {
@@ -162,5 +164,6 @@ export function createAgreements({ storage, issuer, timeZone, clock }) {
         return repo.within(() => repo.options(q));
     }
     const lifecycle = createAgreementLifecycle({ repo, get, source, reviewState, issuer, timeZone, clock });
-    return { detail, list, save, history, options, review, reviewHistory, proposedDocument, uploadDocument, downloadDocument, lifecycle };
+    const activation = createAgreementActivation({ repo, get, timeZone, clock });
+    return { detail, list, save, history, options, review, reviewHistory, proposedDocument, uploadDocument, downloadDocument, lifecycle, activation };
 }

@@ -1,0 +1,6 @@
+// Additive v5: explicit operational authorization; accepted evidence remains immutable.
+export const activationSchema = `
+CREATE TABLE _agreement_activations(id TEXT PRIMARY KEY,agreement_id TEXT NOT NULL UNIQUE REFERENCES _agreement_drafts(id) ON DELETE RESTRICT,offer_id TEXT NOT NULL UNIQUE REFERENCES _agreement_offers(id) ON DELETE RESTRICT,acceptance_event_id TEXT NOT NULL UNIQUE REFERENCES _agreement_offer_events(id) ON DELETE RESTRICT,snapshot_hash TEXT NOT NULL,pdf_hash TEXT NOT NULL,starts_on TEXT NOT NULL,ends_on TEXT NOT NULL,time_zone TEXT NOT NULL,authorized_on TEXT NOT NULL,authorized_at TEXT NOT NULL,actor_id TEXT NOT NULL,reason TEXT NOT NULL);
+CREATE TABLE _agreement_activation_cancellations(id TEXT PRIMARY KEY,activation_id TEXT NOT NULL UNIQUE REFERENCES _agreement_activations(id) ON DELETE RESTRICT,effective_on TEXT NOT NULL,recorded_at TEXT NOT NULL,actor_id TEXT NOT NULL,reason TEXT NOT NULL);
+${['_agreement_activations', '_agreement_activation_cancellations'].flatMap(table => ['UPDATE', 'DELETE'].map(action => `CREATE TRIGGER ${table}_${action.toLowerCase()} BEFORE ${action} ON ${table} BEGIN SELECT RAISE(ABORT,'AGREEMENT_ACTIVATION_IMMUTABLE'); END;`)).join(' ')}
+`;

@@ -1,3 +1,4 @@
+import { activationSchema } from "./activation-schema.mjs";
 import { offerSchema } from "./offer-schema.mjs";
 import { documentSchema } from "./document-schema.mjs";
 import { reviewSchema } from "./review-schema.mjs";
@@ -16,7 +17,7 @@ CREATE TRIGGER _agreement_draft_no_delete BEFORE DELETE ON _agreement_drafts BEG
 `;
 export function createAgreementRepository(storage) {
     const db = storage.database;
-    migrate(db, '_agreement_draft_migrations', [{ version: 1, sql }, { version: 2, sql: reviewSchema }, { version: 3, sql: documentSchema }, { version: 4, sql: offerSchema }]);
+    migrate(db, '_agreement_draft_migrations', [{ version: 1, sql }, { version: 2, sql: reviewSchema }, { version: 3, sql: documentSchema }, { version: 4, sql: offerSchema }, { version: 5, sql: activationSchema }]);
     const project = row => {
         if (!row)
             return null;
@@ -38,9 +39,20 @@ export function createAgreementRepository(storage) {
         return row ? { ...row, mediaType: 'application/pdf', scanStatus: 'not_scanned' } : null;
     };
     const offerProjection = 'SELECT id,agreement_id AS agreementId,version,review_id AS reviewId,document_id AS documentId,issuer_version AS issuerVersion,snapshot_json,snapshot_hash AS snapshotHash,pdf_hash AS pdfHash,valid_until AS validUntil,recipient_json,actor_id AS actorId,reason,offered_at AS offeredAt FROM _agreement_offers';
-    const offerRecord = row => { if (!row)
-        return null; const { snapshot_json, recipient_json, ...rest } = row; return { ...rest, snapshot: JSON.parse(snapshot_json), recipient: JSON.parse(recipient_json) }; };
+    const offerRecord = row => {
+        if (!row)
+            return null;
+        const { snapshot_json, recipient_json, ...rest } = row;
+        return { ...rest, snapshot: JSON.parse(snapshot_json), recipient: JSON.parse(recipient_json) };
+    };
     return {
+        activationIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_activations WHERE id=?').get(id),
+        activationCancellationIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_activation_cancellations WHERE id=?').get(id),
+        activation: id => { const row = db.prepare('SELECT id,agreement_id AS agreementId,offer_id AS offerId,acceptance_event_id AS acceptanceEventId,snapshot_hash AS snapshotHash,pdf_hash AS pdfHash,starts_on AS startsOn,ends_on AS endsOn,time_zone AS timeZone,authorized_on AS authorizedOn,authorized_at AS authorizedAt,actor_id AS actorId,reason FROM _agreement_activations WHERE agreement_id=?').get(id); return row ? { ...row } : null; },
+        activationCancellation: id => { const row = db.prepare('SELECT id,activation_id AS activationId,effective_on AS effectiveOn,recorded_at AS recordedAt,actor_id AS actorId,reason FROM _agreement_activation_cancellations WHERE activation_id=?').get(id); return row ? { ...row } : null; },
+        activationAsset: id => { const row = db.prepare('SELECT id,customer_id AS customerId,site_id AS siteId,status FROM assets WHERE id=?').get(id); return row ? { ...row } : null; },
+        addActivation: (d, agreementId, offer, acceptanceEventId, startsOn, endsOn, zone, authorizedOn, authorizedAt, user) => db.prepare('INSERT INTO _agreement_activations(id,agreement_id,offer_id,acceptance_event_id,snapshot_hash,pdf_hash,starts_on,ends_on,time_zone,authorized_on,authorized_at,actor_id,reason) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(d.id, agreementId, offer.id, acceptanceEventId, offer.snapshotHash, offer.pdfHash, startsOn, endsOn, zone, authorizedOn, authorizedAt, user.id, d.reason),
+        addActivationCancellation: (d, recordedAt, user) => db.prepare('INSERT INTO _agreement_activation_cancellations(id,activation_id,effective_on,recorded_at,actor_id,reason) VALUES(?,?,?,?,?,?)').run(d.id, d.activationId, d.effectiveOn, recordedAt, user.id, d.reason),
         offerIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_offers WHERE id=?').get(id),
         offerEventIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_offer_events WHERE id=?').get(id),
         offerById: id => offerRecord(db.prepare(offerProjection + ' WHERE id=?').get(id)),

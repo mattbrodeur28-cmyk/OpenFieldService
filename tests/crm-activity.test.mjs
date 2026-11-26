@@ -243,6 +243,36 @@ test("CRM activity HTTP routes enforce session, CSRF and role checks and return 
   assert.match((await invalid.json()).error, /assignee and a due date/);
 });
 
+test("Customer 360 includes bounded activity and agreement projections", (t) => {
+  const f = setup(t);
+  f.crm.activities.save(owner, f.account, null, {
+    kind: "task",
+    title: "Open task",
+    assigneeId: member.id,
+    dueAt: "2026-12-01T09:00:00Z",
+  });
+  f.crm.activities.save(owner, f.account, null, {
+    kind: "note",
+    title: "Recent note",
+    status: "done",
+    outcome: "abc",
+  });
+  f.db.exec(
+    "CREATE TABLE _agreement_drafts(id TEXT PRIMARY KEY,number INTEGER,customer_id TEXT,title TEXT,version INTEGER,archived INTEGER)",
+  );
+  f.db
+    .prepare(
+      "INSERT INTO _agreement_drafts(id,number,customer_id,title,version,archived) VALUES(?,?,?,?,?,?)",
+    )
+    .run(randomUUID(), 1, f.account, "PM agreement", 2, 0);
+  const view = f.crm.customer360(owner, f.account);
+  assert.equal(view.activity.open, 1);
+  assert.equal(view.activity.recent.length, 2);
+  assert.equal(view.agreements.count, 1);
+  assert.equal(view.agreements.recent[0].title, "PM agreement");
+  assert.equal(view.agreements.recent[0].archived, false);
+});
+
 test("CRM v3 upgrades an existing v2 database without rewriting contacts", async (t) => {
   const { migrate } = await import("../src/server/platform/sqlite.mjs"),
     { crmSchema } = await import("../src/server/crm/schema.mjs"),

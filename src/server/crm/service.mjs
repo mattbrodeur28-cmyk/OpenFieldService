@@ -553,6 +553,40 @@ export function createCrmService({ storage, invoiceSummaryInTransaction, salesSu
       };
     }
 
+    // Activity (CRM-004): a bounded projection of open tasks/follow-ups and recent notes.
+    let activity = null;
+    if (hasTable("_crm_activities")) {
+      const open = db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM _crm_activities WHERE customer_id=? AND status='open'",
+        )
+        .get(customerId).n;
+      const recent = db
+        .prepare(
+          "SELECT id,kind,visibility,title,status,assignee_id AS assigneeId,due_at AS dueAt,completed_at AS completedAt FROM _crm_activities WHERE customer_id=? ORDER BY COALESCE(due_at,created_at) DESC,id LIMIT 10",
+        )
+        .all(customerId)
+        .map((row) => ({ ...row }));
+      activity = { open, recent };
+    }
+
+    // Agreements (M5): a bounded projection of this account's native agreement heads.
+    let agreements = null;
+    if (hasTable("_agreement_drafts")) {
+      const count = db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM _agreement_drafts WHERE customer_id=?",
+        )
+        .get(customerId).n;
+      const recent = db
+        .prepare(
+          "SELECT id,title,version,archived FROM _agreement_drafts WHERE customer_id=? ORDER BY number DESC LIMIT 10",
+        )
+        .all(customerId)
+        .map((row) => ({ ...row, archived: row.archived === 1 }));
+      agreements = { count, recent };
+    }
+
     // Billing parties differ from the owning account when a property manager pays.
     const billingLinks = listBillingLinks(user, customerId);
 
@@ -580,6 +614,8 @@ export function createCrmService({ storage, invoiceSummaryInTransaction, salesSu
       recentJobs,
       invoices,
       sales,
+      activity,
+      agreements,
     };
   }
 

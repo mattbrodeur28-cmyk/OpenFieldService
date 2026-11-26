@@ -442,8 +442,10 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
   distinguishable from "not installed". Nothing is copied — every figure is a live
   projection of the owning module's rows. Source follow-up adds Sales-owned bounded
   follow-up and proposal summaries with native deep links, open/overdue counts and
-  explicit truncation. Communications (CRM-007), full cross-module activity and
-  agreements (M5) remain pending; new projection qualification is deferred.
+  explicit truncation. The 360 now also projects bounded customer activity (open
+  tasks/follow-ups and recent notes) and native agreement heads from M5.
+  Communications (CRM-007) remain pending; broader cross-module activity and
+  qualification are deferred.
 - [ ] **CRM-003 — Sales pipeline:** leads/opportunities, stages, owner, estimated
   value, close date, next action and conversion into customer/site/quote.
   Existing Sales pipelines/Kanban supply the shared opportunity model. Source

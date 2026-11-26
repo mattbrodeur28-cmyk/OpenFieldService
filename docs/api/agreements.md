@@ -194,3 +194,10 @@ verified signatures, activation, amendments, entitlement and generated maintenan
 source/PDF, validates native ownership, freezes Company timezone and projects future/
 active/ended/cancelled terms. Scope eligibility remains distinct from included labor/
 visits, billable exceptions, pricing and generated maintenance work.
+
+## Renewal follow-up
+
+[Agreement renewals](agreement-renewal.md) now create a linked renewal draft from an
+authorized agreement (new term dates and repricing) and retain the source relationship
+and history; the draft then uses the normal offer/accept/authorize lifecycle. Assigned
+renewal tasks and reminders remain open.

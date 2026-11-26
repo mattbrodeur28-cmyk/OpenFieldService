@@ -643,8 +643,12 @@ Accepted quote changes require a new revision/change order, not silent overwrite
   Source increment (unqualified): per-revision internal submit/approve/reject/withdraw
   decisions with exact native-context snapshots, stale source/sequence guards,
   retained actor/reason history and guarded UI recovery. New revisions require a
-  new review. Internal approval is not customer acceptance; offers, authoritative
-  evidence, acceptance, activation, amendments and qualification remain open.
+  new review. Frozen offer/evidence workflow now binds approved source, immutable
+  proposed PDF, native issuer revision, recipient and expiry. External delivery and
+  customer acceptance/decline are separately attributed records; seven focused
+  tests cover source/role/replay/expiry/rollback and streamed-body checks. Accepted
+  scope is protected. Verified signatures/provider delivery, activation, amendments
+  and remaining qualification stay open. See [agreement lifecycle](docs/api/agreement-lifecycle.md).
 - [ ] **CONTRACT-003 — Maintenance plans:** equipment-specific recurring tasks,
   seasonal schedules, checklists, template versions and required evidence.
 - [ ] **CONTRACT-004 — Work generation:** idempotent job creation, scheduling horizon,
@@ -1377,3 +1381,9 @@ Proposed contract PDF checkpoint:240/240 automated tests, TypeScript and product
 build pass. Local preview startup after consistent backup loads review/PDF migrations.
 Exact coverage and remaining acceptance/activation/browser/provider gates remain in
 the qualification record.
+
+Agreement lifecycle checkpoint:247/247 tests, TypeScript and production build pass.
+The offer/delivery/response workbench and immutable exact-context backend now record
+attributed acceptance separately from activation/signature verification. Preview
+startup after consistent backup loads v4; remaining M5/browser/provider gates stay
+open in the qualification record.

@@ -573,7 +573,8 @@ export const nativeModules = [
     "dependencies": [
       "crm",
       "equipment",
-      "service"
+      "service",
+      "sales"
     ],
     "objects": [
   {

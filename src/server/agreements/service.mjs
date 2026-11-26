@@ -1,8 +1,9 @@
+import { createAgreementLifecycle } from "./lifecycle.mjs";
 import { identifyFile, MAX_DOCUMENT_BYTES } from "../documents/service.mjs";
 import { createHash } from 'node:crypto';
 import { createAgreementRepository } from './repository.mjs';
 import { parse, uuid, commandInput, listQuery, historyQuery, optionsQuery, reviewInput, documentInput, documentQuery, reader, writer, fail } from './domain.mjs';
-export function createAgreements({ storage }) {
+export function createAgreements({ storage, issuer, timeZone, clock }) {
     const repo = createAgreementRepository(storage), get = id => {
         const row = repo.head(id);
         if (!row)
@@ -10,10 +11,14 @@ export function createAgreements({ storage }) {
         return row;
     };
     const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-    function source(agreement) { const context = { agreementId: agreement.id, version: agreement.version, document: agreement.document, customer: repo.customer(agreement.customer_id), scope: repo.scope(agreement.document) }, attachment = repo.sourceDocument(agreement.id, agreement.version); if (attachment)
-        context.proposedDocument = attachment; return context; }
+    function source(agreement) {
+        const context = { agreementId: agreement.id, version: agreement.version, document: agreement.document, customer: repo.customer(agreement.customer_id), scope: repo.scope(agreement.document) }, attachment = repo.sourceDocument(agreement.id, agreement.version);
+        if (attachment)
+            context.proposedDocument = attachment;
+        return context;
+    }
     function reviewState(agreement) { const current = repo.reviewHead(agreement.id, agreement.version), sourceHash = hash(source(agreement)); return { status: current?.status ?? 'not_submitted', sequence: current?.sequence ?? 0, sourceHash, current, sourceChanged: !!current && current.sourceHash !== sourceHash, customerAccepted: false, coverageActivated: false }; }
-    function detail(user, id) { reader(user); parse(uuid, id); return repo.within(() => { const agreement = get(id), context = source(agreement); return { agreement, customer: context.customer, scope: context.scope, proposedDocument: context.proposedDocument ?? null, review: reviewState(agreement) }; }); }
+    function detail(user, id) { reader(user); parse(uuid, id); return repo.within(() => { const agreement = get(id), context = source(agreement); return { agreement, customer: context.customer, scope: context.scope, proposedDocument: context.proposedDocument ?? null, writeLock: repo.lockedOffer(id) ? "An open or accepted offer protects this scope. Withdraw an open offer before editing; accepted scope requires an amendment." : null, review: reviewState(agreement) }; }); }
     function proposedDocument(user, id, query = {}) { reader(user); parse(uuid, id); const q = parse(documentQuery, query); return repo.within(() => { const agreement = get(id); return { agreementId: id, version: q.version ?? agreement.version, document: repo.sourceDocument(id, q.version ?? agreement.version) }; }); }
     function uploadDocument(user, id, raw, bytes, filename) {
         writer(user);
@@ -31,20 +36,41 @@ export function createAgreements({ storage }) {
         if (media !== 'application/pdf')
             fail('The proposed contract must be a PDF.', 415);
         const original = typeof filename === 'string' ? filename.replaceAll('\\', '/').split('/').pop().replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 200) || 'contract.pdf' : 'contract.pdf', sha256 = createHash('sha256').update(bytes).digest('hex'), digest = hash({ action: 'upload_agreement_document', agreementId: id, ...d, sha256, size: bytes.length, original });
-        return repo.within(() => { const prior = repo.prior(d.requestKey); if (prior) {
-            if (prior.actor_id !== user.id)
-                fail('This request belongs to another account.', 403);
-            if (prior.request_hash !== digest)
-                fail('Request key has different document content.', 409);
-            return JSON.parse(prior.result_json);
-        } const agreement = get(id); if (agreement.version !== d.expectedVersion)
-            fail('Draft revision changed. Reload before uploading.', 409); if (agreement.archived)
-            fail('Restore the draft before uploading.', 409); const state = reviewState(agreement); if (['submitted', 'approved'].includes(state.status))
-            fail('Withdraw the current review before attaching a proposed PDF.', 409); if (repo.sourceDocument(id, d.expectedVersion))
-            fail('This draft revision already has a retained PDF. Create a new revision for a replacement.', 409); const document = repo.addDocument(d, id, user, bytes, original, sha256), result = { document, customerAccepted: false, coverageActivated: false, communicationSent: false }; repo.acknowledge(d.requestKey, user, digest, result); return result; });
+        return repo.within(() => {
+            const prior = repo.prior(d.requestKey);
+            if (prior) {
+                if (prior.actor_id !== user.id)
+                    fail('This request belongs to another account.', 403);
+                if (prior.request_hash !== digest)
+                    fail('Request key has different document content.', 409);
+                return JSON.parse(prior.result_json);
+            }
+            const agreement = get(id);
+            if (agreement.version !== d.expectedVersion)
+                fail('Draft revision changed. Reload before uploading.', 409);
+            if (agreement.archived)
+                fail('Restore the draft before uploading.', 409);
+            const state = reviewState(agreement);
+            if (['submitted', 'approved'].includes(state.status))
+                fail('Withdraw the current review before attaching a proposed PDF.', 409);
+            if (repo.sourceDocument(id, d.expectedVersion))
+                fail('This draft revision already has a retained PDF. Create a new revision for a replacement.', 409);
+            const document = repo.addDocument(d, id, user, bytes, original, sha256), result = { document, customerAccepted: false, coverageActivated: false, communicationSent: false };
+            repo.acknowledge(d.requestKey, user, digest, result);
+            return result;
+        });
     }
-    function downloadDocument(user, id) { reader(user); parse(uuid, id); return repo.within(() => { const document = repo.documentById(id); if (!document)
-        fail('Proposed contract document not found.', 404); get(document.agreementId); return { document, bytes: new Uint8Array(repo.documentBytes(id)) }; }); }
+    function downloadDocument(user, id) {
+        reader(user);
+        parse(uuid, id);
+        return repo.within(() => {
+            const document = repo.documentById(id);
+            if (!document)
+                fail('Proposed contract document not found.', 404);
+            get(document.agreementId);
+            return { document, bytes: new Uint8Array(repo.documentBytes(id)) };
+        });
+    }
     function review(user, id, raw) {
         writer(user);
         parse(uuid, id);
@@ -59,6 +85,8 @@ export function createAgreements({ storage }) {
                 return JSON.parse(prior.result_json);
             }
             const agreement = get(id);
+            if (repo.lockedOffer(id))
+                fail("Withdraw the open offer before changing review; accepted agreements require amendments.", 409);
             if (agreement.version !== input.expectedVersion)
                 fail('Draft revision changed. Reload before reviewing.', 409);
             if (agreement.archived)
@@ -111,6 +139,8 @@ export function createAgreements({ storage }) {
                 return JSON.parse(prior.result_json);
             }
             const old = repo.head(document.id);
+            if (repo.lockedOffer(document.id))
+                fail("Withdraw the open offer before editing; accepted agreements require amendments.", 409);
             if ((old?.version ?? 0) !== expectedVersion)
                 fail('Agreement draft changed. Reload and review before saving.', 409);
             if (expectedVersion === Number.MAX_SAFE_INTEGER)
@@ -131,5 +161,6 @@ export function createAgreements({ storage }) {
             fail("Choose the agreement customer first.");
         return repo.within(() => repo.options(q));
     }
-    return { detail, list, save, history, options, review, reviewHistory, proposedDocument, uploadDocument, downloadDocument };
+    const lifecycle = createAgreementLifecycle({ repo, get, source, reviewState, issuer, timeZone, clock });
+    return { detail, list, save, history, options, review, reviewHistory, proposedDocument, uploadDocument, downloadDocument, lifecycle };
 }

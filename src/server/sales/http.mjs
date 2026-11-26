@@ -246,5 +246,5 @@ export function createSales({
       ),
     );
   });
-  return { app, service, billingProfiles, quotes };
+  return { app, service, billingProfiles, quotes,issuer:quotes.lifecycle.issuer.publicFields };
 }

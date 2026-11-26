@@ -30,7 +30,7 @@ const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABA
 const auth = createAuth({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
 const dispatcher = createDispatcher({ storage, currentUser: auth.currentUser });
 const service = createService({storage,currentUser:auth.currentUser,people:auth.activeWriters});
-const agreements=createAgreementModule({storage,currentUser:auth.currentUser});
+const agreements=createAgreementModule({storage,currentUser:auth.currentUser,issuer:()=>sales.issuer(),timeZone:()=>dispatcher.timeZone});
 const hr=createHr({storage,currentUser:auth.currentUser});
 const hrDocuments=createHrDocuments({storage,currentUser:auth.currentUser});
 const jobHandoff = createJobHandoff({storage});

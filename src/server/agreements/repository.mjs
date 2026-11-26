@@ -1,3 +1,4 @@
+import { offerSchema } from "./offer-schema.mjs";
 import { documentSchema } from "./document-schema.mjs";
 import { reviewSchema } from "./review-schema.mjs";
 import { migrate, transaction } from '../platform/sqlite.mjs';
@@ -15,9 +16,13 @@ CREATE TRIGGER _agreement_draft_no_delete BEFORE DELETE ON _agreement_drafts BEG
 `;
 export function createAgreementRepository(storage) {
     const db = storage.database;
-    migrate(db, '_agreement_draft_migrations', [{ version: 1, sql }, { version: 2, sql: reviewSchema }, { version: 3, sql: documentSchema }]);
-    const project = row => { if (!row)
-        return null; const { document_json, ...head } = row; return { ...head, document: JSON.parse(document_json), identifier: 'AGR-' + String(row.number).padStart(6, '0'), status: row.archived ? 'archived_draft' : 'draft', coverageEnforced: false }; };
+    migrate(db, '_agreement_draft_migrations', [{ version: 1, sql }, { version: 2, sql: reviewSchema }, { version: 3, sql: documentSchema }, { version: 4, sql: offerSchema }]);
+    const project = row => {
+        if (!row)
+            return null;
+        const { document_json, ...head } = row;
+        return { ...head, document: JSON.parse(document_json), identifier: 'AGR-' + String(row.number).padStart(6, '0'), status: row.archived ? 'archived_draft' : 'draft', coverageEnforced: false };
+    };
     const head = id => project(db.prepare('SELECT d.*,r.document_json,r.actor_id AS actorId,r.reason FROM _agreement_drafts d JOIN _agreement_draft_revisions r ON r.agreement_id=d.id AND r.version=d.version WHERE d.id=?').get(id));
     const customer = id => {
         const row = db.prepare('SELECT id,name FROM customers WHERE id=?').get(id);
@@ -26,15 +31,39 @@ export function createAgreementRepository(storage) {
         return { ...row };
     };
     const documentProjection = 'SELECT a.id,a.agreement_id AS agreementId,a.version,a.title,a.original_name AS originalName,a.actor_id AS actorId,a.reason,a.created_at AS createdAt,b.sha256,b.size_bytes AS sizeBytes FROM _agreement_proposed_documents a JOIN _document_blobs b ON b.id=a.blob_id';
-    const sourceDocument = (id, version) => { if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_document_blobs'").get())
-        return null; const row = db.prepare(documentProjection + ' WHERE a.agreement_id=? AND a.version=?').get(id, version); return row ? { ...row, mediaType: 'application/pdf', scanStatus: 'not_scanned' } : null; };
+    const sourceDocument = (id, version) => {
+        if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_document_blobs'").get())
+            return null;
+        const row = db.prepare(documentProjection + ' WHERE a.agreement_id=? AND a.version=?').get(id, version);
+        return row ? { ...row, mediaType: 'application/pdf', scanStatus: 'not_scanned' } : null;
+    };
+    const offerProjection = 'SELECT id,agreement_id AS agreementId,version,review_id AS reviewId,document_id AS documentId,issuer_version AS issuerVersion,snapshot_json,snapshot_hash AS snapshotHash,pdf_hash AS pdfHash,valid_until AS validUntil,recipient_json,actor_id AS actorId,reason,offered_at AS offeredAt FROM _agreement_offers';
+    const offerRecord = row => { if (!row)
+        return null; const { snapshot_json, recipient_json, ...rest } = row; return { ...rest, snapshot: JSON.parse(snapshot_json), recipient: JSON.parse(recipient_json) }; };
     return {
+        offerIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_offers WHERE id=?').get(id),
+        offerEventIdentityExists: id => !!db.prepare('SELECT 1 FROM _agreement_offer_events WHERE id=?').get(id),
+        offerById: id => offerRecord(db.prepare(offerProjection + ' WHERE id=?').get(id)),
+        offerForRevision: (id, version) => offerRecord(db.prepare(offerProjection + ' WHERE agreement_id=? AND version=?').get(id, version)),
+        offerEventHead: id => { const row = db.prepare('SELECT id,sequence,action FROM _agreement_offer_events WHERE offer_id=? ORDER BY sequence DESC LIMIT 1').get(id); return row ? { ...row } : null; },
+        latestOfferOccurrence: id => db.prepare("SELECT json_extract(evidence_json,'$.occurredAt') AS occurred FROM _agreement_offer_events WHERE offer_id=? AND json_type(evidence_json,'$.occurredAt')='text' ORDER BY sequence DESC LIMIT 1").get(id)?.occurred ?? null,
+        acceptedOffer: id => db.prepare("SELECT o.id FROM _agreement_offers o JOIN _agreement_offer_events e ON e.offer_id=o.id WHERE o.agreement_id=? AND e.action='accepted' LIMIT 1").get(id) ?? null,
+        lockedOffer: id => db.prepare("SELECT o.id FROM _agreement_offers o WHERE o.agreement_id=? AND (SELECT action FROM _agreement_offer_events e WHERE e.offer_id=o.id ORDER BY sequence DESC LIMIT 1) IN('offer','delivered','accepted') LIMIT 1").get(id) ?? null,
+        addOffer: (d, agreementId, version, reviewId, documentId, issuerVersion, snapshot, snapshotHash, pdfHash, user, offeredAt) => db.prepare('INSERT INTO _agreement_offers(id,agreement_id,version,review_id,document_id,issuer_version,snapshot_json,snapshot_hash,pdf_hash,valid_until,recipient_json,actor_id,reason,offered_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(d.id, agreementId, version, reviewId, documentId, issuerVersion, JSON.stringify(snapshot), snapshotHash, pdfHash, d.validUntil, JSON.stringify(d.recipient), user.id, d.reason, offeredAt),
+        addOfferEvent: (id, offerId, sequence, action, evidence, user, reason, recordedAt) => db.prepare('INSERT INTO _agreement_offer_events(id,offer_id,sequence,action,evidence_json,actor_id,reason,recorded_at) VALUES(?,?,?,?,?,?,?,?)').run(id, offerId, sequence, action, JSON.stringify(evidence), user.id, reason, recordedAt),
+        offerHistory: (id, page) => db.prepare('SELECT e.id,e.offer_id AS offerId,o.version,e.sequence,e.action,e.evidence_json,e.actor_id AS actorId,e.reason,e.recorded_at AS recordedAt FROM _agreement_offer_events e JOIN _agreement_offers o ON o.id=e.offer_id WHERE o.agreement_id=? ORDER BY e.rowid DESC LIMIT 26 OFFSET ?').all(id, (page - 1) * 25).map(({ evidence_json, ...row }) => ({ ...row, evidence: JSON.parse(evidence_json) })),
         sourceDocument,
         documentById(id) { const row = db.prepare(documentProjection + ' WHERE a.id=?').get(id); return row ? { ...row, mediaType: 'application/pdf', scanStatus: 'not_scanned' } : null; },
         documentBytes: id => db.prepare('SELECT b.bytes FROM _agreement_proposed_documents a JOIN _document_blobs b ON b.id=a.blob_id WHERE a.id=?').get(id)?.bytes,
-        addDocument(d, agreementId, user, bytes, originalName, sha256) { if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_document_blobs'").get())
-            fail('Private document storage is unavailable.', 503); const existing = db.prepare('SELECT id FROM _document_blobs WHERE sha256=?').get(sha256), blob = existing?.id ?? d.id; if (!existing)
-            db.prepare('INSERT INTO _document_blobs(id,sha256,size_bytes,media_type,bytes) VALUES(?,?,?,?,?)').run(blob, sha256, bytes.length, 'application/pdf', Buffer.from(bytes)); db.prepare('INSERT INTO _agreement_proposed_documents(id,agreement_id,version,blob_id,title,original_name,actor_id,reason) VALUES(?,?,?,?,?,?,?,?)').run(d.id, agreementId, d.expectedVersion, blob, d.title, originalName, user.id, d.reason); return sourceDocument(agreementId, d.expectedVersion); },
+        addDocument(d, agreementId, user, bytes, originalName, sha256) {
+            if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_document_blobs'").get())
+                fail('Private document storage is unavailable.', 503);
+            const existing = db.prepare('SELECT id FROM _document_blobs WHERE sha256=?').get(sha256), blob = existing?.id ?? d.id;
+            if (!existing)
+                db.prepare('INSERT INTO _document_blobs(id,sha256,size_bytes,media_type,bytes) VALUES(?,?,?,?,?)').run(blob, sha256, bytes.length, 'application/pdf', Buffer.from(bytes));
+            db.prepare('INSERT INTO _agreement_proposed_documents(id,agreement_id,version,blob_id,title,original_name,actor_id,reason) VALUES(?,?,?,?,?,?,?,?)').run(d.id, agreementId, d.expectedVersion, blob, d.title, originalName, user.id, d.reason);
+            return sourceDocument(agreementId, d.expectedVersion);
+        },
         reviewHead: (id, version) => { const row = db.prepare('SELECT id,sequence,action,status,source_hash AS sourceHash,actor_id AS actorId,reason,created_at AS createdAt FROM _agreement_draft_reviews WHERE agreement_id=? AND version=? ORDER BY sequence DESC LIMIT 1').get(id, version); return row ? { ...row } : null; },
         reviewHistory: (id, page) => db.prepare('SELECT id,version,sequence,action,status,source_hash AS sourceHash,context_json,actor_id AS actorId,reason,created_at AS createdAt FROM _agreement_draft_reviews WHERE agreement_id=? ORDER BY rowid DESC LIMIT 26 OFFSET ?').all(id, (page - 1) * 25).map(({ context_json, ...row }) => ({ ...row, context: JSON.parse(context_json) })),
         reviewExists: id => !!db.prepare('SELECT 1 FROM _agreement_draft_reviews WHERE id=?').get(id),
@@ -90,7 +119,7 @@ export function createAgreementRepository(storage) {
                 clauses.push('(instr(lower(d.title),lower(?))>0 OR instr(lower(c.name),lower(?))>0)');
                 args.push(q.search, q.search);
             }
-            const base = ' FROM _agreement_drafts d JOIN customers c ON c.id=d.customer_id WHERE ' + clauses.join(' AND '), rows = db.prepare('SELECT d.id,d.number,d.title,d.customer_id AS customerId,c.name AS customerName,d.version,d.archived,d.updated_at AS updatedAt' + base + ' ORDER BY d.number DESC LIMIT 25 OFFSET ?').all(...args, (q.page - 1) * 25).map(row => ({ ...row, identifier: 'AGR-' + String(row.number).padStart(6, '0'), status: row.archived ? 'archived_draft' : 'draft', coverageEnforced: false }));
+            const base = ' FROM _agreement_drafts d JOIN customers c ON c.id=d.customer_id WHERE ' + clauses.join(' AND '), rows = db.prepare('SELECT d.id,d.number,d.title,d.customer_id AS customerId,c.name AS customerName,d.version,d.archived,d.updated_at AS updatedAt,(SELECT e.action FROM _agreement_offers o JOIN _agreement_offer_events e ON e.offer_id=o.id WHERE o.agreement_id=d.id AND o.version=d.version ORDER BY e.sequence DESC LIMIT 1) AS offerStatus' + base + ' ORDER BY d.number DESC LIMIT 25 OFFSET ?').all(...args, (q.page - 1) * 25).map(row => ({ ...row, identifier: 'AGR-' + String(row.number).padStart(6, '0'), status: row.archived ? 'archived_draft' : 'draft', coverageEnforced: false }));
             return { rows, total: db.prepare('SELECT COUNT(*) AS n' + base).get(...args).n, page: q.page, pageSize: 25 };
         },
         history: (id, page) => db.prepare('SELECT version,document_json,actor_id AS actorId,reason,created_at AS createdAt FROM _agreement_draft_revisions WHERE agreement_id=? ORDER BY version DESC LIMIT 26 OFFSET ?').all(id, (page - 1) * 25).map(({ document_json, ...row }) => ({ ...row, document: JSON.parse(document_json) }))

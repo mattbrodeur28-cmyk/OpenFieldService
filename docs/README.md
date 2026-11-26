@@ -72,5 +72,6 @@ source changes, not published or production-qualified releases.
 
 - [Native agreement draft foundation](api/agreements.md)
 - [Revision-bound proposed contract PDFs](api/agreement-documents.md)
+- [Frozen agreement offers and recorded responses](api/agreement-lifecycle.md)
 
 - [Automated qualification progress, 2026-11-25](releases/2026-11-25-automated-progress.md)

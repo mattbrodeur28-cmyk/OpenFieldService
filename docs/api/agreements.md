@@ -180,3 +180,10 @@ original per draft revision and bind its metadata/hash into internal review cont
 The workbench supports upload and current/historical downloads. A textual reference
 still is not a retained PDF or acceptance evidence. Full offer/customer acceptance,
 active coverage and authoritative accepted-version lifecycle remain open.
+
+## Offer/customer-response follow-up
+
+The [frozen offer/evidence lifecycle](agreement-lifecycle.md) now binds reviewed
+issuer, PDF, recipient, exact approved revision and external response evidence.
+It protects open/accepted scope and explicitly separates recorded acceptance from
+verified signatures, activation, amendments, entitlement and generated maintenance.

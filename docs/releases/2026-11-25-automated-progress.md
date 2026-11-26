@@ -176,3 +176,27 @@ PDF or review decision was uploaded to the preview as part of these checks.
 Browser/mobile/file-picker/modal qualification, malware scanning, authoritative
 accepted artifacts, customer signature/acceptance, contract activation and recurring
 work generation remain open. No production LXC/provider posting is claimed.
+
+
+## Agreement offer/response checkpoint
+
+Full working-tree suite now passes247/247, zero failed/skipped/cancelled/todo;
+TypeScript and production build pass. Seven new lifecycle cases cover exact approved
+source/PDF/shared issuer freezing, retained snapshot/hash under native edits, recorded
+delivery and explicit respondent authority before acceptance, accepted draft write
+protection, role/stale/source/issuer/actor-key conflicts, Company-date expiry with no
+read mutation, offer/response late acknowledgment rollback, withdrawal/new revision,
+private/CSRF HTTP and role revocation during streamed JSON. Current-revision list
+status is checked independently from active coverage.
+
+Preview restarted successfully after backing up both native/workspace databases at
+/private/tmp/ofs-dev-20261125/before-hr-platform-1795665819914. V4 offer/event tables
+and accepted-head guards initialize with the shared issuer capability. This is local
+startup evidence, not real customer/provider, populated-contract restore or browser
+qualification. No agreement offer or customer response was recorded in the preview.
+
+Frozen PDF checkpoint abe985af94b0492918d8c0e77ad2613e48f7a817 remains the prior
+published base. The lifecycle increment must pass isolated tree qualification before
+its own publication. Recorded acceptance is explicitly staff-attributed evidence,
+not verified signatures, automatic renewal, activation, entitlements or generated
+maintenance work. Those remaining M5 requirements stay open.

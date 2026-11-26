@@ -9,4 +9,4 @@ export function createSales(options: {
   crmHandoff?: ReturnType<typeof import("../crm/prospect-handoff.mjs").createCrmProspectHandoff>;
   clock?(): Date;
   owners(): { id: string; name: string }[];
-}): { app: Hono };
+}): { app: Hono;issuer():{version:number;legalName:string;address:string;email:string;phone:string;terms:string}|null };

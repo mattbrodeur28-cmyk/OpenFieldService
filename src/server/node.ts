@@ -5,6 +5,7 @@ import {createPlatform} from "./platform/http.mjs";
 import { createJobHandoff } from "./service/job-handoff.mjs";
 import { createMaintenanceJobs } from "./service/maintenance-jobs.mjs";
 import { createService } from "./service/http.mjs";
+import { globalSearch } from "./search.mjs";
 import { quoteMaterialSnapshots } from "./inventory/quote-pricing.mjs";
 import { createSales } from "./sales/http.mjs";
 import { createDispatcher } from "./dispatch/service.mjs";
@@ -58,6 +59,12 @@ app.route("/api/integrations", integrations.app);
 app.get("/healthz", async (c) => {
   await storage.query("SELECT 1");
   return c.json({ status: "ok" });
+});
+app.get("/api/search", (c) => {
+  const user = auth.currentUser(c) as { active?: boolean; mustChangePassword?: boolean } | null;
+  if (!user?.active || user.mustChangePassword)
+    return c.json({ error: "Sign in to continue." }, 401);
+  return c.json(globalSearch(storage.database, c.req.query("q")));
 });
 // Do not let the legacy price-plus-used-materials shortcut double-bill a quote.
 app.post("/api/jobs/:id/invoice", (c,next) => {

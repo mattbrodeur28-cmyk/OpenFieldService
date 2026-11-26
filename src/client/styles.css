@@ -1670,3 +1670,19 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .prospect-conversion-dialog{display:flex;flex-direction:column;gap:16px}.prospect-conversion-dialog h3{font-size:15px;margin:8px 0}.prospect-location{border:1px solid var(--border);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}.prospect-location legend{font-size:13px;padding:0 6px}.prospect-conversion-dialog .finance-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 
 .c360-record-meta{display:block;color:var(--text-muted);font-size:12px;margin-top:5px;overflow-wrap:anywhere}
+
+/* Global search */
+.global-search { position: relative; margin-left: auto; flex: 1 1 260px; max-width: 440px; }
+.global-search-input { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); }
+.global-search-input:focus-within { border-color: var(--primary, #1d6ae5); }
+.global-search-input > svg { color: var(--text-muted); flex-shrink: 0; }
+.global-search-input input { flex: 1; border: 0; background: transparent; color: inherit; font: inherit; font-size: 13px; outline: none; min-width: 0; }
+.global-search-input input::placeholder { color: var(--text-muted); }
+.global-search-input .btn-icon { width: 20px; height: 20px; min-width: 20px; min-height: 20px; padding: 0; }
+.global-search-results { position: absolute; top: calc(100% + 6px); left: 0; right: 0; max-height: min(60vh, 420px); overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.16); padding: 6px; z-index: 60; }
+.global-search-status { padding: 10px 12px; color: var(--text-muted); font-size: 13px; }
+.global-search-group-label { padding: 8px 12px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.global-search-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 8px 12px; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13px; border-radius: 8px; cursor: pointer; text-align: left; }
+.global-search-row:hover, .global-search-row.is-active { background: var(--surface-hover, rgba(0,0,0,0.06)); }
+.global-search-row-label { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.global-search-row-sub { font-size: 12px; color: var(--text-muted); flex-shrink: 0; max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

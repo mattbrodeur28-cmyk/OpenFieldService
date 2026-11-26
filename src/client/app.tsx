@@ -30,6 +30,7 @@ import { TeamChannel } from "./components/team-channel";
 import { AccountPages } from "./components/account-pages";
 import { WorkspacePage } from "./components/workspace-page";
 import { PanelLeft, Sparkles } from "lucide-preact";
+import { GlobalSearch } from "./components/global-search";
 
 export function App() {
   const isAgent = useMemo(() => {
@@ -118,6 +119,7 @@ export function App() {
             <span class="workspace-header-title">Field Service</span>
             <span class="workspace-header-divider" aria-hidden="true" />
             <span class="workspace-header-subtitle">Your workspace</span>
+            <GlobalSearch />
           </header>}
           {connectivity.readOnly && <span class="workspace-offline-indicator" role="status">Offline / saved data · changes require a connection</span>}
           {appState.loading ? (

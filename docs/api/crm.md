@@ -220,3 +220,11 @@ activity back). Replay and cross-account scoping follow the existing CRM contact
 
 Remaining: activity attachments, customer-facing delivery (CRM-007), reminder delivery
 worker, per-user record visibility (ARCH-017) and browser workbench qualification.
+
+## CRM-006: duplicate candidates (first slice)
+
+2026-11-26. `GET /customers/duplicates` returns read-only candidate groups of two or
+more accounts sharing a normalized email (trimmed/lowercased), phone (digits only) or
+name (lowercased, diacritics and punctuation stripped). It never merges, deletes or
+rewrites records; a reviewed merge policy and validated import/export remain separate
+follow-on work with explicit PII controls.

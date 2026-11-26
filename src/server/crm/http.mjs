@@ -29,6 +29,15 @@ export function mountCrm(app, { crm, check }) {
     }
   };
 
+  // CRM-006: read-only duplicate candidates (no merge/delete happens here).
+  app.get(
+    "/customers/duplicates",
+    route((c) => {
+      const user = check(c);
+      return c.json({ candidates: crm.duplicateCandidates(user) });
+    }),
+  );
+
   app.get(
     "/customers/:customerId/contacts",
     route((c) => {

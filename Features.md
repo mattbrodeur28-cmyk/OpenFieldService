@@ -464,6 +464,9 @@ recovery and keyboard assignment. Synthetic drag tests alone are insufficient.
   expiration, acceptance and conversion into work/contracts.
 - [ ] **CRM-006 — Data quality:** searchable/filterable records, validated import
   preview, duplicate/merge policy, exports and appropriate PII controls.
+  Implemented: read-only duplicate candidates grouped by normalized email, phone and
+  name (`GET /customers/duplicates`) — no merge or delete. Validated import preview,
+  the merge policy, exports and PII export controls remain open.
 - [ ] **CRM-007 — Communications:** link supported mail/channel activity to customer
   records with explicit access and consent boundaries.
 

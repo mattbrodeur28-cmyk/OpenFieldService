@@ -273,6 +273,23 @@ test("Customer 360 includes bounded activity and agreement projections", (t) => 
   assert.equal(view.agreements.recent[0].archived, false);
 });
 
+test("CRM duplicate candidates group accounts by normalized email, phone and name without merging", (t) => {
+  const f = setup(t);
+  const a = randomUUID(),
+    b = randomUUID();
+  f.db.prepare("INSERT INTO customers(id,name,email,phone) VALUES(?,?,?,?)").run(a, "ACME Mechanical", "dupe@example.test", "555-0100");
+  f.db.prepare("INSERT INTO customers(id,name,email,phone) VALUES(?,?,?,?)").run(b, "Acme  Mechanical", "dupe@example.test", "(555) 0100");
+  const candidates = f.crm.duplicateCandidates(owner);
+  const email = candidates.find((g) => g.kind === "email");
+  assert.equal(email.customers.length, 2);
+  assert.deepEqual(new Set(email.customers.map((c) => c.id)), new Set([a, b]));
+  const phone = candidates.find((g) => g.kind === "phone");
+  assert.equal(phone.customers.length, 2);
+  const name = candidates.find((g) => g.kind === "name");
+  assert.equal(name.customers.length, 3); // includes the setup account
+  assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM customers").get().n, 3);
+});
+
 test("CRM v3 upgrades an existing v2 database without rewriting contacts", async (t) => {
   const { migrate } = await import("../src/server/platform/sqlite.mjs"),
     { crmSchema } = await import("../src/server/crm/schema.mjs"),

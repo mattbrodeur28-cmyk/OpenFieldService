@@ -634,9 +634,41 @@ export function createCrmService({ storage, invoiceSummaryInTransaction, salesSu
 
   const activities = createCrmActivities({ storage, customer, audit, people, clock });
 
+  // CRM-006 (first slice): read-only duplicate candidates. A candidate is a group of
+  // two or more accounts sharing a normalized email, phone or name. Nothing is merged
+  // or deleted here; the reviewer decides with the merge policy, which is separate work.
+  const normalize = (value) =>
+    value
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "");
+  const normEmail = (value) => value.toLowerCase().trim();
+  const normPhone = (value) => value.replace(/\D/g, "");
+  function duplicateCandidates(user) {
+    requireReader(user);
+    const rows = db.prepare("SELECT id,name,email,phone FROM customers ORDER BY name").all();
+    const groups = new Map();
+    for (const row of rows) {
+      const keys = [];
+      if (row.email) keys.push(["email", normEmail(row.email)]);
+      if (row.phone) keys.push(["phone", normPhone(row.phone)]);
+      const name = normalize(row.name);
+      if (name) keys.push(["name", name]);
+      for (const [kind, key] of keys) {
+        const token = `${kind}:${key}`;
+        if (!groups.has(token))
+          groups.set(token, { kind, match: key, customers: [] });
+        groups.get(token).customers.push({ id: row.id, name: row.name, email: row.email, phone: row.phone });
+      }
+    }
+    return [...groups.values()].filter((group) => group.customers.length >= 2);
+  }
+
   return {
     prospects:createCrmProspectHandoff({storage,createContactInTransaction,audit,timeZone}),
     activities,
+    duplicateCandidates,
     listContacts,
     createContact,
     updateContact,

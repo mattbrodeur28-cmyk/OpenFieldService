@@ -277,3 +277,7 @@
 .costing-totals tbody th { text-align: left; font-weight: 500; }
 .costing-totals th:first-child, .costing-totals td:first-child { text-align: left; }
 .costing-totals .is-total { font-weight: 600; background: var(--surface-sunken); }
+
+/* Narrow remove-row column so the data columns can use more width */
+.costing-grid .costing-remove-cell { width: 40px; min-width: 40px; max-width: 40px; text-align: center; padding-inline: 4px; }
+.costing-grid .costing-remove-cell .btn { width: 26px; min-width: 26px; padding: 2px; }

@@ -5,6 +5,7 @@ import { estimateLabels } from '../../estimating-types';
 import { quoteMoney, scaledText } from '../../quote-input.mjs';
 import { Button } from '../ui/button';
 import { Notice } from '../ui/surfaces';
+import { Trash2 } from "lucide-preact";
 
 type Field = 'description' | 'quantity' | 'headcount' | 'unitCost' | 'unitSell' | 'materialMultiplier' | 'discount' | 'materialMisc' | 'ot' | 'dt' | 'tax' | 'total';
 type Column = { key: Field; label: string; numeric?: boolean; computed?: boolean };
@@ -79,7 +80,7 @@ function CostingGrid({ title, section, rows, columns, preview, disabled, change,
             <header class="costing-section-header"><h4>{title} <span class="costing-section-count">{rows.length}</span></h4><button type="button" class="costing-add" aria-label={`Add ${title} row`} disabled={disabled || rows.length >= 100} onClick={() => add(addKinds[0])}>+</button></header>
             <div class="costing-grid-scroll" ref={root} onKeyDown={key} onPaste={paste} onCopy={copy}>
                 <table class="costing-grid" role="grid" aria-label={`${section} costing`} aria-rowcount={rows.length + 1} aria-colcount={columns.length + 2}>
-                    <thead><tr><th scope="col">#</th>{columns.map((col) => <th key={col.key} scope="col">{col.label}</th>)}<th scope="col"></th></tr></thead>
+                    <thead><tr><th scope="col">#</th>{columns.map((col) => <th key={col.key} scope="col">{col.label}</th>)}<th scope="col" class="costing-remove-cell"></th></tr></thead>
                     <tbody>
                         {rows.map((line, ri) => {
                             const priced = preview?.lines.find((p) => p.id === line.id);
@@ -98,7 +99,7 @@ function CostingGrid({ title, section, rows, columns, preview, disabled, change,
                                             </td>
                                         );
                                     })}
-                                    <td><Button variant="ghost" disabled={disabled} aria-label={`Remove row ${ri + 1}`} onClick={() => commit(rows.filter((l) => l.id !== line.id))}>×</Button></td>
+                                    <td class="costing-remove-cell"><Button variant="ghost" disabled={disabled} aria-label={`Remove row ${ri + 1}`} onClick={() => commit(rows.filter((l) => l.id !== line.id))}><Trash2 size={13} /></Button></td>
                                 </tr>
                             );
                         })}

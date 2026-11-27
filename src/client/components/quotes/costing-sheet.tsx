@@ -12,6 +12,7 @@ type Column = { key: Field; label: string; numeric?: boolean; computed?: boolean
 const materialColumns: Column[] = [{ key: 'description', label: 'Items' }, { key: 'quantity', label: 'Quantity', numeric: true }, { key: 'unitCost', label: 'Unit cost ($)', numeric: true }, { key: 'unitSell', label: 'Base price ($)', numeric: true }, { key: 'materialMultiplier', label: 'Multiplier (%)', numeric: true }, { key: 'discount', label: 'Discount (%)', numeric: true }, { key: 'materialMisc', label: 'Misc ($)', numeric: true }, { key: 'tax', label: 'Tax', computed: true }, { key: 'total', label: 'Total', computed: true }];
 const laborColumns: Column[] = [{ key: 'description', label: 'Labor / role' }, { key: 'quantity', label: 'Labor hours', numeric: true }, { key: 'headcount', label: 'People', numeric: true }, { key: 'unitCost', label: 'Cost of labor ($/hr)', numeric: true }, { key: 'unitSell', label: 'Base bill rate ($/hr)', numeric: true }, { key: 'ot', label: 'OT · 1.5×' }, { key: 'dt', label: 'DT · 2×' }, { key: 'tax', label: 'Tax', computed: true }, { key: 'total', label: 'Total', computed: true }];
 const otherColumns: Column[] = [{ key: 'description', label: 'Item / charge' }, { key: 'quantity', label: 'Quantity', numeric: true }, { key: 'unitCost', label: 'Unit cost ($)', numeric: true }, { key: 'unitSell', label: 'Unit price ($)', numeric: true }, { key: 'discount', label: 'Discount (%)', numeric: true }, { key: 'tax', label: 'Tax', computed: true }, { key: 'total', label: 'Total', computed: true }];
+const unifiedColumns: Column[] = [{ key: 'description', label: 'Item / role' }, { key: 'quantity', label: 'Quantity', numeric: true }, { key: 'headcount', label: 'People', numeric: true }, { key: 'unitCost', label: 'Unit cost ($)', numeric: true }, { key: 'unitSell', label: 'Unit price ($)', numeric: true }, { key: 'materialMultiplier', label: 'Multiplier (%)', numeric: true }, { key: 'discount', label: 'Discount (%)', numeric: true }, { key: 'materialMisc', label: 'Misc ($)', numeric: true }, { key: 'ot', label: 'OT · 1.5×' }, { key: 'dt', label: 'DT · 2×' }, { key: 'tax', label: 'Tax', computed: true }, { key: 'total', label: 'Total', computed: true }];
 const laborKinds = ['technician', 'apprentice', 'after_hours'];
 const cellValue = (line: DraftLine, key: Field) => key === 'ot' ? line.laborRate === 'ot' ? 'TRUE' : 'FALSE' : key === 'dt' ? line.laborRate === 'dt' ? 'TRUE' : 'FALSE' : key === 'tax' || key === 'total' ? '' : String(line[key] ?? '0.00');
 const range = (a: [number, number], b: [number, number]) => ({ top: Math.min(a[0], b[0]), bottom: Math.max(a[0], b[0]), left: Math.min(a[1], b[1]), right: Math.max(a[1], b[1]) });
@@ -160,6 +161,22 @@ export function CostingSheet({ lines, preview, disabled, replace, details, onSav
     const totalBillable = preview?.lines.reduce((n, l) => n + (l.totalCents ?? 0), 0) ?? 0;
     const profit = totalBillable - totalCost;
 
+    const priced = (id: string) => preview?.lines.find((p) => p.id === id);
+    const sectionRows = [
+        { key: 'materials', title: 'Materials', rows: lines.filter((l) => l.kind === 'material') },
+        { key: 'labor', title: 'Labor', rows: lines.filter((l) => laborKinds.includes(l.kind)) },
+        { key: 'other', title: 'Other job costs', rows: lines.filter((l) => l.kind !== 'material' && !laborKinds.includes(l.kind)) },
+    ];
+    const totalsFor = (rows: DraftLine[]) => {
+        const gross = rows.reduce((n, l) => n + (priced(l.id)?.grossCents ?? 0), 0);
+        const tax = rows.reduce((n, l) => n + (priced(l.id)?.taxCents ?? 0), 0);
+        const total = rows.reduce((n, l) => n + (priced(l.id)?.totalCents ?? 0), 0);
+        const cost = rows.reduce((n, l) => n + (priced(l.id)?.costCents ?? 0), 0);
+        const prof = gross - cost;
+        return { gross, tax, total, cost, profit: prof, margin: gross ? (prof / gross) * 100 : 0 };
+    };
+    const grand = totalsFor(lines);
+
     return (
         <section class="costing-workbook" aria-label="Job costing spreadsheet" data-history={historyTick}>
             <header class="costing-toolbar">
@@ -168,10 +185,36 @@ export function CostingSheet({ lines, preview, disabled, replace, details, onSav
             </header>
             <p class="costing-help">Edit cells directly · Enter / ↑ / ↓ move rows · ← / → move cells · Shift-click selects a range · Paste tab-separated cells from Excel or Sheets. Tax uses the billing profile tax rate (Settings → Billing profile).</p>
             {error && <Notice tone="danger">{error}</Notice>}
-            <CostingGrid title="Materials" section="materials" rows={lines.filter((l) => l.kind === 'material')} columns={materialColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['material']} add={add} emptyText="No material rows. Add a material below to start." />
-            <CostingGrid title="Labor" section="labor" rows={lines.filter((l) => laborKinds.includes(l.kind))} columns={laborColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['technician', 'apprentice', 'after_hours']} add={add} emptyText="No labor rows. Add a labor role below to start." />
-            <CostingGrid title="Other job costs" section="other" rows={lines.filter((l) => l.kind !== 'material' && !laborKinds.includes(l.kind))} columns={otherColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['service', 'permit', 'license', 'distance', 'fuel', 'subcontractor']} add={add} emptyText="No other cost rows. Add a category below to start." />
-            <footer class="costing-pl">
+            <CostingGrid title="Materials" section="materials" rows={lines.filter((l) => l.kind === 'material')} columns={unifiedColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['material']} add={add} emptyText="No material rows. Add a material below to start." />
+            <CostingGrid title="Labor" section="labor" rows={lines.filter((l) => laborKinds.includes(l.kind))} columns={unifiedColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['technician', 'apprentice', 'after_hours']} add={add} emptyText="No labor rows. Add a labor role below to start." />
+            <CostingGrid title="Other job costs" section="other" rows={lines.filter((l) => l.kind !== 'material' && !laborKinds.includes(l.kind))} columns={unifiedColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['service', 'permit', 'license', 'distance', 'fuel', 'subcontractor']} add={add} emptyText="No other cost rows. Add a category below to start." />
+                        <table class="costing-totals">
+                <thead><tr><th>Category</th><th>Total gross</th><th>Total tax</th><th>Total cost</th><th>Total profit</th><th>Margin</th></tr></thead>
+                <tbody>
+                    {sectionRows.map((section) => {
+                        const t = totalsFor(section.rows);
+                        return (
+                            <tr key={section.key}>
+                                <th scope="row">{section.title}</th>
+                                <td>{quoteMoney(t.gross)}</td>
+                                <td>{quoteMoney(t.tax)}</td>
+                                <td>{quoteMoney(t.cost)}</td>
+                                <td class={t.profit < 0 ? 'project-margin-neg' : 'project-margin-pos'}>{quoteMoney(t.profit)}</td>
+                                <td>{t.margin.toFixed(1)}%</td>
+                            </tr>
+                        );
+                    })}
+                    <tr class="is-total">
+                        <th scope="row">Total</th>
+                        <td>{quoteMoney(grand.gross)}</td>
+                        <td>{quoteMoney(grand.tax)}</td>
+                        <td>{quoteMoney(grand.cost)}</td>
+                        <td class={grand.profit < 0 ? 'project-margin-neg' : 'project-margin-pos'}>{quoteMoney(grand.profit)}</td>
+                        <td>{grand.margin.toFixed(1)}%</td>
+                    </tr>
+                </tbody>
+            </table>
+<footer class="costing-pl">
                 <div class="costing-pl-summary">
                     <div><span>Total cost</span><strong>{quoteMoney(totalCost)}</strong></div>
                     <div><span>Total billable</span><strong>{quoteMoney(totalBillable)}</strong></div>

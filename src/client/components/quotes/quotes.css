@@ -268,3 +268,12 @@
 .costing-pl-summary strong { font-size: 15px; }
 
 .costing-tax-rate { display: block; font-size: 10px; color: var(--text-muted); }
+
+/* Uniform columns + totals tabulation under each category */
+.costing-grid { min-width: 1320px; }
+.costing-totals { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; border-top: 1px solid var(--border); }
+.costing-totals th, .costing-totals td { padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: right; }
+.costing-totals thead th { background: var(--surface-sunken); font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+.costing-totals tbody th { text-align: left; font-weight: 500; }
+.costing-totals th:first-child, .costing-totals td:first-child { text-align: left; }
+.costing-totals .is-total { font-weight: 600; background: var(--surface-sunken); }

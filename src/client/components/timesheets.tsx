@@ -212,7 +212,7 @@ export function Timesheets({ initialTechnician = "" }: { initialTechnician?: str
       </section>}
       {!options && !error && <p role="status">Loading technicians…</p>}
       {!!options?.technicians.length && !!technician && (<div class="timesheet-selection-bar">
-          <Button disabled={busy} onClick={() => openTimecard("")}><ChevronLeft size={16} aria-hidden="true"/>{options.canReview ? "All technicians" : "Technician timecards"}</Button>
+          {!initialTechnician && <Button disabled={busy} onClick={() => openTimecard("")}><ChevronLeft size={16} aria-hidden="true"/>{options.canReview ? "All technicians" : "Technician timecards"}</Button>}
           <div class="timesheet-week-navigation" role="group" aria-label="Timesheet week">
             <Button size="icon" aria-label="Previous week" disabled={busy || !week} onClick={() => setWeek(shiftDate(week, -7))}><ChevronLeft size={16} aria-hidden="true"/></Button>
             <TextField label="Week beginning Monday" type="date" value={week} disabled={busy} onInput={e => { if (e.currentTarget.value)

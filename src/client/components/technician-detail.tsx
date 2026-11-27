@@ -2,18 +2,16 @@ import { useState } from "preact/hooks";
 import { useApp } from "../context";
 import { useAccount } from "../auth";
 import { useConnectivity } from "../hooks/use-connectivity";
-import { PersonnelDocumentsDialog } from "./personnel-documents";
 import { Timesheets } from "./timesheets";
 import { Badge } from "./ui/surfaces";
-import { ArrowLeft, Edit3, Save, X, Trash2, ChevronDown, UserRound, FileText } from "lucide-preact";
+import { ArrowLeft, Edit3, Save, X, Trash2, ChevronDown, UserRound } from "lucide-preact";
 
 export function TechnicianDetail({ id }: { id: string }) {
   const { technicians, updateTechnician, deleteTechnician, navigate } = useApp();
   const { user } = useAccount();
   const { readOnly } = useConnectivity();
   const [editing, setEditing] = useState(false);
-  const [documents, setDocuments] = useState(false);
-  const [open, setOpen] = useState<Record<string, boolean>>({ about: true, timesheets: true, documents: true });
+  const [open, setOpen] = useState<Record<string, boolean>>({ about: true, timesheets: true });
   const [form, setForm] = useState({ name: "", email: "", phone: "", color: "#16a34a", active: 1 });
   const [error, setError] = useState("");
   const technician = technicians.find((t) => t.id === id);
@@ -94,17 +92,6 @@ export function TechnicianDetail({ id }: { id: string }) {
                 </div>
               )}
             </section>
-            <section class={"record-section" + (open.documents ? " is-open" : "")}>
-              <button type="button" class="record-section-heading" aria-expanded={open.documents} onClick={() => toggle("documents")}>
-                <ChevronDown size={16} class={"record-section-chevron" + (open.documents ? "" : " is-closed")} /><span class="record-section-title">Personnel documents</span>
-              </button>
-              {open.documents && (
-                <div class="record-section-body">
-                  <p class="workspace-help">Licences, certifications and compliance documents for this technician.</p>
-                  <button class="btn" onClick={() => setDocuments(true)}><FileText size={14} /> Manage documents</button>
-                </div>
-              )}
-            </section>
           </div>
           <div class="account-col">
             <section class={"record-section" + (open.timesheets ? " is-open" : "")}>
@@ -116,7 +103,6 @@ export function TechnicianDetail({ id }: { id: string }) {
           </div>
         </div>
       )}
-      {documents && <PersonnelDocumentsDialog staffId={id} name={technician.name} close={() => setDocuments(false)} />}
     </div>
   );
 }

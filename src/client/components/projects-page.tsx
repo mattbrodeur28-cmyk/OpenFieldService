@@ -120,13 +120,14 @@ export function ProjectsPage({ id }: { id: string | null }) {
             </div>
           </div>
 
-          <div class="account-layout">
+          <div class="account-layout projects-layout">
             <div class="account-col">
               <RecordSection title="About">
                 <div class="account-fields">
                   {[
                     ["Status", STATUS_LABEL[detail.project.status] || detail.project.status],
                     ["Customer", customerName(detail.project.customer_id)],
+                    ["Site", detail.sites[0]?.name],
                     ["Project manager", detail.project.project_manager],
                     ["Planned", `${detail.project.planned_start || "—"} → ${detail.project.planned_end || "—"}`],
                     ["Actual", `${detail.project.actual_start || "—"} → ${detail.project.actual_end || "—"}`],
@@ -162,23 +163,6 @@ export function ProjectsPage({ id }: { id: string | null }) {
                     <tbody>{detail.deliverables.map((d) => <tr key={d.id}><th scope="row">{d.name}</th><td class="text-muted">{d.dueDate || "—"}</td><td><Badge tone={d.completed ? "success" : "neutral"}>{d.completed ? "Complete" : "Open"}</Badge></td></tr>)}</tbody>
                   </table>
                 ) : <p class="text-muted">No deliverables yet.</p>}
-              </RecordSection>
-            </div>
-
-            <div class="account-col">
-              <RecordSection title="Jobs" count={detail.jobs.length}>
-                {detail.jobs.length ? (
-                  <table class="table"><thead><tr><th>Job</th><th>Status</th><th>Scheduled</th></tr></thead>
-                    <tbody>{detail.jobs.map((j) => <tr key={j.id}><th scope="row"><Button variant="ghost" onClick={() => navigate(`/jobs/${j.jobId}`)}>{j.identifier}</Button></th><td>{j.status}</td><td class="text-muted">{j.scheduledDate || "—"}</td></tr>)}</tbody>
-                  </table>
-                ) : <p class="text-muted">No linked jobs yet.</p>}
-              </RecordSection>
-              <RecordSection title="Sites" count={detail.sites.length}>
-                {detail.sites.length ? (
-                  <table class="table"><thead><tr><th>Site</th><th>Address</th></tr></thead>
-                    <tbody>{detail.sites.map((s) => <tr key={s.id}><th scope="row">{s.name}</th><td class="text-muted">{s.address || "—"}</td></tr>)}</tbody>
-                  </table>
-                ) : <p class="text-muted">No linked sites yet.</p>}
               </RecordSection>
             </div>
           </div>

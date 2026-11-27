@@ -1859,3 +1859,7 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .new-customer-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .new-customer-fields .form-group.full-width { grid-column: 1 / -1; }
 @media (max-width: 620px) { .new-customer-fields { grid-template-columns: minmax(0, 1fr); } }
+
+/* Projects record: two balanced columns (About/Phases | Milestones/Deliverables) */
+.projects-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .projects-layout { grid-template-columns: minmax(0, 1fr); } }

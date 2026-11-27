@@ -166,7 +166,7 @@ test('populated quote-v3 migration retains drafts, pending nulls, templates and 
  assert.equal(upgraded.quotes.detail(member,pending.id).quote.estimate.costCents,null);
  assert.deepEqual(upgraded.quotes.save(member,command).quote,pending);
  assert.equal(upgraded.quotes.review.summary(member,f.quote.id).state,'approved');
- assert.deepEqual(legacy.database.prepare('SELECT version FROM _sales_quote_migrations ORDER BY version').all().map(row=>row.version),[1,2,3,4,5]);
+ assert.deepEqual(legacy.database.prepare('SELECT version FROM _sales_quote_migrations ORDER BY version').all().map(row=>row.version),[1,2,3,4,5,6,7]);
  assert.equal(legacy.database.prepare('PRAGMA foreign_key_check').all().length,0);
 });
 

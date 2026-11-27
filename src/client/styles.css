@@ -1868,18 +1868,43 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .projects-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); }
 .projects-page .account-layout { margin-top: 14px; }
 .project-gantt { padding: 2px 0; }
-.project-gantt-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.project-gantt-range { font-size: 12px; color: var(--text-muted); }
-.project-gantt-zoom { display: flex; gap: 4px; }
-.project-gantt-months { position: relative; height: 16px; margin-left: 150px; }
-.project-gantt-months span { position: absolute; font-size: 11px; color: var(--text-muted); transform: translateX(-50%); white-space: nowrap; }
-.project-gantt-rows { display: flex; flex-direction: column; gap: 4px; }
-.project-gantt-row { display: grid; grid-template-columns: 140px minmax(0, 1fr); align-items: center; gap: 10px; }
-.project-gantt-label { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.project-gantt-track { position: relative; height: 26px; background: var(--surface-sunken); border-radius: 4px; }
-.project-gantt-bar { position: absolute; top: 4px; height: 18px; background: var(--primary-light); border: 1px solid var(--primary); border-radius: 4px; overflow: hidden; display: flex; align-items: center; }
-.project-gantt-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--primary); opacity: 0.3; }
-.project-gantt-bar-text { position: relative; font-size: 10px; font-weight: 600; color: var(--primary); padding: 0 6px; white-space: nowrap; }
+.project-gantt-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.project-gantt-nav { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.project-gantt-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.project-gantt-zoom-group { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--card-bg); }
+.project-gantt-zoom-btn { border: none; background: transparent; padding: 5px 10px; font: inherit; font-size: 12px; color: var(--text-muted); cursor: pointer; }
+.project-gantt-zoom-btn:hover { background: var(--surface-sunken); color: var(--text); }
+.project-gantt-zoom-btn.is-active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.project-gantt-range { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+.project-gantt-shell { display: flex; flex-direction: column; }
+.project-gantt-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card-bg); }
+.project-gantt-grid { display: flex; flex-direction: column; }
+.project-gantt-header-row, .project-gantt-data-row { display: grid; grid-template-columns: 170px auto 140px; align-items: center; }
+.project-gantt-header-row { border-bottom: 1px solid var(--border); background: var(--surface-sunken); font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.project-gantt-col-label, .project-gantt-col-actions { padding: 6px 10px; }
+.project-gantt-header-track { position: relative; height: 28px; border-left: 1px solid var(--border); border-right: 1px solid var(--border); overflow: hidden; }
+.project-gantt-header-track > span { position: absolute; top: 6px; font-size: 11px; color: var(--text-muted); padding-left: 4px; white-space: nowrap; }
+.project-gantt-today-pill { top: 4px !important; background: var(--danger); color: #fff !important; border-radius: 999px; padding: 1px 6px !important; font-size: 10px !important; transform: translateX(-50%); z-index: 2; }
+.project-gantt-data-row { border-bottom: 1px solid var(--border); }
+.project-gantt-data-row:last-child { border-bottom: none; }
+.project-gantt-label-btn { display: flex; flex-direction: column; align-items: flex-start; text-align: left; background: transparent; border: none; padding: 6px 10px; cursor: pointer; color: inherit; font: inherit; overflow: hidden; }
+.project-gantt-label-btn:hover { background: var(--surface-sunken); }
+.project-gantt-label { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.project-gantt-meta { font-size: 10px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.project-gantt-track { position: relative; height: 34px; border-left: 1px solid var(--border); border-right: 1px solid var(--border); display: flex; align-items: center; user-select: none; }
+.project-gantt-gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); opacity: 0.45; pointer-events: none; }
+.project-gantt-today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); opacity: 0.7; pointer-events: none; z-index: 1; }
+.project-gantt-bar { position: absolute; top: 6px; height: 22px; background: var(--primary-light); border: 1px solid var(--primary); border-radius: 4px; overflow: hidden; display: flex; align-items: center; cursor: grab; z-index: 2; touch-action: none; }
+.project-gantt-bar.is-dragging { cursor: grabbing; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); z-index: 4; }
+.project-gantt-bar.is-saving { opacity: 0.65; }
+.project-gantt-handle { position: absolute; top: 0; bottom: 0; width: 7px; cursor: ew-resize; z-index: 3; }
+.project-gantt-handle.is-left { left: 0; }
+.project-gantt-handle.is-right { right: 0; }
+.project-gantt-handle:hover { background: var(--primary); opacity: 0.45; }
+.project-gantt-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--primary); opacity: 0.28; pointer-events: none; }
+.project-gantt-bar-text { position: relative; font-size: 10px; font-weight: 600; color: var(--primary); padding: 0 10px; white-space: nowrap; pointer-events: none; }
+.project-gantt-unscheduled { font-size: 11px; color: var(--text-muted); padding: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.project-gantt-row-actions { display: inline-flex; align-items: center; gap: 4px; justify-content: flex-end; padding: 0 8px; }
 .project-gantt-milestone { position: absolute; top: 50%; width: 10px; height: 10px; background: var(--warning); transform: translate(-50%, -50%) rotate(45deg); border-radius: 2px; }
 .project-gantt-milestone.is-done { background: var(--success); }
 .project-overdue { margin-top: 10px; font-size: 12px; color: var(--warning); font-weight: 600; }
@@ -1906,3 +1931,15 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .project-pl strong { font-size: 16px; }
 .project-financials-add { display: flex; gap: 8px; }
 .project-financials-add input { flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card-bg); color: var(--text); font: inherit; font-size: 13px; }
+.project-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.project-tab { padding: 6px 12px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text-muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.project-tab:hover { background: var(--surface-sunken); color: var(--text); }
+.project-tab.is-active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); font-weight: 600; }
+.project-tab-stack { display: flex; flex-direction: column; gap: 16px; }
+.project-sub-list { display: flex; flex-direction: column; gap: 12px; }
+.project-sub-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--card-bg); display: flex; flex-direction: column; gap: 10px; }
+.project-sub-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.btn-row { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.checkbox-row { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
+.project-wip-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.project-wip-toolbar .ui-btn { height: 36px; align-self: flex-end; flex: 0 0 auto; }

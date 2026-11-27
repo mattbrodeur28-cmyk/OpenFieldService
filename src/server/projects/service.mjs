@@ -1,14 +1,30 @@
 import { createHash, randomUUID } from "node:crypto";
 import { migrate, transaction } from "../platform/sqlite.mjs";
-import { projectSchema, projectSchemaV2, projectSchemaV3, projectSchemaV4 } from "./schema.mjs";
+import { projectSchema, projectSchemaV2, projectSchemaV3, projectSchemaV4, projectSchemaV5, projectSchemaV6, projectSchemaV7, projectSchemaV8 } from "./schema.mjs";
 import { parse, uuid, reader, writer, fail, projectInput, phaseInput, milestoneInput, linkJobInput, linkSiteInput, deliverableInput, fromProposalInput, baselineInput, issueInput, dependencyInput, costSectionInput } from "./domain.mjs";
+import { createProjectDelivery } from "./delivery.mjs";
+import { createProjectBilling } from "./billing.mjs";
 
 const hash = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
 export function createProjects({ storage, proposalSource = null }) {
     const db = storage.database;
-    migrate(db, "_project_migrations", [{ version: 1, sql: projectSchema }, { version: 2, sql: projectSchemaV2 }, { version: 3, sql: projectSchemaV3 }, { version: 4, sql: projectSchemaV4 }]);
+    migrate(db, "_project_migrations", [
+        { version: 1, sql: projectSchema },
+        { version: 2, sql: projectSchemaV2 },
+        { version: 3, sql: projectSchemaV3 },
+        { version: 4, sql: projectSchemaV4 },
+        { version: 5, sql: projectSchemaV5 },
+        { version: 6, sql: projectSchemaV6 },
+        { version: 7, sql: projectSchemaV7 },
+        { version: 8, sql: projectSchemaV8 },
+    ]);
     db.exec("CREATE TABLE IF NOT EXISTS _project_requests(request_key TEXT PRIMARY KEY,actor_id TEXT NOT NULL,request_hash TEXT NOT NULL,result_json TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
+
+    const audit = (projectId, actorId, action, entityType, entityId, before, after, reason = "") => {
+        db.prepare("INSERT INTO _project_audit(project_id,actor_id,action,entity_type,entity_id,before_json,after_json,reason) VALUES(?,?,?,?,?,?,?,?)")
+            .run(projectId, actorId, action, entityType, entityId, JSON.stringify(before ?? {}), JSON.stringify(after ?? {}), reason || "");
+    };
 
     const customer = (id) => { const row = db.prepare("SELECT id,name FROM customers WHERE id=?").get(id); if (!row) fail("Customer not found.", 404); return row; };
     const projectRow = (id) => { const row = db.prepare("SELECT * FROM _projects WHERE id=?").get(id); return row ? { ...row, archived: row.archived === 1 } : null; };
@@ -42,6 +58,9 @@ export function createProjects({ storage, proposalSource = null }) {
     const replay = (user, key, fingerprint) => { const prior = db.prepare("SELECT actor_id,request_hash,result_json FROM _project_requests WHERE request_key=?").get(key); if (!prior) return null; if (prior.actor_id !== user.id) fail("This request belongs to another account.", 403); if (prior.request_hash !== fingerprint) fail("Request key has different project content.", 409); return JSON.parse(prior.result_json); };
     const acknowledge = (key, user, fingerprint, result) => db.prepare("INSERT INTO _project_requests(request_key,actor_id,request_hash,result_json) VALUES(?,?,?,?)").run(key, user.id, fingerprint, JSON.stringify(result));
 
+    const delivery = createProjectDelivery({ db, get, replay, acknowledge, audit });
+    const billing = createProjectBilling({ db, get, replay, acknowledge, audit, delivery });
+
     function save(user, raw) {
         writer(user);
         const d = parse(projectInput, raw), fingerprint = hash({ action: "save_project", ...d });
@@ -52,9 +71,11 @@ export function createProjects({ storage, proposalSource = null }) {
             if (old && old.version !== d.expectedVersion) fail("Project changed. Reload and review before saving.", 409);
             if (!old && d.expectedVersion !== 0) fail("Project does not exist.", 409);
             const version = (old?.version ?? 0) + 1;
-            if (old) db.prepare("UPDATE _projects SET customer_id=?,title=?,description=?,status=?,project_manager=?,planned_start=?,planned_end=?,actual_start=?,actual_end=?,source_kind=?,source_id=?,archived=?,version=?,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND version=?").run(d.customerId, d.title, d.description, d.status, d.projectManager, d.plannedStart, d.plannedEnd, d.actualStart, d.actualEnd, d.sourceKind, d.sourceId, Number(d.archived), version, user.id, d.id, d.expectedVersion);
-            else db.prepare("INSERT INTO _projects(id,customer_id,title,description,status,project_manager,planned_start,planned_end,actual_start,actual_end,source_kind,source_id,archived,version,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(d.id, d.customerId, d.title, d.description, d.status, d.projectManager, d.plannedStart, d.plannedEnd, d.actualStart, d.actualEnd, d.sourceKind, d.sourceId, Number(d.archived), version, user.id);
-            const result = { project: projectRow(d.id) };
+            if (old) db.prepare("UPDATE _projects SET customer_id=?,title=?,description=?,status=?,track=?,contract_value_cents=?,retainage_bps=?,project_manager=?,planned_start=?,planned_end=?,actual_start=?,actual_end=?,source_kind=?,source_id=?,archived=?,version=?,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND version=?").run(d.customerId, d.title, d.description, d.status, d.track, d.contractValueCents, d.retainageBps, d.projectManager, d.plannedStart, d.plannedEnd, d.actualStart, d.actualEnd, d.sourceKind, d.sourceId, Number(d.archived), version, user.id, d.id, d.expectedVersion);
+            else db.prepare("INSERT INTO _projects(id,customer_id,title,description,status,track,contract_value_cents,retainage_bps,project_manager,planned_start,planned_end,actual_start,actual_end,source_kind,source_id,archived,version,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(d.id, d.customerId, d.title, d.description, d.status, d.track, d.contractValueCents, d.retainageBps, d.projectManager, d.plannedStart, d.plannedEnd, d.actualStart, d.actualEnd, d.sourceKind, d.sourceId, Number(d.archived), version, user.id);
+            const after = projectRow(d.id);
+            audit(d.id, user.id, old ? "update_project" : "create_project", "project", d.id, old || {}, after, d.reason);
+            const result = { project: after };
             acknowledge(d.requestKey, user, fingerprint, result);
             return result;
         });
@@ -91,8 +112,26 @@ export function createProjects({ storage, proposalSource = null }) {
         reader(user);
         parse(uuid, id);
         return transaction(db, () => {
+            const proj = get(id);
             const sectionRows = costSections(id);
-            return { project: get(id), phases: phases(id), milestones: milestones(id), jobs: jobs(id), sites: sites(id), deliverables: deliverables(id), issues: issues(id), dependencies: dependencies(id), financials: financials(id), overdueActions: overdueActions(id), source: source(get(id)), costSections: sectionRows, profitLoss: profitLoss(sectionRows) };
+            const wip = billing.computeWip(id, "cost_to_cost");
+            const fin = {
+                ...financials(id),
+                actualCostCents: wip.actualCostCents,
+                committedCostCents: wip.committedCostCents,
+            };
+            return {
+                project: proj, phases: phases(id), milestones: milestones(id), jobs: jobs(id),
+                sites: sites(id), deliverables: deliverables(id), issues: issues(id),
+                dependencies: dependencies(id), financials: fin, overdueActions: overdueActions(id),
+                source: source(proj), costSections: sectionRows, profitLoss: profitLoss(sectionRows),
+                fieldDocs: delivery.fieldDocs(id), billingReadiness: delivery.billingReadiness(id),
+                crews: delivery.crews(id), crewTime: delivery.crewTime(id),
+                changeOrders: delivery.changeOrders(id), purchasing: delivery.purchasingLinks(id),
+                subcontractors: delivery.subcontractors(id),
+                sovLines: billing.sovLines(id), billingApps: billing.billingApps(id),
+                wip, wipSnapshots: billing.wipSnapshots(id),
+            };
         });
     }
 
@@ -227,7 +266,9 @@ export function createProjects({ storage, proposalSource = null }) {
             const prior = replay(user, d.requestKey, fingerprint); if (prior) return prior;
             const project = get(projectId);
             db.prepare("UPDATE _projects SET baseline_cost_cents=?,baseline_start=?,baseline_end=?,estimate_to_complete_cents=?,baselined_at=CURRENT_TIMESTAMP,baselined_by=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(d.baselineCostCents, d.baselineStart, d.baselineEnd, d.estimateToCompleteCents, user.id, projectId);
-            const result = { project: projectRow(projectId), baseline: { costCents: d.baselineCostCents, start: d.baselineStart, end: d.baselineEnd, estimateToCompleteCents: d.estimateToCompleteCents, version: project.version + 1 } };
+            const after = projectRow(projectId);
+            audit(projectId, user.id, "set_baseline", "project", projectId, project, after, d.reason);
+            const result = { project: after, baseline: { costCents: d.baselineCostCents, start: d.baselineStart, end: d.baselineEnd, estimateToCompleteCents: d.estimateToCompleteCents, version: project.version + 1 } };
             acknowledge(d.requestKey, user, fingerprint, result);
             return result;
         });
@@ -293,5 +334,30 @@ export function createProjects({ storage, proposalSource = null }) {
         });
     }
 
-    return { save, list, detail, savePhase, saveMilestone, linkJob, unlinkJob, linkSite, unlinkSite, saveDeliverable, fromProposal, setBaseline, saveIssue, saveDependency, saveCostSection, deleteCostSection };
+    function getWip(user, projectId, method = "cost_to_cost") {
+        reader(user);
+        parse(uuid, projectId);
+        const m = method === "phase_progress" ? "phase_progress" : "cost_to_cost";
+        return transaction(db, () => ({
+            wip: billing.computeWip(projectId, m),
+            snapshots: billing.wipSnapshots(projectId),
+        }));
+    }
+
+    return {
+        save, list, detail, savePhase, saveMilestone, linkJob, unlinkJob, linkSite, unlinkSite,
+        saveDeliverable, fromProposal, setBaseline, saveIssue, saveDependency, saveCostSection, deleteCostSection,
+        saveFieldDoc: delivery.saveFieldDoc,
+        saveCrew: delivery.saveCrew, addCrewMember: delivery.addCrewMember,
+        recordCrewTime: delivery.recordCrewTime, reviewCrewTime: delivery.reviewCrewTime,
+        saveChangeOrder: delivery.saveChangeOrder, transitionChangeOrder: delivery.transitionChangeOrder,
+        savePurchasingLink: delivery.savePurchasingLink,
+        saveSubcontractor: delivery.saveSubcontractor, saveSubChangeOrder: delivery.saveSubChangeOrder,
+        submitSubInvoice: delivery.submitSubInvoice, reviewSubInvoice: delivery.reviewSubInvoice,
+        auditLog: delivery.auditLog,
+        saveSovLine: billing.saveSovLine,
+        createBillingApp: billing.createBillingApp, transitionBillingApp: billing.transitionBillingApp,
+        exportBillingAppHtml: billing.exportBillingAppHtml,
+        getWip, createWipSnapshot: billing.createWipSnapshot,
+    };
 }

@@ -15,3 +15,9 @@ data/
 
 .builder-dist-*/
 .builder-previous-*/
+
+# Local developer artifacts and private preview helpers
+.DS_Store
+.pnpm-store/
+.vscode/
+scripts/reset-dev-password.mjs

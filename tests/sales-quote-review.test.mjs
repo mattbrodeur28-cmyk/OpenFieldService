@@ -158,5 +158,5 @@ test("populated quote-v2 upgrade retains native templates, quotes, provenance an
  assert.deepEqual(Object.fromEntries(tables.map(table=>[table,old.database.prepare(`SELECT * FROM ${table}`).all()])),before);
  assert.equal(upgraded.quotes.review.policyDetail(owner).policy,null);assert.equal(upgraded.quotes.review.summary(member,command.id).state,"unconfigured");
  assert.equal(upgraded.quotes.save(member,command).quote.template.id,template.id);
- assert.deepEqual(old.database.prepare("SELECT version FROM _sales_quote_migrations ORDER BY version").all().map(row=>row.version),[1,2,3,4,5]);assert.equal(old.database.prepare("PRAGMA foreign_key_check").all().length,0);
+ assert.deepEqual(old.database.prepare("SELECT version FROM _sales_quote_migrations ORDER BY version").all().map(row=>row.version),[1,2,3,4,5,6,7]);assert.equal(old.database.prepare("PRAGMA foreign_key_check").all().length,0);
 });

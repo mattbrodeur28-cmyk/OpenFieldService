@@ -597,6 +597,21 @@ export function createCrmService({ storage, invoiceSummaryInTransaction, salesSu
       agreements = { count, recent };
     }
 
+    // Communications (CRM-007): bounded projection of staff-recorded communications.
+    let communicationsSummary = null;
+    if (hasTable("_crm_communications")) {
+      const count = db
+        .prepare("SELECT COUNT(*) AS n FROM _crm_communications WHERE customer_id=?")
+        .get(customerId).n;
+      const recent = db
+        .prepare(
+          "SELECT id,contact_id AS contactId,channel,direction,subject,summary,reference,occurred_at AS occurredAt,created_by AS createdBy FROM _crm_communications WHERE customer_id=? ORDER BY occurred_at DESC,id DESC LIMIT 10",
+        )
+        .all(customerId)
+        .map((row) => ({ ...row }));
+      communicationsSummary = { count, recent };
+    }
+
     // Billing parties differ from the owning account when a property manager pays.
     const billingLinks = listBillingLinks(user, customerId);
 
@@ -626,6 +641,7 @@ export function createCrmService({ storage, invoiceSummaryInTransaction, salesSu
       sales,
       activity,
       agreements,
+      communications: communicationsSummary,
     };
   }
 

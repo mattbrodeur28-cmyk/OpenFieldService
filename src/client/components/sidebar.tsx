@@ -14,9 +14,11 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "jobs", path: "/jobs", label: "Jobs", icon: Briefcase },
   { view: "customers", path: "/customers", label: "Customers", icon: Users },
   { view: "projects", path: "/projects", label: "Projects", icon: FolderKanban },
+  { view: "residential", path: "/residential", label: "Residential", icon: House },
   { view: "agreements", path: "/agreements", label: "Agreements", icon: Briefcase },
   { view: "technicians", path: "/technicians", label: "Technicians", icon: Wrench },
   { view: "inventory", path: "/inventory", label: "Inventory", icon: Package },
+  { view: "rms", path: "/rms", label: "Refrigerant (RMS)", icon: Wrench },
 ];
 
 export function Sidebar({ currentView, currentId, collapsed = false }: { currentView: View; currentId?: string | null; collapsed?: boolean }) {
@@ -103,6 +105,7 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
         {moduleGroup(businessModules.sales, TrendingUp)}
         {user.role !== "viewer" && moduleGroup(businessModules.fleet, Truck)}
         {canManage && moduleGroup(businessModules.finance, Wallet)}
+        {canManage && navItem({ view: "owner", path: "/owner", label: "Owner hub", icon: LayoutDashboard })}
         {canManage && navItem({ view: "builder", path: "/builder", label: "App builder", icon: Code2 })}
         {navItem({ view: "knowledge", path: "/knowledge", label: "Knowledge", icon: BookOpen })}
         {canManage && navItem({ view: "website", path: "/website", label: "Website", icon: Globe })}

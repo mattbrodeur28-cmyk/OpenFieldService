@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { Plus, X, ArrowUp, ArrowDown } from "lucide-preact";
+import { Plus, X, ArrowUp, ArrowDown, Trash2 } from "lucide-preact";
 import type { SalesStage, SalesPipeline } from "../../sales-types";
 import { Button } from "../ui/button";
 import { TextField } from "../ui/input";
@@ -53,6 +53,17 @@ export function PipelineEditor({
     const next = [...stages];
     [next[index], next[index + delta]] = [next[index + delta], next[index]];
     setStages(next);
+  };
+  const openCount = stages.filter((s) => s.kind === "open").length;
+  const removeStage = (stageId: string) => {
+    setStages((current) =>
+      current
+        .filter((item) => item.id !== stageId)
+        .map((item) => ({
+          ...item,
+          allowedFrom: item.allowedFrom.filter((id) => id !== stageId),
+        })),
+    );
   };
   return (
     <Sheet close={close}>
@@ -144,6 +155,18 @@ export function PipelineEditor({
               >
                 <ArrowDown size={15} />
               </Button>
+              {stage.kind === "open" && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={"Delete " + (stage.name || "stage")}
+                  title={openCount <= 1 ? "At least one open stage is required" : "Remove stage"}
+                  disabled={busy || disabled || openCount <= 1}
+                  onClick={() => removeStage(stage.id)}
+                >
+                  <Trash2 size={15} />
+                </Button>
+              )}
             </div>
             <div class="sales-form-grid">
               <TextField

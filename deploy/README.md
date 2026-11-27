@@ -46,12 +46,12 @@ pnpm --version
 
 ## Install this fork
 
-Use the standalone branch once it has been pushed to the fork. Alternatively copy
-the reviewed checkout to `/opt/openfieldservice`; the original upstream main branch
-does not include these deployment files. Do not install over an existing directory.
+Use `main` from this fork for the tested standalone release. The original upstream
+repository does not include these deployment changes. Do not install over an
+existing directory.
 
 ```sh
-git clone --branch feature/debian-standalone https://github.com/mattbrodeur28-cmyk/OpenFieldService.git /opt/openfieldservice
+git clone --branch main https://github.com/mattbrodeur28-cmyk/OpenFieldService.git /opt/openfieldservice
 cd /opt/openfieldservice
 pnpm install --frozen-lockfile
 pnpm build
@@ -120,8 +120,11 @@ service and verify customers, equipment and jobs in the browser.
 
 ## Updates
 
-Back up first. Stop `openfieldservice`, review and fast-forward to the intended
-commit in the checkout, then run `pnpm install --frozen-lockfile`, `pnpm build`,
+Back up both databases and private configuration first. Stop `openfieldservice`,
+retain a protected copy of its complete state directory (including any WAL sidecars)
+and `/etc/openfieldservice.env`, and record the current commit. Fetch `origin/main`,
+switch to `main` and fast-forward to the reviewed commit; preserve local changes
+instead of resetting them. Then run `pnpm install --frozen-lockfile`, `pnpm build`,
 `pnpm exec tsc --noEmit` and `pnpm test`. Start the service and read back
 `/healthz` and `/api/auth/session`. Finally open a saved equipment/job bookmark and
 confirm records survived. Do not delete or reset the state directory for updates.

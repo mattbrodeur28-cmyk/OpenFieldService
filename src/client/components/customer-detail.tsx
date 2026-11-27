@@ -8,6 +8,7 @@ import { CustomerRelationships } from "./customer-relationships";
 import { CustomerOverview } from "./customer-overview";
 import { CustomerEquipment } from "./customer-equipment";
 import { CustomerActivity } from "./customer-activity";
+import { CustomerCommunications } from "./customer-communications";
 import { StatusBadge } from "./status-badge";
 import { ArrowLeft, Trash2, Edit3, Save, X, ChevronDown, Building2, Pencil } from "lucide-preact";
 
@@ -173,6 +174,9 @@ export function CustomerDetail() {
             </RecordSection>
             <RecordSection title="Activity" defaultOpen={false}>
               <CustomerActivity customerId={customer.id} />
+            </RecordSection>
+            <RecordSection title="Communications" defaultOpen={false}>
+              <CustomerCommunications key={"comms-" + customer.id} customerId={customer.id} />
             </RecordSection>
             <RecordSection title="Relationships" component defaultOpen={false}>
               <CustomerRelationships key={"relationships-" + customer.id} customerId={customer.id} />

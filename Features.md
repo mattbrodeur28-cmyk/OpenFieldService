@@ -1,5 +1,40 @@
 # Features and enterprise product roadmap
 
+Updated: **2026-11-27**. This file owns product scope, stable feature IDs,
+dependencies and acceptance criteria. Implementation notes describe recorded
+progress; release records carry the evidence. This cleanup does not certify a new
+release or change feature checkboxes.
+
+## Contents
+
+- [Product direction](#product-direction)
+- [Delivery rules and status](#delivery-rules-and-status)
+- [Active delivery tracks](#active-delivery-tracks)
+- [Current foundation and limits](#current-foundation-and-limits)
+- [Milestone order](#milestone-order)
+- [M0 — Documentation](#m0--documentation-and-delivery-standards)
+- [M1 — Workspace and SLDS UI](#m1--modern-workspace)
+- [M2 — Backend foundations](#m2--backend-maintainability-and-enterprise-foundations)
+- [M3 — Dispatcher](#m3--dispatcher-app)
+- [M4 — CRM and Sales](#m4--commercial-crm)
+- [M5 — Contracts](#m5--contracts-and-maintenance-agreements)
+- [M6 — QuickBooks](#m6--quickbooks-accounting)
+- [M7 — Controls and handover](#m7--controls-commissioning-and-handover)
+- [M8 — Owner reporting](#m8--empower-the-business-owner)
+- [M9 — Deployment and scale](#m9--deployment-and-scale)
+- [M10 — Later options](#m10--later-options)
+- [M11 — Projects, Commercial and Construction](#m11--commercial-and-construction-projects)
+- [M12 — Residential](#m12--residential-service-business)
+- [M13 — Technician execution and inventory](#m13--technician-execution-timesheets-and-truck-inventory)
+- [M14 — Refrigerant monitoring](#m14--refrigerant-monitoring-system-rms)
+- [M15 — Fleet](#m15--fleet-and-live-dispatch-tracking)
+- [M16 — Purchasing](#m16--purchasing-material-costs-and-purchase-orders)
+- [Finance](#finance--receivables-liabilities-and-permissions)
+- [HR removal and retained requirements](#hr-removal-and-retained-requirements)
+- [Enterprise definition of done](#enterprise-definition-of-done)
+- [Documentation map](#documentation-structure-to-establish)
+- [Evidence and history](#evidence-and-history)
+
 ## Product direction
 
 Build an independent, modern, self-hosted operating platform for small and medium
@@ -19,7 +54,13 @@ Maintainability, documentation, recoverable data, clear permissions and repeatab
 deployment are requirements for every feature. A complete-looking screen does not
 establish that its backend or provider synchronization works.
 
-## How we work through this file
+**Current product decisions:** one self-hosted company with admin-created users;
+shared native records across apps; Salesforce Lightning Design System (SLDS) on
+the existing Preact/Radix stack. The owner is removing the HR app (2026-11-27).
+That direction does not by itself prove routes, permissions, data or staff workflows
+have been migrated. See [retained people requirements](#hr-removal-and-retained-requirements).
+
+## Delivery rules and status
 
 1. Select one feature ID and confirm its acceptance criteria and dependencies.
 2. Implement a usable slice: UI, API, permissions, persistence, error handling,
@@ -36,87 +77,98 @@ Status meanings:
 - **Verified live:** the deployed workflow has been exercised, including real
   provider accounts when applicable. Fixture tests are not live verification.
 
-Checkboxes below mean the feature's acceptance criteria and documentation are
-complete. They must not be checked merely because a page, endpoint or mock exists.
+Checkboxes are preserved from the existing roadmap. They mean the feature's
+acceptance criteria and documentation are complete. They must not be checked merely because a page, endpoint or mock exists.
 
-## Owner's active delivery tracks — 2026-11-25
+**Qualification policy:** automated tests and builds were resumed by the owner;
+browser testing remains deferred. Historical “testing deferred” / “unqualified”
+notes in feature entries describe their original implementation checkpoints.
+Consult the [evidence record](docs/releases/2026-11-25-automated-progress.md) for
+later automated coverage; it does not close browser, provider, migration or LXC
+gates. No tests were rerun for this documentation-only reorganization.
 
-Requested scope: M4 CRM/pipelines, M2 foundations, Sales, Contracts, Projects,
-Commercial, Construction, M12 Residential and M13 technician execution. These are
-shared business tracks, not independent copies of accounts, stock or Job ledgers.
-Work through bounded feature IDs with their dependencies; this order is a working
-priority, not permission to skip the acceptance gates or mark a module complete.
+**ID stability:** do not renumber features when reordering sections. The legacy
+`DOC-001`–`DOC-005` IDs are used in both M0 documentation and M2 ticket documents;
+qualify them with the milestone (for example, `M2 / DOC-001`) in tickets and releases.
+New IDs must be unique. An unchecked item may have implemented slices; its complete
+acceptance criteria remain open. A checked item is not a live-deployment claim.
 
-| Track | Roadmap ownership | Next unresolved behavior |
+## Active delivery tracks
+
+The owner's delivery scope remains CRM/pipelines, platform foundations, Sales,
+Contracts, Projects, Commercial, Construction, Residential and technician execution.
+Use the detailed feature entries to choose one bounded slice; the sequence below
+is a dependency guide rather than a claim that entire modules are finished.
+
+| Track | Owning feature IDs | Focus / remaining acceptance work |
 | --- | --- | --- |
-| CRM and pipelines | M4 CRM-003/004/006; SALES-010/011 | Prospect-to-native-account conversion, activity/data quality and pipeline aging/reporting |
-| Platform foundations | M2 ARCH-001–007 | Module/repository boundaries, migration preservation and reliable shared transactions/jobs |
-| Sales | M4 SALES-005–016 | Qualify estimating/offers/native Job conversion; finish procurement and reporting |
-| Contracts | M5 CONTRACT-001–008 | Native agreement, accepted versions, equipment coverage and due-work generation |
-| Projects, Commercial and Construction | M11 PROJ and commercial/construction tracks | Shared project/phases, change orders, progress billing, crew cost, retainage and WIP |
-| Residential | M12 | Memberships, options, booking and native service/billing workflows |
-| Technician execution | M13 | Weekly timecards, required equipment report, approved actual labor and completion/billing |
+| Modern UI | M1 UX/UI; ADR-0008 | Consistent SLDS layouts, business-screen adoption and accessibility |
+| CRM and Sales | M4 CRM-001–007; SALES-001–018 | Complete Customer 360/communications, quote options, procurement and access rules |
+| Platform | M2 ARCH-001–022 | Native boundaries, migrations, durable jobs, policy-safe metadata and shared-state qualification |
+| Contracts | M5 CONTRACT-001–008 | Qualify end-to-end maintenance, evidence, entitlements, renewal and billing handoffs |
+| Projects / Commercial / Construction | M11 PROJ, COM, CONST | Project/phase delivery, crews, change orders, commitments, progress billing and WIP |
+| Residential | M12 RES-001–008 | Memberships, three-option estimates, booking, mobile service and provider-backed payments |
+| Technician execution | M13 TECH-001–011 | PJSA → required equipment report → completion/billing, weekly timecards and stock |
+| Fleet / Purchasing | M15 FLEET; M16 PURCH | Maintenance/tracking feeds, procurement links and cost reconciliation |
+| Finance | FIN-001–003; M6 QB | Native receivables/liabilities and reviewed QuickBooks mappings/synchronization |
 
-Testing remains explicitly deferred by the owner. Continue source implementation
-and documentation; retain qualification tasks and publish only after the required
-checks resume and pass. Credentials/hardware gaps do not stop independent work.
+**Immediate documentation and design dependency:** settle where people administration,
+Staff/technician records and personnel documents belong after HR removal before
+changing their ownership or deleting entry points. Keep identities and historical
+links intact. Independent business work can continue while external credentials,
+tracking hardware and browser qualification remain unavailable.
 
 ## Current foundation and limits
 
-The foundation uses Node.js 24, Hono, Preact, TypeScript and SQLite, deployed with
-systemd on a Debian 13 Proxmox LXC. Core service and workspace records currently use
-two separate SQLite databases. The intended HTTPS origin is
-`https://field.mattshomelab.net` through the user's reverse proxy/NetBird setup.
+The standalone target is Node.js 24, Hono, Preact, TypeScript and SQLite with
+systemd on Debian 13 Proxmox LXC. Service and workspace records currently use two
+SQLite databases. The configured HTTPS origin is `https://field.mattshomelab.net`.
+Deployment support and local preview startup are distinct from current production
+qualification; verify the deployed release before making operational claims.
 
-| Area | Current foundation | Important limits |
+| Area | Recorded implementation | Remaining boundary |
 | --- | --- | --- |
-| Service operations | Customers, jobs, technicians, weekly schedule, service types, materials and invoices | Not a full sales CRM, contract system or Gantt dispatcher |
-| Equipment | Customer sites, serialized assets, lifecycle dates/status and retained history | No complete controller/point hierarchy or commissioning package |
-| Accounts | Local login, admin-created users, Owner/Admin/Member/Viewer roles, temporary password changes and revocation | One company; no public signup or multi-tenant SaaS |
-| Collaboration | Teams, membership and persistent messages | Polling; no full Teams feature set |
-| AI | Ollama, OpenAI and DeepSeek configuration; text knowledge; bounded record context | Real provider use requires private configuration; no autonomous business writes |
-| Builder | Reviewed frontend proposals, source hashes, non-root validation/build command | Existing frontend files only; generation is not deployment |
-| Integrations | Private OAuth connections, encrypted tokens, refresh, read previews and opt-in Chat context | Google metadata/calendar/mail headers; Microsoft metadata/calendar/contacts/mail headers; HubSpot reads; LinkedIn profile only |
-| Offline | Saved schedules/job packets on supported HTTPS browsers | Read-only; no offline write queue |
-| Operations | Direct install, health endpoint, systemd, backups and CI | Not qualified for multiple replicas or horizontal scaling |
+| Service / Dispatcher | Native jobs, weekly schedule, hourly resource board and work pipeline | Full technician billing readiness and accessibility qualification |
+| CRM / Sales | Native accounts/contacts, Customer 360, opportunities, stages, quoting and accepted-quote Job handoff | Remaining options, communications, procurement and scoped access work in M4 |
+| Equipment / Contracts | Customer locations/assets and agreement lifecycle, plans, work generation and usage projections | Controls hierarchy, complete field evidence and end-to-end billing qualification |
+| Accounts / people | Local login, admin-created users, roles and technician identity links | HR app removal and a documented replacement home for people workflows |
+| Collaboration / AI | Teams/messages, Ollama/OpenAI/DeepSeek configuration and bounded context | Streaming/collaboration extensions and actual configured provider proof |
+| Builder | Reviewed frontend proposals, hashes and non-root validation/apply boundaries | Isolated previews and deployment qualification; generation is not deployment |
+| Inventory / Fleet / Purchasing | Shared stock/cost ledger, vehicle register, maintenance and partial PO receiving | GPS feeds, reservations/stocktake, purchasing amendments and accounting reconciliation |
+| Finance | Native receipt/credit/reference and receivables increments | Liabilities, reconciliation and QuickBooks sandbox/provider proof |
+| Integrations | Private OAuth/read previews for supported Google, Microsoft, HubSpot and LinkedIn slices | Broader actions/provider scopes require separate implementation and real accounts |
+| Offline / Operations | Read-only saved packets, health endpoint, systemd and backup tooling | Offline writes, PostgreSQL, multiple replicas and Kubernetes qualification |
 
-The navigation/profile/HR/channel refresh and conversational Builder core are
-implemented in the [M0/M1 release](docs/releases/2026-11-14-workspace.md). M1 remains
-in progress for full accessibility/theme qualification and later collaboration/preview
-slices. Local browser evidence is not a live LXC deployment claim. Dispatcher core and the first Sales opportunities/pipelines/Kanban increment are
-implemented. Contracts are now in progress (drafts, review, offers, authorization,
-maintenance plans, due-work generation and entitlement usage). QuickBooks integration,
-broader CRM and Kubernetes qualification remain planned work.
+This table is an orientation to the feature notes, not a fresh implementation audit.
+See the [documentation index](docs/README.md) for owning APIs and release records.
 
 ## Milestone order
 
 | Milestone | Outcome | Status | Depends on |
 | --- | --- | --- | --- |
 | M0 | Product inventory, documentation and delivery standards | Implemented | Existing foundation |
-| M1 | Navigation, profile/settings, HR, channels and conversational Builder | In progress | M0 |
-| M2 | Maintainable backend boundaries and operational foundations | Planned | M0; complete M1 first |
+| M1 | Modern workspace, SLDS UI, accounts, channels and Builder | In progress; HR app removal directed | M0 |
+| M2 | Maintainable backend boundaries and operational foundations | In progress; foundational slices recorded, enterprise gates open | M0; coordinate shared M1 access/UI boundaries |
 | M3 | Salesforce-style Dispatcher app | Core implemented; accessibility qualification remains | M2 concurrency and scheduling foundation |
 | M4 | Commercial CRM, Sales pipeline and quote-to-job conversion | In progress: Sales opportunities, pipelines, Kanban, follow-ups and CRM accounts/contacts | M2; existing customers/sites |
 | M5 | Contracts, maintenance agreements and renewals | In progress: drafts, review, offers, authorization, maintenance plans, due-work generation and entitlement usage | M4 customer/contact model; M3 scheduling |
 | M6 | QuickBooks-backed accounting | Planned | M2 reliable integration jobs/audit; M4 mappings |
 | M7 | Controls records, commissioning and handover | Planned | M4; existing equipment foundation |
-| M11 | Commercial/construction projects, phased billing, crews and job costing | Planned | M2–M6 shared domains; project and ledger foundations |
+| M8 | Business-owner reporting and operational controls | Planned | M3–M7 business events |
+| M9 | Containers, Kubernetes and scale qualification | Planned | M2 shared-state/database work |
+| M10 | Optional extensions and broader SaaS | Planned | Proven core workflows |
+| M11 | Commercial/construction projects, phased billing, crews and job costing | In progress; project structure/management recorded, broader scope open | M2–M6 shared domains; project and ledger foundations |
 | M12 | Residential memberships, mobile sales/service, booking and payment workflows | Planned | M3–M6 shared domains; relevant M8 capabilities |
 | M13 | Technician workflow, actual time, timesheets and truck inventory | In progress; PJSA/report/actual-time and timesheet pilots implemented | M2, M3; shared users/jobs/materials |
 | M14 | Refrigerant Monitoring System and dashboard | Planned | M13 inventory/time/job evidence; equipment baseline |
 | M15 | Fleet, vehicle maintenance and live dispatch tracking | In progress: native vehicles, stock links and in-app maintenance | M13 shared stock/custody; M3 Dispatcher; authorized location feeds |
 | M16 | Suppliers, purchase orders and receiving | In progress: suppliers, PO approval/issue and atomic partial receiving | M13 movement/cost ledger; M11 job/phase commitments |
-| M8 | Business-owner reporting and operational controls | Planned | M3–M7 business events |
-| M9 | Containers, Kubernetes and scale qualification | Planned | M2 shared-state/database work |
-| M10 | Optional extensions and broader SaaS | Planned | Proven core workflows |
 
-Milestone IDs remain stable; the table describes dependencies rather than a strict
-numeric execution order. M11–M14 are business tracks and reuse shared
-modules instead of duplicating the M3–M8 work.
-
-Ordering can change explicitly. A narrow QuickBooks sandbox slice can precede
-contracts once its mapping and reliable execution foundations exist. Architectural
-boundaries must be designed before the Kubernetes milestone.
+Milestone IDs remain stable and sections are ordered numerically for navigation.
+Delivery follows dependencies, not numeric order: M11–M16 reuse CRM, scheduling,
+contracts, shared inventory and accounting. Finance has separate FIN IDs; HR is
+retained below only as a removal/migration reference. A narrow QuickBooks sandbox
+slice can proceed once its mapping and reliable-execution foundations exist.
 
 ## M0 — Documentation and delivery standards
 
@@ -165,13 +217,21 @@ and [release record](docs/releases/2026-11-14-workspace.md).
 
 ### Shared UI system and modern interaction standards
 
-The requested component sources and adoption rules are recorded in
+Current design direction: **SLDS**, adopted incrementally as tokens/CSS on the
+existing Preact runtime while retaining Radix behavior and shared wrappers. See
+[ADR-0008](docs/architecture/decisions/0008-slds.md); earlier shadcn/Radix decisions
+remain provenance, not a competing theme. Existing checked UI items describe their
+recorded slice and do not certify complete SLDS adoption.
+
+The original component sources and compatibility rules are recorded in
 [ADR-0001](docs/architecture/decisions/0001-ui-system.md) and the
 [UI implementation guide](docs/development/ui-system.md).
 
-- [x] **UI-001 — Design system decision:** shadcn/ui is the primary source-owned
-  component system, Radix is the requested primitive foundation, and all adopted
-  components use shared tokens and documented variants.
+- [x] **UI-001 — Design system decision:** SLDS is the current visual direction
+  (ADR-0008), on the existing Preact runtime with Radix behavior, shared source-owned
+  wrappers and documented tokens/variants. Earlier shadcn-based decisions remain
+  recorded in ADR-0001/0002; screen-by-screen adoption and qualification continue
+  under UI-006/UI-008.
 - [x] **UI-002 — NumberFlow:** local framework-independent adapter for selected
   operational counters, static first values, accessible text, reduced motion and
   bounded transitions; financial review/editing values stay static.
@@ -255,6 +315,44 @@ See [the current release evidence](docs/releases/2026-11-14-dispatcher.md) and
 channel persistence, HR escalation protections and cumulative builder edits.
 Changed source must invalidate a draft. Never label generated code compiled or live.
 
+### App navigation and record placement
+
+Sales, Fleet and Finance are peer apps alongside Field Service. The owner is removing
+HR; its former section and permissions below are historical until a replacement
+people-administration flow is documented. HR removal must not grant Finance,
+integration, credential or Builder access to ordinary people administrators.
+
+- [x] **ORG-001 — App navigation:** recorded HR and Finance routes and section navigation;
+  existing invoices and purchasing use their original records and URLs. Staff
+  reuses current account administration. Owner/Admin/HR can access people controls;
+  HR membership alone does not grant Finance or privileged account management.
+
+Sales, Fleet, HR and Finance originally received independently expandable sidebar
+groups, child routes and overview pages. HR is now being removed by the owner. Sales pipeline uses
+native opportunities/stages; Quotes has an internal draft workbench pilot. Frozen offering and recorded responses are tracked under SALES-018; provider delivery remains separate. Fleet vehicles/maintenance
+and truck inventory use existing vehicles and stock locations; GPS remains planned.
+Schedule is embedded directly above the Work pipeline on Dispatcher, whose board can create native jobs. Home
+embeds the shared weekly schedule with every job-creation control suppressed.
+Materials is the native catalog inside Inventory; legacy URLs remain available.
+Customer equipment and job equipment selection use a searchable Location followed
+by a location-scoped equipment dropdown. The backend validates the location belongs
+to the requested customer; no customer, site, asset, or material copy is created.
+
+Sidebar section disclosures persist per user in this browser, survive reloads, and
+synchronize between tabs. Blocked/unavailable browser storage falls back to usable
+in-memory navigation. These preferences never grant access or configure the server.
+Module headings are one full-width disclosure button, including their chevron;
+Overview remains the first child link. In the collapsed icon rail, Sales/Fleet/HR/Finance
+children are hidden and module icons open the corresponding overview. Collapsing the
+rail does not rewrite section preferences. Profile initials stay visible with mouse
+as well as touch input. See [sidebar repair evidence](docs/releases/2026-11-15-sidebar.md).
+
+Dispatcher's embedded week has no redundant Schedule heading. Selecting a day,
+previous/next week, or Today updates the shared dispatch date and native board;
+the duplicate daily toolbar controls are removed, leaving one shared weekly control group. Work pipeline remains an
+all-date backlog so unfinished work does not disappear when navigating dates.
+The requested extra In progress column was withdrawn; existing stage filters remain.
+
 ## M2 — Backend maintainability and enterprise foundations
 
 - [ ] **ARCH-001 — Domain modules:** explicit identity, collaboration, CRM, service,
@@ -283,13 +381,13 @@ Changed source must invalidate a draft. Never label generated code compiled or l
   secret references/rotation and encryption-key migration procedure.
 - [ ] **ARCH-012 — Observability:** structured logs, metrics, worker/integration health,
   readiness/liveness, tracing hooks, alerts and operator dashboards.
+- [ ] **ARCH-013 — Security:** centralized capabilities, session revocation, CSRF/CORS,
+  rate limits, MFA/SSO roadmap, dependency/secret scanning and disclosure process.
 - [ ] **ARCH-014 — Native app integration:** one authoritative customer/site/equipment,
   work order, user and catalog identity across apps; reverse record links, shared
   capabilities and transactional handoffs. Snapshots preserve accepted documents;
   projections must identify their authoritative source. See
   [native-record contract](docs/architecture/decisions/0005-native-business-records.md).
-- [ ] **ARCH-013 — Security:** centralized capabilities, session revocation, CSRF/CORS,
-  rate limits, MFA/SSO roadmap, dependency/secret scanning and disclosure process.
 
 ### Extensible CRM/business platform — owner direction, 2026-11-25
 
@@ -303,7 +401,7 @@ and qualification are unfinished.
 - [ ] **ARCH-015 — Module/object registry:** stable module/object/field identities,
   dependencies, native record ownership, inverse relationships, lifecycle commands
   and safe module enable/disable without deleting referenced records.
-  Source foundation 2026-11-25, testing deferred: strict native module/object
+  Original source checkpoint, 2026-11-25: strict native module/object
   descriptors, stable UUID/key ownership, dependency-cycle/relationship validation,
   derived inverse links and Owner/Admin-only metadata reads. Coverage is identity/
   labels/selected relations; complete field/API contracts and runtime module lifecycle
@@ -311,7 +409,7 @@ and qualification are unfinished.
 - [ ] **ARCH-016 — Custom fields/relations:** reviewed versioned metadata, typed
   values/validation, indexing/search/export, rename/archive/backfill and protected
   business fields. Custom-object CRUD must retain the same access/transaction rules.
-  Backend source foundation 2026-11-25 (testing deferred): Owner/Admin optional
+  Original backend source checkpoint, 2026-11-25: Owner/Admin optional
   text/integer/boolean/date/select fields on native customers/equipment/opportunities/
   jobs; definition revisions, explicit nulls, object/native foreign keys, immutable
   value history and exact retry recovery. Custom relations/
@@ -487,7 +585,7 @@ estimates extend this model in M11/M12.
 
 The dedicated Sales app now implements opportunities, configured pipelines and
 Kanban. Existing customer/site/equipment links are supported. Quote generation now includes saved drafts, templates, pricing review and frozen
-offers with recorded external responses. Dispatcher/job conversion remains open. See
+offers with recorded external responses. Accepted-quote/native Job conversion is recorded under SALES-008/009; remaining qualification is explicit below. See
 [the release evidence](docs/releases/2026-11-14-sales-foundation.md) and
 [API/permission/operating rules](docs/api/sales.md).
 
@@ -555,14 +653,14 @@ offers with recorded external responses. Dispatcher/job conversion remains open.
   customer options and broader browser qualification remain open. Core manual pricing
   approval and exact frozen offering are browser-verified in the local fixture.
   See [bid review API](docs/api/sales-bid-review.md).
-  Job costing spreadsheet work in progress (2026-11-25, testing deferred): separate
+  Job costing spreadsheet source checkpoint (2026-11-25): separate
   editable Material/Labor/Other sheets with range copy/paste, keyboard navigation,
   local undo/redo and shared quote-line persistence. Material multiplier means
   increase above base price ($100 + 30% = $130); Markup is removed, Misc is one flat
   row charge. Labor has mutually exclusive OT 1.5× / DT 2× rate choices. Shared
   server calculation, templates and customer documents retain those inputs.
   See [costing worksheet](docs/product/job-costing-spreadsheet.md) for scope and
-  deferred qualification. Do not mark this UI verified until testing resumes.
+  deferred qualification. Automated math coverage is recorded in the evidence log; spreadsheet browser qualification remains open.
 - [x] **SALES-008 — Quote to active job:** authorized conversion of an accepted quote
   creates one linked job (or an explicit phased-project handoff later), snapshots
   accepted scope/pricing, carries customer/site/equipment, and places unassigned work
@@ -631,6 +729,11 @@ offers with recorded external responses. Dispatcher/job conversion remains open.
   receipt → job UUIDs. Track ordered/received/reserved quantities and prevent repeated
   acceptance/conversion or partial selection from ordering the same demand twice.
   Do not append silently to issued POs or automatically send a supplier order.
+  Implemented (source + automated tests, v7 migration): `GET/POST /api/sales/quotes/:id/procurement`
+  allocates accepted-quote material lines into new or existing draft POs (`_purch_orders`/
+  `_purch_lines`), tracks ordered/remaining/received quantities, blocks over-ordering and
+  appending to issued POs, and preserves full UUID provenance with idempotent replay.
+  Browser and provider qualification remain open.
 
 - [x] **SALES-017 — Supplier-pending draft materials:** directly search native Inventory,
   prepare unlisted material descriptions/quantities before supplier pricing arrives,
@@ -774,9 +877,88 @@ realm isolation and partial failures. Production needs separate company verifica
 **Acceptance:** complete a controller checkout, record a deficiency, attach a
 versioned backup, schedule corrective work and produce a traceable handover.
 
+## M8 — Empower the business owner
+
+**Status: Coded (source + automated tests; browser, scheduled worker delivery, and LXC qualification remain open).**
+
+- [ ] **BIZ-001 — Dashboard:** dispatch, pipeline, overdue work, quote approvals,
+  renewals, outstanding invoices and accounting/integration failures.
+  Coded (source + automated tests): Owner/Admin `GET /api/business/dashboard` and
+  `/owner` Owner Hub projecting live cross-module metrics with drill-down navigation.
+- [ ] **BIZ-002 — Financial visibility:** operational revenue, labor/material costs,
+  margins and contract profitability with source, timing and exclusions labeled.
+  Coded (source + automated tests): operational AR/paid/overdue and project contract
+  metrics with explicit separation from posted accounting ledgers.
+- [ ] **BIZ-003 — Labor:** time entries, approvals, corrections and job costing;
+  payroll is a separate capability from basic time tracking.
+  Coded (source + automated tests): live rollup of approved/pending service and
+  project crew time entries with drill-down to Timesheets.
+- [ ] **BIZ-004 — Inventory/purchasing:** locations/truck stock, reservations,
+  consumption, reorder suggestions, purchase orders and receiving. Reuse M11 project/
+  phase/cost-code commitments and material movements rather than duplicate ledgers.
+  Coded (source + automated tests): live low-stock reorder alerts and open PO
+  commitments projected from native `_inventory_balances` and `_purch_orders`.
+- [ ] **BIZ-005 — Reporting:** saved filters, exports, scheduled reports, permissions,
+  dataset definitions and freshness indicators.
+  Coded (source + automated tests): `_biz_saved_reports` with live CSV and JSON
+  exports (`GET /api/business/reports/:id/export`) and freshness timestamps.
+- [ ] **BIZ-006 — Automation:** explicit triggers/actions, dry-run preview, approvals,
+  audit, retries and safe disablement.
+  Coded (source + automated tests): `_biz_automations` and `_biz_automation_runs`
+  with non-mutating dry-run preview (`POST /api/business/automations/:id/dry-run`)
+  and enable/disable controls.
+- [ ] **BIZ-007 — Customer portal:** separate external identity and customer-scoped
+  access to accepted quotes/contracts, approved reports and invoices.
+  Coded (source + automated tests): hashed, expirable, revocable `_portal_tokens`
+  serving read-only customer-scoped `GET /api/portal/me` isolated from staff sessions.
+
+**Acceptance:** the owner can trace dashboard metrics to records and resolve an
+operational/accounting exception without developer database edits.
+
+## M9 — Deployment and scale
+
+- [ ] **DEPLOY-001 — Direct install:** maintain Debian/systemd setup, ownership,
+  updates, configuration, logs, health checks, backups and restore instructions.
+- [ ] **DEPLOY-002 — Containers:** reproducible multi-stage non-root image, supported
+  runtime, graceful shutdown, external configuration and persistent business state.
+- [ ] **DEPLOY-003 — Compose:** app/database/worker and optional object storage,
+  private networking, health dependencies and tested upgrade/recovery procedure.
+- [ ] **DEPLOY-004 — Single-instance Kubernetes:** resources/probes, config/secrets,
+  Service/Ingress, persistent storage and migration/upgrade steps. With SQLite,
+  explicitly restrict replicas and rollout/storage behavior to avoid simultaneous
+  database writers. Packaging is not horizontal scaling.
+- [ ] **DEPLOY-005 — Multi-replica Kubernetes:** shared PostgreSQL, stateless API/web
+  pods, durable workers, external files, shared session/rate-limit/locking strategy,
+  connection pooling, migration Job and deliberate rollout/disruption policies.
+- [ ] **DEPLOY-006 — Operations:** workload-based scaling, graceful drain, worker
+  scaling, resource limits, metrics, alerts and supported capacity envelope.
+- [ ] **DEPLOY-007 — Recovery:** retention, restoration drills, point-in-time recovery
+  where supported, disaster recovery runbook and measured recovery objectives.
+- [ ] **DEPLOY-008 — Qualification:** realistic concurrent dispatch/CRM/accounting
+  load, failed jobs, database/queue outages, connection-pool exhaustion, migration
+  ordering and rollback/recovery exercises.
+
+**Acceptance:** install cleanly, restore data, upgrade populated records and recover
+from failure using published instructions. Claim multi-replica support only after
+shared-state and concurrency testing. A backup job is not proof of restoration.
+
+## M10 — Later options
+
+- [ ] Additional CRM providers after object ownership/sync behavior is proven.
+- [ ] Social publishing after explicit authorization, provider approval, reviewed
+  target/content selection and uncertain-delivery handling.
+- [ ] Additional refrigeration workflows beyond M14, with researched jurisdiction-specific
+  requirements; distinguish recordkeeping from compliance claims.
+- [ ] Customer email/SMS with consent, templates, delivery status and provider costs.
+- [ ] Multi-company SaaS only after tenant isolation covers data, jobs, credentials,
+  files, audit, APIs, backups and migrations.
+- [ ] AI tools with scoped permissions, confirmation for business writes, execution
+  audit and recovery; no unrestricted production shell.
+
 ## M11 — Commercial and construction projects
 
-**Status: Planned.** Commercial and Construction are business tracks on a shared
+**Status: In progress.** Project structure and management increments are recorded
+below; the remaining project/commercial/construction scope is planned. Commercial and Construction are business tracks on a shared
 project/job-costing foundation. They should not become separate implementations of
 customers, crews, purchasing, invoices or accounting. A company may operate more
 than one track; a business track is not a separate tenant.
@@ -807,33 +989,62 @@ domain modules, with explicit permissions and accounting ownership.
   signatures, attachments and completion evidence, with author/time/version history.
   Define required evidence for billing readiness; signatures capture stated approval
   intent and do not silently approve unrelated scope or financial terms.
+  Implemented (source + automated tests): versioned `_project_field_docs` (daily logs,
+  forms, photos, completion evidence, attachments, signatures requiring explicit signer
+  name and stated approval intent), optional `_document_records` links, billing-required
+  gating enforced on billing application submission, and Owner/Admin approval. Browser
+  and file-storage qualification remain open. See [Projects API](docs/api/projects.md).
 - [ ] **PROJ-004 — Crew management:** crews/leads, effective-dated membership, dispatch
   assignments and field time by person/job/phase/cost code. Include approval,
   correction history and labor-cost allocation; payroll export is a separate step.
+  Implemented (source + automated tests): `_project_crews`, effective-dated
+  `_project_crew_members` over native `technicians`, `_project_crew_time` with
+  `correction_of` history, Owner/Admin approval and labor-cost allocation into WIP.
+  Payroll export and browser qualification remain open.
 - [ ] **PROJ-005 — Change orders:** versioned scope, estimated labor/material/subcontract
   cost, pricing, schedule impact, approval authority and customer acceptance. Approved
   changes update the current contract value/budget and become billable exactly once;
   pending/rejected changes remain distinguishable and cannot inflate approved totals.
+  Implemented (source + automated tests): `_project_change_orders` with sequential
+  numbering, cost/price/schedule impact, draft→submitted→approved/rejected lifecycle,
+  Owner/Admin approval authority, separate customer acceptance evidence, and SOV
+  linkage (`UNIQUE(change_order_id)`) so approved changes become billable once.
 - [ ] **PROJ-006 — Purchasing and inventory:** requisitions, approvals, POs, stock/truck
   reservations, receipts, issues, returns and vendor invoices tied to job/phase/cost
   code. Distinguish committed purchase cost, received material cost and billed cost;
   avoid double-counting commitments when actual invoices arrive.
+  Implemented (source + automated tests): `_project_purchasing_links` plus live
+  projection of native `_purch_lines` / `_purch_receipts` via linked project jobs,
+  separating committed, received, billed and open-commitment totals without double-counting.
 - [ ] **PROJ-007 — Subcontractors:** company/contact, scope/package, approved commitment,
   change orders, submitted invoices, approval and direct costs against budget.
   Track required onboarding documents/expiry as configured; account for subcontract
   retainage and link accounting records without implying a payment occurred.
+  Implemented (source + automated tests): `_project_subcontractors`,
+  `_project_sub_change_orders`, and `_project_sub_invoices` with retainage, W-9/COI/
+  license expiry warnings, Owner/Admin approval, and accounting reference linkage.
 - [ ] **PROJ-008 — WIP reporting:** contract value including approved changes,
   percentage complete, earned revenue, actual/committed cost, estimated cost to
   complete, forecast at completion, billings, over/under-billing and retainage.
   Define calculation method and source for every measure. Separate operational
   estimates from posted accounting revenue, state the reporting cutoff/freshness,
   and retain approved period snapshots and correction history.
+  Implemented (source + automated tests): live `GET /api/projects/:id/wip` supporting
+  `cost_to_cost` and `phase_progress` methods with source breakdown and freshness
+  timestamps, plus trigger-protected immutable `_project_wip_snapshots` with
+  `correction_of` history.
 - [ ] **PROJ-009 — Project access/audit:** project-manager, field, purchasing,
   subcontractor-review and accounting capabilities; approval thresholds and
   segregation of duties. Record who changed budget, scope, progress or billing.
+  Implemented (source + automated tests): trigger-protected immutable `_project_audit`
+  ledger (`GET /api/projects/:id/audit`) and Owner/Admin approval boundaries across
+  financial and billing transitions.
 - [ ] **PROJ-010 — Project workspace:** summary, schedule, phases, documents, crews,
   change orders, purchasing, subcontractors, financials and closeout in one place.
   Provide drill-down from budget/WIP figures to the original business records.
+  Implemented (source): tabbed Project Workspace in `projects-page.tsx` covering
+  Overview/Gantt/Costing, Field & Crews, Change Orders, Purchasing & Subs, Progress
+  Billing, and WIP & Audit. Real-browser and mobile qualification remain open.
 
 ### Commercial feature track
 
@@ -841,14 +1052,22 @@ domain modules, with explicit permissions and accounting ownership.
   phases/milestones and a schedule of values; bill fixed amounts or accepted progress
   as configured. Track current/prior applications, approved changes, retainage,
   stored materials where applicable, remaining value and billing approval.
+  Implemented (source + automated tests): `_project_sov_lines` and sequential
+  `_project_billing_apps` / `_project_billing_app_lines` with retainage, stored
+  materials, cumulative ceiling enforcement and separate payment recording.
 - [ ] **COM-002 — Commercial billing documents:** plan AIA-style application and
   continuation workflows, required data and export formats. Verify the applicable
   form/template rights before distributing AIA-branded or licensed forms; use
   properly authorized templates and label exports accurately. Freeze issued
   applications and preserve revisions rather than silently rewriting prior periods.
+  Implemented (source + automated tests): frozen application snapshots and
+  `GET /api/projects/:id/billing-apps/:appId/export` continuation sheet HTML explicitly
+  labeled as an internal format (not a licensed AIA-branded form).
 - [ ] **COM-003 — Commercial project workflow:** proposal → accepted scope → project/
   phases → crew execution/evidence → phase approval → application/invoice → payment
   reconciliation → handover. Support site/customer-specific approval requirements.
+  Implemented (source + automated tests): end-to-end native workflow on shared M11
+  modules; QuickBooks accounting reconciliation (M6) and browser qualification remain open.
 
 ### Construction feature track
 
@@ -856,13 +1075,20 @@ domain modules, with explicit permissions and accounting ownership.
   contract, approved changes, prior/current completion, stored materials, retainage,
   previous applications and amount currently due. Check cumulative limits and
   prevent billing the same completed work twice.
+  Implemented (source + automated tests): shared sequential billing engine over SOV
+  lines with single-open-application guard, cumulative limits and retainage math.
 - [ ] **CONST-002 — Applications and certification:** draft/review/submitted/returned/
   approved lifecycle, versioned evidence, customer/GC approval and period locking.
   Include the same authorized AIA-form/export capability as COM-002; track invoice,
   application approval and payment as separate events.
+  Implemented (source + automated tests): `draft`→`in_review`→`submitted`→`returned`/
+  `approved` lifecycle, billing-readiness evidence gate, separate `invoice_id` and
+  `record_payment` events, and frozen continuation export.
 - [ ] **CONST-003 — Construction delivery:** project/phases, dependencies, baseline
   versus actual schedule, crew time, commitments, subcontractor costs, changes,
   forecasting, WIP and closeout evidence using PROJ-001 through PROJ-010.
+  Implemented (source + automated tests): `track: 'construction'` on shared M11
+  foundation; browser, populated-migration and accounting qualification remain open.
 
 ### Coverage and dependency map
 
@@ -895,7 +1121,7 @@ approvals, retries, period corrections and populated-data migrations.
 
 ## M12 — Residential service business
 
-**Status: Planned.** Residential uses the same customer/equipment, pricebook,
+**Status: Coded (source + automated tests; browser, payment/financing/telephony provider, and LXC qualification remain open).** Residential uses the same customer/equipment, pricebook,
 appointments, contracts, invoices and accounting modules. Its screens and templates
 optimize household service calls and technician-assisted sales rather than creating
 an independent backend. Keep this track compatible with a company that also does
@@ -906,41 +1132,64 @@ Commercial or Construction work.
   Automatic renewal/payment requires configured terms and recorded authorization;
   support expiry, cancellation, payment failure and renewal exceptions. Reuse M5
   agreement scheduling and idempotent work generation.
+  Coded (source + automated tests): `_res_membership_plans` and `_res_memberships`
+  over native `customers`/`sites`/`assets` with discount bps, renewal dates, recorded
+  auto-renew authorization guard, and status transitions (`pending`/`active`/
+  `payment_failed`/`expired`/`cancelled`).
 - [ ] **RES-002 — Pricing and estimates:** versioned pricebook, equipment/service
   context, labor/materials, tax/discount rules and three configurable good/better/
   best options on a technician's tablet. Record chosen options and acceptance;
   convert into work/invoice without losing the accepted price/scope snapshot.
+  Coded (source + automated tests): `_res_pricebook_items` and `_res_estimates`
+  Good/Better/Best 3-option builder with recorded customer acceptance and idempotent
+  conversion into native `jobs` and `invoices`.
 - [ ] **RES-003 — Call booking:** manual call intake plus optional online, after-hours
   or AI-assisted booking. Capture customer/location, issue, equipment, urgency,
   appointment preferences and dispatch handoff; prevent duplicate bookings and use
   configured escalation rules. Do not promise unattended coverage or guaranteed
   headcount reduction. Telephony, consent and actual service availability require
   explicit provider/configuration decisions.
+  Coded (source + automated tests): `_res_bookings` intake queue with duplicate
+  active-booking guard, emergency/after-hours escalation flagging, and one-click
+  dispatch handoff creating native `jobs`.
 - [ ] **RES-004 — Technician mobile workspace:** responsive/tablet-friendly job
   packets with customer/equipment history, accepted pricing, forms, photos,
   signatures, navigation links and completion/billing actions. Preserve clear
   online/offline behavior; any future offline write queue needs conflict resolution
   and successful delivery acknowledgment before reporting a server save.
+  Coded (source + automated tests): `GET /api/residential/mobile-packet/:jobId`
+  projecting customer, assets, active memberships, estimates, and invoices for a job.
 - [ ] **RES-005 — Adaptive dispatch:** reuse the Salesforce-style board and resource
   availability. Suggest schedule changes from delays, urgency, duration and travel
   information where supported. Show impact and obtain dispatcher approval by
   default; any automatic rescheduling needs an explicit bounded policy, audit,
   customer/technician notification rules and failure recovery.
+  Coded (source + automated tests): `GET /api/residential/adaptive-dispatch` ranking
+  open/escalated bookings with recommended active technician and explicit
+  `requiresDispatcherApproval: true` boundary.
 - [ ] **RES-006 — Reporting:** invoices, aging, payment status, membership renewals,
   booked/completed work and estimate conversion with documented definitions,
   freshness, permissions and source-record drill-down. Integrate with BIZ reporting
   rather than maintaining a separate residential reporting ledger.
+  Coded (source + automated tests): `GET /api/residential/overview` KPIs integrated
+  with M8 Business Owner dashboard and `residential` saved-report dataset.
 - [ ] **RES-007 — Invoicing, payments and financing:** present approved invoice lines
   and balances in the field; integrate an optional payment provider for collection,
   receipts, refunds and reconciliation using provider tokenization. Financing is
   an optional provider workflow with customer choice and provider-owned eligibility/
   credit decisions; do not build an internal lending/underwriting system. Handle
   declined, pending, duplicate, partially paid and uncertain transactions explicitly.
+  Coded (source + automated tests): idempotent `_res_payment_intents` (tokenized
+  provider ref only; pending/succeeded/declined/partially_paid/refunded) and
+  `_res_financing_referrals` for provider-owned financing workflows. Live provider
+  sandbox verification remains open.
 - [ ] **RES-008 — Accounting and payroll handoff:** reuse QuickBooks mappings and
   approved time/labor exports so customer, invoice, payment and time records are
   entered once operationally. Document direction/ownership and supported payroll
   products. Exporting time is not proof payroll was calculated, filed or paid.
   Track sync exceptions and provide reconciliation instead of silent overwrites.
+  Coded (source): explicit operational-to-accounting/payroll handoff boundary in
+  Residential overview and M8 Business Hub; QuickBooks posting (M6) remains planned.
 
 Dependencies: M3 scheduling, M4 CRM/quotes, M5 agreements, M6 accounting and relevant
 M8 labor/reporting. Mobile service workflows can ship incrementally before payment,
@@ -1013,7 +1262,7 @@ apps or another copy of the job status. Detailed contract and implementation ord
   submission and supervisor review, locked periods, audited administrator reopening
   and scoped CSV of approved source entries. No wage/overtime/pay-treatment engine
   or payroll-provider posting is claimed. Timesheet visual polish is UI-009.
-  Weekly Job/Work Order sheet source implemented 2026-11-25, testing deferred:
+  Weekly Job/Work Order sheet source checkpoint (2026-11-25):
   roster-first navigation (select a technician to open their weekly timecard),
   one technician/week, rows grouped by native Job ID, Monday–Sunday columns,
   weekly worked/billable totals and expandable source records. Overnight daily
@@ -1034,11 +1283,14 @@ apps or another copy of the job status. Detailed contract and implementation ord
   records with exact quantities; no duplicated per-truck item masters.
   Implemented pilot: warehouse/truck locations, audited technician custody, opening
   review, receipts, transfers, native job usage/partial returns and reorder levels.
-  Source UI follow-up 2026-11-25 (testing deferred): collapsed bottom movement
+  Original UI source checkpoint, 2026-11-25: collapsed bottom movement
   ledger, explicit unassigned catalog stock and one-time location allocation;
   catalog totals refresh after movements and are distinguished from location stock.
-  Real vehicle records/maintenance/tracking are M15; reservations, phase coding and
-  complete stocktake workflow remain open. See [inventory release](docs/releases/2026-11-15-inventory.md).
+  Real vehicle records/maintenance/tracking are M15; phase coding remains open.
+  Coded follow-up (2026-11-27, automated tests): `_inventory_reservations` (job-linked
+  stock reservations preventing over-allocation) and `_inventory_stocktakes` (physical
+  count sessions with variance calculation and Owner/Admin approval). See
+  [inventory release](docs/releases/2026-11-15-inventory.md).
 - [ ] **TECH-010 — Inventory safeguards:** atomically validate availability, append
   movement/job usage and audit; idempotent mobile submissions, no silent negative
   stock, approval for adjustments, reversals and retained unit-cost snapshots.
@@ -1057,6 +1309,59 @@ uses truck stock and refrigerant, submits the post-work report and timesheet; a
 supervisor approves corrections, Dispatcher shows actual versus estimate, and
 billing receives approved lines exactly once. Unauthorized cross-technician edits,
 stale approvals, repeated submissions and negative-stock races must fail safely.
+
+## M14 — Refrigerant Monitoring System (RMS)
+
+**Status: Coded (source + automated tests; browser, jurisdiction-specific regulatory review, and LXC qualification remain open).**
+Promoted from the later-options list at the owner's request. Shared customers,
+equipment, jobs, technicians, trucks and inventory movements are prerequisites.
+This milestone supports researched EPA recordkeeping, not an automatic compliance
+claim. Verify current federal/state requirements and applicability before release.
+Coded (`src/server/rms/` + `/rms` UI): versioned `_rms_rules` (`RMS-001`),
+`_rms_refrigerants` & serialized `_rms_cylinders` with no-mixing enforcement (`RMS-002`),
+`_rms_equipment_baselines` keeping unknown charge as `null` (`RMS-003`), trigger-immutable
+`_rms_events` with cylinder bounds & idempotency (`RMS-004`/`005`), 12-month leak-rate
+evaluation & `_rms_leak_inspections` (`RMS-006`), RMS dashboard & CSV/JSON export
+(`RMS-007`/`008`).
+
+- [ ] **RMS-001 — Regulatory requirements:** dated source matrix for Section 608,
+  applicable AIM Act requirements and relevant state rules; equipment/refrigerant/
+  charge/operation applicability, required fields, retention, deadlines and report
+  formats. Version rules by effective date; obtain domain review before compliance
+  assertions. Start with [EPA recordkeeping](https://www.epa.gov/section608/recordkeeping-and-reporting-requirements-stationary-refrigeration).
+- [ ] **RMS-002 — Refrigerants and cylinders:** controlled refrigerant catalog, virgin/
+  recovered/reclaimed status, cylinder IDs, tare/capacity/units, custody/location,
+  supplier/reclaimer documents and technician certification references. Distinguish
+  refrigerant contents from the reusable cylinder asset; prohibit unintended mixing.
+- [ ] **RMS-003 — Equipment baseline:** refrigerant type, full charge, circuit and
+  equipment classification, verified source/date and change history on the existing
+  equipment record. Missing/unknown charge must not produce a fabricated leak rate.
+- [ ] **RMS-004 — Field events:** purchases, transfers, additions, recovery, returns,
+  reclamation and disposal linked to job/equipment/technician/cylinder/truck; exact
+  mass and units, event time, reason and evidence. Distinguish recovered mass,
+  inventory shrinkage, refrigerant additions and calculated emissions.
+- [ ] **RMS-005 — Ledger and reconciliation:** atomic balanced transfers, quantity
+  bounds, cylinder reconciliation, adjustments/reversals, idempotency and approved
+  corrections. Reuse inventory movements; do not count a job usage and its cylinder
+  withdrawal twice or treat recovered refrigerant as purchased stock.
+- [ ] **RMS-006 — Leak service workflow:** applicable leak-rate method, source
+  additions/charge/date window, inspections, repair/verification events, deadlines
+  and missing-data states; retain calculation inputs and rule version. No universal
+  hardcoded threshold or invented statutory deadline.
+- [ ] **RMS-007 — Business dashboard:** stock by refrigerant/truck/cylinder, additions/
+  recovery trends, unresolved balances, equipment histories, due follow-ups and
+  reviewed compliance tasks. Drill through every KPI to underlying events; display
+  units/date range/coverage and distinguish unknown from zero.
+- [ ] **RMS-008 — Exports and permissions:** customer service records, inventory
+  reconciliation and researched regulatory exports, retained versions/evidence,
+  technician/supervisor/accounting roles and audit. Regulatory submission remains a
+  separate authorized action; generating a report is not filing it.
+
+**Acceptance:** trace a purchased cylinder through truck transfer, measured service
+addition/recovery and reclaimer return, reconcile mass, reproduce equipment history
+and dashboard totals, and export the applicable reviewed record set. Test unit
+conversions, duplicate/offline events, cross-job references, corrections and missing
+charge data. Jurisdiction-specific compliance qualification remains explicit.
 
 ## M15 — Fleet and live dispatch tracking
 
@@ -1100,7 +1405,11 @@ A provider outage must show stale state rather than leave a misleading live mark
   currency, active status and material/vendor SKU mapping. Preserve existing material,
   job and future phase IDs; do not represent a supplier as a duplicate customer.
   Implemented supplier register/contact/terms and native material/job links, USD only.
-  Material/vendor SKU mappings and multi-currency remain open.
+  Coded follow-up (2026-11-27, automated tests): `_purch_vendor_skus` material/vendor
+  SKU mapping (`GET/POST /api/service/purchasing/vendor-skus`), `_purch_vendor_credits`
+  supplier returns/credits (`GET/POST /api/service/purchasing/credits`), and
+  `GET /api/service/purchasing/reconciliation` PO-to-receipt/credit reconciliation.
+  Multi-currency and QuickBooks posting remain open.
 - [ ] **PURCH-002 — Purchase order lifecycle:** draft, approval, issued, partially
   received, received, closed/cancelled; numbered immutable issued revisions, approval
   permissions, expected delivery, ship-to warehouse/vehicle, job/phase allocation and
@@ -1140,112 +1449,89 @@ stock and supplier invoices reconcile without counting cost twice.
 
 Design and implementation sequence: [Fleet and Purchasing](docs/product/fleet-and-purchasing.md).
 
-## M14 — Refrigerant Monitoring System (RMS)
+## Finance — Receivables, liabilities and permissions
 
-Promoted from the later-options list at the owner's request. Shared customers,
-equipment, jobs, technicians, trucks and inventory movements are prerequisites.
-This milestone supports researched EPA recordkeeping, not an automatic compliance
-claim. Verify current federal/state requirements and applicability before release.
+Finance contains **Invoices, Receivables, Liabilities and Purchasing (POs)**.
+Keep the existing native records and accounting links; payroll is a separate
+capability. Finance remains independent of the HR app removal. Purchasing detail
+is owned by [M16](#m16--purchasing-material-costs-and-purchase-orders); provider
+synchronization is owned by [M6](#m6--quickbooks-accounting).
 
-- [ ] **RMS-001 — Regulatory requirements:** dated source matrix for Section 608,
-  applicable AIM Act requirements and relevant state rules; equipment/refrigerant/
-  charge/operation applicability, required fields, retention, deadlines and report
-  formats. Version rules by effective date; obtain domain review before compliance
-  assertions. Start with [EPA recordkeeping](https://www.epa.gov/section608/recordkeeping-and-reporting-requirements-stationary-refrigeration).
-- [ ] **RMS-002 — Refrigerants and cylinders:** controlled refrigerant catalog, virgin/
-  recovered/reclaimed status, cylinder IDs, tare/capacity/units, custody/location,
-  supplier/reclaimer documents and technician certification references. Distinguish
-  refrigerant contents from the reusable cylinder asset; prohibit unintended mixing.
-- [ ] **RMS-003 — Equipment baseline:** refrigerant type, full charge, circuit and
-  equipment classification, verified source/date and change history on the existing
-  equipment record. Missing/unknown charge must not produce a fabricated leak rate.
-- [ ] **RMS-004 — Field events:** purchases, transfers, additions, recovery, returns,
-  reclamation and disposal linked to job/equipment/technician/cylinder/truck; exact
-  mass and units, event time, reason and evidence. Distinguish recovered mass,
-  inventory shrinkage, refrigerant additions and calculated emissions.
-- [ ] **RMS-005 — Ledger and reconciliation:** atomic balanced transfers, quantity
-  bounds, cylinder reconciliation, adjustments/reversals, idempotency and approved
-  corrections. Reuse inventory movements; do not count a job usage and its cylinder
-  withdrawal twice or treat recovered refrigerant as purchased stock.
-- [ ] **RMS-006 — Leak service workflow:** applicable leak-rate method, source
-  additions/charge/date window, inspections, repair/verification events, deadlines
-  and missing-data states; retain calculation inputs and rule version. No universal
-  hardcoded threshold or invented statutory deadline.
-- [ ] **RMS-007 — Business dashboard:** stock by refrigerant/truck/cylinder, additions/
-  recovery trends, unresolved balances, equipment histories, due follow-ups and
-  reviewed compliance tasks. Drill through every KPI to underlying events; display
-  units/date range/coverage and distinguish unknown from zero.
-- [ ] **RMS-008 — Exports and permissions:** customer service records, inventory
-  reconciliation and researched regulatory exports, retained versions/evidence,
-  technician/supervisor/accounting roles and audit. Regulatory submission remains a
-  separate authorized action; generating a report is not filing it.
+- [ ] **FIN-001 — Receivables:** issued-invoice balances, payments/credits, aging,
+  collections notes, and reconciliation. Derive balances from native records;
+  avoid copying customer or invoice ledgers. Draft/cancelled invoices are not debt.
+  Original source increment, 2026-11-25: separate customer PO reference per native
+  Job, live supplier PO links through native Purchasing line/job relations, and
+  invoice receipt records for cash/check/bank transfer/card/other with check or
+  transaction references. Partial payments, retained record reversals, native paid
+  status and actor-bound exact retries are implemented. The Receivables page now
+  projects live issued invoices, due-date aging buckets, known vs unresolved balances,
+  search/pagination and immutable collections notes with optional follow-up dates.
+  Customer deposits, overpayments and bank/QuickBooks reconciliation remain open.
+  Source follow-up: reviewed unpaid-balance credit notes and retained reversals now
+  connect the native ledger to invoice actions; original net/tax component ceilings,
+  separate receipts/credits and outstanding balances. No refund or provider posting
+  is implied. Automated settlement/credit checks are linked in the evidence record;
+  browser/provider qualification remains open. Legacy paid-status review includes
+  explicit evidenced
+  receipt (full/partial), or audited reopening of an unsupported paid flag without
+  creating a receipt. Original invoice context and reviewer evidence are retained;
+  no amount, method, bank clearance or provider reconciliation is inferred.
+  See [job accounting API](docs/api/job-accounting.md).
+- [ ] **FIN-002 — Liabilities:** supplier bills, PO/receipt matching, credits, due
+  dates, approval, and payment reconciliation. Separate committed PO spend from
+  recognized payables; avoid double-counting QuickBooks balances.
+- [ ] **FIN-003 — Finance permissions:** dedicated accounting capabilities and
+  provider mappings. Current Finance app entry and Purchasing remain Owner/Admin;
+  legacy invoice access is preserved. HR does not imply accounting permissions.
 
-**Acceptance:** trace a purchased cylinder through truck transfer, measured service
-addition/recovery and reclaimer return, reconcile mass, reproduce equipment history
-and dashboard totals, and export the applicable reviewed record set. Test unit
-conversions, duplicate/offline events, cross-job references, corrections and missing
-charge data. Jurisdiction-specific compliance qualification remains explicit.
+Receivables has recorded source and automated increments; deposits, overpayments,
+provider reconciliation and remaining acceptance gates keep FIN-001 open. Liabilities
+is separate planned work. Navigation alone is not implementation evidence.
 
-## M8 — Empower the business owner
+## HR removal and retained requirements
 
-- [ ] **BIZ-001 — Dashboard:** dispatch, pipeline, overdue work, quote approvals,
-  renewals, outstanding invoices and accounting/integration failures.
-- [ ] **BIZ-002 — Financial visibility:** operational revenue, labor/material costs,
-  margins and contract profitability with source, timing and exclusions labeled.
-- [ ] **BIZ-003 — Labor:** time entries, approvals, corrections and job costing;
-  payroll is a separate capability from basic time tracking.
-- [ ] **BIZ-004 — Inventory/purchasing:** locations/truck stock, reservations,
-  consumption, reorder suggestions, purchase orders and receiving. Reuse M11 project/
-  phase/cost-code commitments and material movements rather than duplicate ledgers.
-- [ ] **BIZ-005 — Reporting:** saved filters, exports, scheduled reports, permissions,
-  dataset definitions and freshness indicators.
-- [ ] **BIZ-006 — Automation:** explicit triggers/actions, dry-run preview, approvals,
-  audit, retries and safe disablement.
-- [ ] **BIZ-007 — Customer portal:** separate external identity and customer-scoped
-  access to accepted quotes/contracts, approved reports and invoices.
+Owner direction, **2026-11-27: remove the HR app** and continue the SLDS redesign.
+The following IDs are retained for traceability, not queued as a standalone HR app.
+Existing checkboxes are preserved. Removal implementation is not verified by this
+roadmap edit.
 
-**Acceptance:** the owner can trace dashboard metrics to records and resolve an
-operational/accounting exception without developer database edits.
+Before removing workflows, record their replacement ownership:
 
-## M9 — Deployment and scale
+- Where administrators manage Staff and employment/onboarding information.
+- How native technician profiles are created, linked to users and updated without
+  losing existing Job/timecard/inventory relationships.
+- Where authorized users upload and retrieve private personnel documents.
+- Which people-management capabilities survive and who may use them. People access
+  must not imply Finance, privileged accounts, integrations, secrets or Builder access.
+- How existing URLs, private files, retention and audit history are preserved or migrated.
 
-- [ ] **DEPLOY-001 — Direct install:** maintain Debian/systemd setup, ownership,
-  updates, configuration, logs, health checks, backups and restore instructions.
-- [ ] **DEPLOY-002 — Containers:** reproducible multi-stage non-root image, supported
-  runtime, graceful shutdown, external configuration and persistent business state.
-- [ ] **DEPLOY-003 — Compose:** app/database/worker and optional object storage,
-  private networking, health dependencies and tested upgrade/recovery procedure.
-- [ ] **DEPLOY-004 — Single-instance Kubernetes:** resources/probes, config/secrets,
-  Service/Ingress, persistent storage and migration/upgrade steps. With SQLite,
-  explicitly restrict replicas and rollout/storage behavior to avoid simultaneous
-  database writers. Packaging is not horizontal scaling.
-- [ ] **DEPLOY-005 — Multi-replica Kubernetes:** shared PostgreSQL, stateless API/web
-  pods, durable workers, external files, shared session/rate-limit/locking strategy,
-  connection pooling, migration Job and deliberate rollout/disruption policies.
-- [ ] **DEPLOY-006 — Operations:** workload-based scaling, graceful drain, worker
-  scaling, resource limits, metrics, alerts and supported capacity envelope.
-- [ ] **DEPLOY-007 — Recovery:** retention, restoration drills, point-in-time recovery
-  where supported, disaster recovery runbook and measured recovery objectives.
-- [ ] **DEPLOY-008 — Qualification:** realistic concurrent dispatch/CRM/accounting
-  load, failed jobs, database/queue outages, connection-pool exhaustion, migration
-  ordering and rollback/recovery exercises.
+The earlier request made Technicians an operational view and Staff the owner of
+profile changes. HR removal needs an explicit successor to that contract; it must
+not silently re-enable independent technician creation or delete staff evidence.
 
-**Acceptance:** install cleanly, restore data, upgrade populated records and recover
-from failure using published instructions. Claim multi-replica support only after
-shared-state and concurrency testing. A backup job is not proof of restoration.
+### Retained HR feature references
 
-## M10 — Later options
-
-- [ ] Additional CRM providers after object ownership/sync behavior is proven.
-- [ ] Social publishing after explicit authorization, provider approval, reviewed
-  target/content selection and uncertain-delivery handling.
-- [ ] Additional refrigeration workflows beyond M14, with researched jurisdiction-specific
-  requirements; distinguish recordkeeping from compliance claims.
-- [ ] Customer email/SMS with consent, templates, delivery status and provider costs.
-- [ ] Multi-company SaaS only after tenant isolation covers data, jobs, credentials,
-  files, audit, APIs, backups and migrations.
-- [ ] AI tools with scoped permissions, confirmation for business writes, execution
-  audit and recovery; no unrestricted production shell.
+- [ ] **HR-001 — Staff records:** employee profile, employment status, supervisor,
+  technician/account links, and employment history. Existing workspace accounts are
+  available under Staff; they are not yet a complete employee system.
+  Original source checkpoint, 2026-11-25: native employee roster adopts
+  existing technicians by UUID, reviewed staff creation/updates, supervisor/status
+  history and linked field availability. Technicians is an operational read-only
+  view; creation and profile changes flow through HR. Workspace login access and
+  Owner/Admin technician-account links remain separate. Full offboarding, office
+  account links and qualification remain open. See [HR Staff API](docs/api/hr-staff.md).
+- [ ] **HR-002 — Onboarding:** versioned checklist templates, assigned tasks, start
+  dates, acknowledgments, progress, reminders, and audited completion.
+- [ ] **HR-003 — Personnel documents:** private employee-scoped storage, explicit
+  HR authorization on upload/download, certifications/expiry, acknowledgments,
+  retention rules, and audit. Do not reuse job-document access for personnel files.
+  Original source checkpoint, 2026-11-25: person-linked uploads, private
+  downloads, category/expiry metadata, archive/restore, version checks and retained
+  actor/reason history. Open from HR Staff profiles or the Technicians list;
+  Owner/Admin/HR only. Original bytes remain immutable. Automated expiry reminders,
+  acknowledgments, retention/purge policy and qualification remain open. See
+  [Personnel documents API](docs/api/hr-personnel-documents.md).
 
 ## Enterprise definition of done
 
@@ -1282,203 +1568,17 @@ enterprise documentation set already exists. Current guides:
 [deployment](deploy/README.md), [accounts](deploy/ACCOUNTS.md),
 [workspace/AI/builder](deploy/WORKSPACE.md), and [integrations](deploy/INTEGRATIONS.md).
 
-## Next checkpoint
+## Evidence and history
 
-Inventory/company-average cost, Fleet register/in-app maintenance, Purchasing/partial
-receiving and tagged ticket/PO documents now have migration/API, automated and local
-browser evidence. Document online-backup restore is tested on disposable records.
+Use the detailed release records for test counts, exact scope and remaining
+gates; avoid growing a second chronological changelog in this file.
 
-Next implement Sales estimating, quote versions and acceptance (SALES-005–009,
-SALES-013–016), including reviewed Billing Settings profiles and accepted-material
-procurement allocations. Continue remaining M16 purchasing qualification, M15 reminder
-delivery/tracking adapters, PM entitlements and reviewed invoice handoff. Complete
-reservations/stocktake and UI-009 Timesheet polish before closing those tracks. Build
-RMS on the same job/equipment/material evidence. Real GPS/provider/LXC qualification
-remains separate from fixtures and local browser proof.
+- [Automated qualification checkpoints](docs/releases/2026-11-25-automated-progress.md).
+- [Preserved roadmap history](docs/releases/2026-11-27-roadmap-history.md), including
+  earlier test-count updates, quote-browser notes and superseded next-checkpoint text.
+- [Documentation and release index](docs/README.md).
+- [SLDS design decision](docs/architecture/decisions/0008-slds.md).
 
-ARCH-003/005/006 and DOC-005 remain prerequisites for shared PostgreSQL, reliable
-external writes, shared file storage and multi-replica Kubernetes; do not mark M2
-complete from these single-instance modules. QuickBooks sandbox work follows reviewed
-mapping and idempotent export design. Attach evidence to each delivered feature.
-
-## Business app navigation — HR and Finance
-
-Requested organization (2026-11-15): Fleet, Sales, HR, and Finance are peer apps.
-HR contains **Staff and Onboarding**; personnel documents live inside each staff/technician profile rather than a separate Documents tab. Payroll is not an HR tab.
-Finance contains **Invoices, Receivables, Liabilities, Purchasing (POs)**.
-
-- [x] **ORG-001 — App navigation:** HR and Finance routes and section navigation;
-  existing invoices and purchasing use their original records and URLs. Staff
-  reuses current account administration. Owner/Admin/HR can access people controls;
-  HR membership alone does not grant Finance or privileged account management.
-- [ ] **HR-001 — Staff records:** employee profile, employment status, supervisor,
-  technician/account links, and employment history. Existing workspace accounts are
-  available under Staff; they are not yet a complete employee system.
-  Source follow-up 2026-11-25 (testing deferred): native employee roster adopts
-  existing technicians by UUID, reviewed staff creation/updates, supervisor/status
-  history and linked field availability. Technicians is an operational read-only
-  view; creation and profile changes flow through HR. Workspace login access and
-  Owner/Admin technician-account links remain separate. Full offboarding, office
-  account links and qualification remain open. See [HR Staff API](docs/api/hr-staff.md).
-- [ ] **HR-002 — Onboarding:** versioned checklist templates, assigned tasks, start
-  dates, acknowledgments, progress, reminders, and audited completion.
-- [ ] **HR-003 — Personnel documents:** private employee-scoped storage, explicit
-  HR authorization on upload/download, certifications/expiry, acknowledgments,
-  retention rules, and audit. Do not reuse job-document access for personnel files.
-  Source follow-up 2026-11-25 (testing deferred): person-linked uploads, private
-  downloads, category/expiry metadata, archive/restore, version checks and retained
-  actor/reason history. Open from HR Staff profiles or the Technicians list;
-  Owner/Admin/HR only. Original bytes remain immutable. Automated expiry reminders,
-  acknowledgments, retention/purge policy and qualification remain open. See
-  [Personnel documents API](docs/api/hr-personnel-documents.md).
-- [ ] **FIN-001 — Receivables:** issued-invoice balances, payments/credits, aging,
-  collections notes, and reconciliation. Derive balances from native records;
-  avoid copying customer or invoice ledgers. Draft/cancelled invoices are not debt.
-  Source increment 2026-11-25 (untested): separate customer PO reference per native
-  Job, live supplier PO links through native Purchasing line/job relations, and
-  invoice receipt records for cash/check/bank transfer/card/other with check or
-  transaction references. Partial payments, retained record reversals, native paid
-  status and actor-bound exact retries are implemented. The Receivables page now
-  projects live issued invoices, due-date aging buckets, known vs unresolved balances,
-  search/pagination and immutable collections notes with optional follow-up dates.
-  Customer deposits, overpayments and bank/QuickBooks reconciliation remain open.
-  Source follow-up: reviewed unpaid-balance credit notes and retained reversals now
-  connect the native ledger to invoice actions; original net/tax component ceilings,
-  separate receipts/credits and outstanding balances. No refund or provider posting
-  is implied. Credit qualification remains deferred. Legacy paid-status review is implemented in source: explicit evidenced
-  receipt (full/partial), or audited reopening of an unsupported paid flag without
-  creating a receipt. Original invoice context and reviewer evidence are retained;
-  no amount, method, bank clearance or provider reconciliation is inferred.
-  See [job accounting API](docs/api/job-accounting.md).
-- [ ] **FIN-002 — Liabilities:** supplier bills, PO/receipt matching, credits, due
-  dates, approval, and payment reconciliation. Separate committed PO spend from
-  recognized payables; avoid double-counting QuickBooks balances.
-- [ ] **FIN-003 — Finance permissions:** dedicated accounting capabilities and
-  provider mappings. Current Finance app entry and Purchasing remain Owner/Admin;
-  legacy invoice access is preserved. HR does not imply accounting permissions.
-
-Onboarding, HR Documents and Liabilities currently show explicit planned states.
-The Receivables source screen and receipt/reference/collections increments are
-implemented under FIN-001 but unqualified; credits, bank/provider reconciliation
-and deferred qualification still prevent closing Receivables. They do not implement Liabilities.
-Navigation is not evidence these backends are implemented.
-
-### Module navigation follow-up
-
-Sales, Fleet, HR, and Finance have independently expandable sidebar groups, child
-routes, and general overview pages listing every section. Sales pipeline uses
-native opportunities/stages; Quotes has an internal draft workbench pilot. Customer offering and acceptance remain planned. Fleet vehicles/maintenance
-and truck inventory use existing vehicles and stock locations; GPS remains planned.
-Schedule is embedded directly above the Work pipeline on Dispatcher, whose board can create native jobs. Home
-embeds the shared weekly schedule with every job-creation control suppressed.
-Materials is the native catalog inside Inventory; legacy URLs remain available.
-Customer equipment and job equipment selection use a searchable Location followed
-by a location-scoped equipment dropdown. The backend validates the location belongs
-to the requested customer; no customer, site, asset, or material copy is created.
-
-Sidebar section disclosures persist per user in this browser, survive reloads, and
-synchronize between tabs. Blocked/unavailable browser storage falls back to usable
-in-memory navigation. These preferences never grant access or configure the server.
-Module headings are one full-width disclosure button, including their chevron;
-Overview remains the first child link. In the collapsed icon rail, Sales/Fleet/HR/Finance
-children are hidden and module icons open the corresponding overview. Collapsing the
-rail does not rewrite section preferences. Profile initials stay visible with mouse
-as well as touch input. See [sidebar repair evidence](docs/releases/2026-11-15-sidebar.md).
-
-Dispatcher's embedded week has no redundant Schedule heading. Selecting a day,
-previous/next week, or Today updates the shared dispatch date and native board;
-the duplicate daily toolbar controls are removed, leaving one shared weekly control group. Work pipeline remains an
-all-date backlog so unfinished work does not disappear when navigating dates.
-The requested extra In progress column was withdrawn; existing stage filters remain.
-
-### Quote workbench pilot qualification
-
-The Quotes UI now has deep links, explicit server calculation, exact decimal
-inputs, native opportunity/material searches, profile-version review, saved draft
-revision views, and guarded unsaved/uncertain navigation. Pending material refresh
-blocks calculation/save/history changes; edited inputs invalidate prior previews.
-The lazy module adds no second framework or business-record copy.
-
-Real Chrome reached native opportunity/profile selection, entered disposable labor
-pricing, and opened the second-line category menu. The Materials click was not
-executed: automatic approval review could not complete because of an account usage
-limit. Material selection, Calculate/Save/reload, revision interaction, navigation
-prompts, and narrow-layout browser qualification remain pending. Unit/API results
-are not substitutes for those checks. See
-[quote workbench release](docs/releases/2026-11-15-quote-workbench.md).
-
-## Automated qualification follow-up — 2026-11-25
-
-Automated checks resumed by user request. Production build and TypeScript pass;
-196/196 tests pass, including six new agreement invariant/recovery tests and the
-updated HR-based technician creation path in standalone qualification. This does
-not complete the unqualified modules or authorize marking their acceptance gates
-complete. Browser qualification remains deferred. See [exact coverage and remaining
-gates](docs/releases/2026-11-25-automated-progress.md). No publication claimed.
-
-Follow-up:209/209 tests now pass, adding eight HR/personnel and five platform custom-
-field/registry checks. Qualification details remain in the same evidence record;
-unchecked end-to-end requirements are not made complete by this count.
-
-Finance/costing follow-up:220/220 tests pass, including seven native settlement/
-legacy review cases and four worksheet math/tax/compatibility cases. Provider,
-browser and remaining acceptance gates stay open in the evidence record.
-
-Native Sales handoff follow-up:228/228 tests and TypeScript pass. Eight new tests
-cover prospect/native-account/site/contact conversion and accepted quote/native
-Job/Won/Dispatcher readback, retry/duplicate guards, rollback and retained cancellation.
-Cross-process concurrency, populated upgrade, pointer/UI and external acceptance
-gates remain open; accepted-scope billing is not supplied by the handoff.
-
-Projection checkpoint:234/234 tests pass. Six new weekly timecard, Customer360 and
-audit-stage timing tests strengthen native projection proof; isolated publication
-qualification and all unfulfilled roadmap acceptance gates remain distinct.
-
-Proposed contract PDF checkpoint:240/240 automated tests, TypeScript and production
-build pass. Local preview startup after consistent backup loads review/PDF migrations.
-Exact coverage and remaining acceptance/activation/browser/provider gates remain in
-the qualification record.
-
-Agreement lifecycle checkpoint:247/247 tests, TypeScript and production build pass.
-The offer/delivery/response workbench and immutable exact-context backend now record
-attributed acceptance separately from activation/signature verification. Preview
-startup after consistent backup loads v4; remaining M5/browser/provider gates stay
-open in the qualification record.
-
-Agreement authorization checkpoint:254/254 tests, TypeScript and production build
-pass. Seven activation cases plus a shared lifecycle fixture cover accepted-term
-authorization, scheduled→active projection, frozen timezone, retained cancellation,
-per-asset equipment-scope eligibility and exact retry/rollback boundaries. Preview
-restarted after a consistent two-database backup; additive v5 loads on the live
-snapshot. Remaining M5 maintenance/entitlement/work-generation and browser/provider
-gates stay open in the qualification record.
-
-Maintenance plans/work-generation checkpoint:260/260 tests, TypeScript and production
-build pass. Six new maintenance cases cover versioned plans, seasonal filtering,
-active-term gated due preview, idempotent native PM Job generation, auditable skips
-and late-ack rollback. Preview restarted after a consistent two-database backup;
-additive v6 loads on the live snapshot. Entitlement usage, holiday shifting,
-populated upgrade and browser/provider gates stay open.
-
-Entitlement usage checkpoint:264/264 tests, TypeScript and production build pass. Four
-new entitlement cases cover immutable included visits/hours/priority binding, approved
-in-scope visit/hour consumption within the active term, exhaustion flipping coverage to
-a billable exception, and per-report consumption detail. Preview restarted after a
-consistent two-database backup; additive v7 loads on the live snapshot. Amendments/
-renewal, billable-exception invoicing, response-priority effects and browser/provider
-gates stay open.
-
-CRM activity checkpoint:270/270 tests, TypeScript and production build pass. Six new
-customer-activity cases cover private vs customer-facing notes, assignee/due/reminder
-validation, reminders and list filters, role boundaries, audited rollback, HTTP
-guards and the v2→v3 upgrade. Attachments and reminder delivery remain open.
-
-Sales outcomes checkpoint:274/274 tests, TypeScript and production build pass. Three
-new loss/nurture cases cover required loss reasons, competitor retention, admin-only
-reopen history, immutable outcomes and owner nurture tasks. The v3 outcomes ledger is
-additive; won/lost/reopen history is now retained per opportunity.
-
-Sales forecast checkpoint:274/274 tests, TypeScript and production build pass. A new
-`GET /forecast` projection adds per-stage weighted/unweighted totals, open/won/lost
-rollups, quote acceptance ratio and native conversion count with explicit definitions.
-Historical cohort metrics remain open.
+A feature's checkbox, code presence, automated results, browser proof, deployment
+proof and real-provider proof are different evidence. New work must name the exact
+feature ID and remaining gates rather than declaring an entire milestone finished.

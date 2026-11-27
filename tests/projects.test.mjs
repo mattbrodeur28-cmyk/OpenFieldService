@@ -133,3 +133,186 @@ test("project job costing saves sections and computes P&L", (t) => {
   assert.equal(f.projects.detail(owner, pid).costSections.length, 1);
   assert.throws(() => f.projects.saveCostSection(viewer, pid, { id: randomUUID(), requestKey: randomUUID(), name: "X", reason, reviewAttested: true }), /cannot change projects/);
 });
+
+test("M11 end-to-end: field docs, crews, change orders, purchasing, subcontractors, progress billing, WIP and audit", (t) => {
+  const f = setup(t);
+  const techId = randomUUID();
+  f.db.prepare("INSERT INTO technicians(id,name,email,phone) VALUES(?,?,?,?)").run(techId, "Alex Tech", "alex@example.test", "555-0100");
+
+  // Commercial / Construction project with $100,000 contract and 10% retainage
+  const saved = f.projects.save(owner, {
+    id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, customerId: f.customer,
+    title: "Chiller Plant Upgrade", track: "construction", contractValueCents: 10000000, retainageBps: 1000,
+    status: "active", projectManager: owner.id, reason, reviewAttested: true,
+  });
+  const pid = saved.project.id;
+  assert.equal(saved.project.track, "construction");
+  assert.equal(saved.project.contract_value_cents, 10000000);
+
+  f.projects.setBaseline(owner, pid, {
+    requestKey: randomUUID(), baselineCostCents: 8000000, baselineStart: "2027-01-01", baselineEnd: "2027-06-30",
+    estimateToCompleteCents: 4000000, reason, reviewAttested: true,
+  });
+
+  const phase1 = f.projects.savePhase(owner, pid, {
+    id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0,
+    name: "Mechanical Install", costCode: "23-01", owner: owner.id, position: 1, percentComplete: 50, reason, reviewAttested: true,
+  }).phase;
+
+  // PROJ-003: Field documentation + signature intent validation + billing readiness gate
+  assert.throws(() => f.projects.saveFieldDoc(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0,
+    docType: "signature", title: "Signoff", signatureName: "", signatureIntent: "", reason, reviewAttested: true,
+  }), /explicit stated approval intent/);
+
+  const reqDoc = f.projects.saveFieldDoc(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, phaseId: phase1.id,
+    docType: "completion_evidence", title: "Pressure test report", body: "Passed 150 psi",
+    billingRequired: true, status: "submitted", reason, reviewAttested: true,
+  }).fieldDoc;
+  assert.equal(f.projects.detail(owner, pid).billingReadiness.ready, false);
+
+  // PROJ-004: Crew, effective-dated member, field time + approval
+  const crew = f.projects.saveCrew(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0,
+    name: "Pipefitters A", leadTechnicianId: techId, costCode: "23-01", active: true, reason, reviewAttested: true,
+  }).crew;
+  f.projects.addCrewMember(member, pid, crew.id, {
+    id: randomUUID(), requestKey: randomUUID(), technicianId: techId, role: "lead",
+    effectiveFrom: "2027-01-01", hourlyCostCents: 7500, hourlyBillCents: 14000, reason, reviewAttested: true,
+  });
+  const time1 = f.projects.recordCrewTime(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), crewId: crew.id, technicianId: techId,
+    phaseId: phase1.id, costCode: "23-01", workDate: "2027-01-15", hoursMilli: 10000, hourlyCostCents: 7500,
+    notes: "Piping rough-in", reason, reviewAttested: true,
+  }).timeEntry;
+  assert.equal(time1.laborCostCents, 75000);
+  assert.throws(() => f.projects.reviewCrewTime(member, pid, time1.id, { requestKey: randomUUID(), decision: "approved", reason, reviewAttested: true }), /Owner or Admin/);
+  const approvedTime = f.projects.reviewCrewTime(owner, pid, time1.id, { requestKey: randomUUID(), decision: "approved", reason, reviewAttested: true }).timeEntry;
+  assert.equal(approvedTime.status, "approved");
+
+  // PROJ-005: Change orders (approved updates contract; pending does not)
+  const co1 = f.projects.saveChangeOrder(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, phaseId: phase1.id, costCode: "23-01",
+    title: "Add VFD bypass", laborCostCents: 200000, materialCostCents: 300000, subcontractCostCents: 0,
+    priceCents: 1000000, scheduleImpactDays: 5, reason, reviewAttested: true,
+  }).changeOrder;
+  const co1Sub = f.projects.transitionChangeOrder(member, pid, co1.id, { requestKey: randomUUID(), expectedVersion: co1.version, action: "submit", reason, reviewAttested: true }).changeOrder;
+  assert.throws(() => f.projects.transitionChangeOrder(member, pid, co1.id, { requestKey: randomUUID(), expectedVersion: co1Sub.version, action: "approve", reason, reviewAttested: true }), /Owner or Admin/);
+  const co1App = f.projects.transitionChangeOrder(owner, pid, co1.id, { requestKey: randomUUID(), expectedVersion: co1Sub.version, action: "approve", reason, reviewAttested: true }).changeOrder;
+  const co1Acc = f.projects.transitionChangeOrder(owner, pid, co1.id, { requestKey: randomUUID(), expectedVersion: co1App.version, action: "customer_accept", customerAcceptedBy: "Jane GC", reason, reviewAttested: true }).changeOrder;
+  assert.equal(co1Acc.customerAccepted, true);
+  // Pending CO must not inflate approved totals
+  f.projects.saveChangeOrder(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0,
+    title: "Pending extra", priceCents: 5000000, reason, reviewAttested: true,
+  });
+
+  // PROJ-006: Purchasing commitments (no double-counting open commitment when received/billed)
+  f.projects.savePurchasingLink(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), phaseId: phase1.id, costCode: "23-01",
+    description: "Chiller unit", committedCents: 3000000, receivedCents: 1000000, billedCents: 0, status: "received", reason, reviewAttested: true,
+  });
+  const purchSummary = f.projects.detail(owner, pid).purchasing.summary;
+  assert.equal(purchSummary.committedCents, 3000000);
+  assert.equal(purchSummary.receivedCents, 1000000);
+  assert.equal(purchSummary.openCommitmentCents, 2000000);
+
+  // PROJ-007: Subcontractor + invoice + retainage + compliance warnings
+  const sub = f.projects.saveSubcontractor(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, companyName: "Apex Controls Sub",
+    scope: "BAS wiring", phaseId: phase1.id, costCode: "23-09", commitmentCents: 2000000, retainageBps: 1000,
+    w9OnFile: false, status: "active", reason, reviewAttested: true,
+  }).subcontractor;
+  assert.ok(sub.complianceWarnings.includes("Missing W-9"));
+  const subInvId = randomUUID();
+  f.projects.submitSubInvoice(member, pid, sub.id, {
+    id: subInvId, requestKey: randomUUID(), invoiceNumber: "SUB-101", periodEnd: "2027-01-31",
+    grossCents: 500000, retainageCents: 50000, accountingRef: "AP-1", reason, reviewAttested: true,
+  });
+  const subAfter = f.projects.reviewSubInvoice(owner, pid, subInvId, { requestKey: randomUUID(), decision: "approved", reason, reviewAttested: true }).subcontractor;
+  assert.equal(subAfter.approvedInvoicedCents, 500000);
+  assert.equal(subAfter.retainageHeldCents, 50000);
+  assert.equal(subAfter.remainingCommitmentCents, 1500000);
+
+  // COM/CONST-001..003: SOV + Sequential Progress Billing Apps with Retainage
+  const sov1 = f.projects.saveSovLine(owner, pid, {
+    id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, phaseId: phase1.id, costCode: "23-01",
+    itemNumber: "001", description: "Base Mechanical", scheduledValueCents: 10000000, position: 1, reason, reviewAttested: true,
+  }).sovLine;
+  const sov2 = f.projects.saveSovLine(owner, pid, {
+    id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, phaseId: phase1.id, costCode: "23-01",
+    itemNumber: "002", description: "CO-1 VFD Bypass", scheduledValueCents: 1000000, changeOrderId: co1.id, position: 2, reason, reviewAttested: true,
+  }).sovLine;
+
+  // Reject over-billing beyond scheduled value
+  assert.throws(() => f.projects.createBillingApp(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), periodStart: "2027-01-01", periodEnd: "2027-01-31",
+    lines: [{ sovLineId: sov1.id, currentWorkCents: 10000001, materialsStoredCents: 0 }], reason, reviewAttested: true,
+  }), /exceeds its scheduled value/);
+
+  // Application #1: $30,000 work + $5,000 stored = $35,000; 10% retainage = $3,500; Due = $31,500
+  const app1 = f.projects.createBillingApp(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), periodStart: "2027-01-01", periodEnd: "2027-01-31",
+    lines: [{ sovLineId: sov1.id, currentWorkCents: 3000000, materialsStoredCents: 500000 }], reason, reviewAttested: true,
+  }).application;
+  assert.equal(app1.applicationNumber, 1);
+  assert.equal(app1.totalCompletedStoredCents, 3500000);
+  assert.equal(app1.retainageHeldCents, 350000);
+  assert.equal(app1.currentPaymentDueCents, 3150000);
+
+  // Submitting blocked until required field doc is approved
+  assert.throws(() => f.projects.transitionBillingApp(member, pid, app1.id, {
+    requestKey: randomUUID(), expectedVersion: app1.version, action: "submit", reason, reviewAttested: true,
+  }), /Required field documentation/);
+
+  // Approve field doc, then submit & approve App #1
+  f.projects.saveFieldDoc(owner, pid, {
+    id: reqDoc.id, requestKey: randomUUID(), expectedVersion: reqDoc.version, phaseId: phase1.id,
+    docType: "completion_evidence", title: reqDoc.title, body: reqDoc.body, billingRequired: true, status: "approved", reason, reviewAttested: true,
+  });
+  const app1Sub = f.projects.transitionBillingApp(member, pid, app1.id, { requestKey: randomUUID(), expectedVersion: app1.version, action: "submit", reason, reviewAttested: true }).application;
+  const app1App = f.projects.transitionBillingApp(owner, pid, app1.id, { requestKey: randomUUID(), expectedVersion: app1Sub.version, action: "approve", reason, reviewAttested: true }).application;
+  assert.equal(app1App.status, "approved");
+
+  // Record payment separately from approval
+  const app1Paid = f.projects.transitionBillingApp(owner, pid, app1.id, { requestKey: randomUUID(), expectedVersion: app1App.version, action: "record_payment", paymentCents: 3150000, reason, reviewAttested: true }).application;
+  assert.equal(app1Paid.paymentRecordedCents, 3150000);
+
+  // Export continuation sheet HTML
+  const html = f.projects.exportBillingAppHtml(viewer, pid, app1.id);
+  assert.match(html, /Progress Billing Application #1/);
+  assert.match(html, /not a licensed AIA-branded form/);
+
+  // Sequential Application #2 carries forward $35,000 previous, adds $20,000 on SOV1 + $10,000 on CO-1 = $65,000 cumulative
+  const app2 = f.projects.createBillingApp(member, pid, {
+    id: randomUUID(), requestKey: randomUUID(), periodStart: "2027-02-01", periodEnd: "2027-02-28",
+    lines: [
+      { sovLineId: sov1.id, currentWorkCents: 2000000, materialsStoredCents: 0 },
+      { sovLineId: sov2.id, currentWorkCents: 1000000, materialsStoredCents: 0 },
+    ],
+    reason, reviewAttested: true,
+  }).application;
+  assert.equal(app2.applicationNumber, 2);
+  assert.equal(app2.totalCompletedStoredCents, 6500000);
+  assert.equal(app2.previousCertificatesCents, 3150000);
+  assert.equal(app2.currentPaymentDueCents, 2700000); // $58,500 earned less retainage - $31,500 prior = $27,000
+
+  // PROJ-008: WIP reporting + immutable snapshot
+  const wipRes = f.projects.getWip(owner, pid, "cost_to_cost");
+  assert.equal(wipRes.wip.revisedContractCents, 11000000); // $100k + $10k approved CO (pending $50k CO excluded)
+  assert.equal(wipRes.wip.actualCostCents, 75000 + 500000 + 1000000); // crew + sub + purchasing received
+  assert.equal(wipRes.wip.committedCostCents, 2000000 + 1500000); // open purchasing + remaining sub
+  assert.equal(wipRes.wip.billedToDateCents, 3500000); // latest approved App #1
+
+  const snap = f.projects.createWipSnapshot(owner, pid, {
+    id: randomUUID(), requestKey: randomUUID(), asOfDate: "2027-01-31", method: "cost_to_cost", reason, reviewAttested: true,
+  }).snapshot;
+  assert.equal(snap.revisedContractCents, 11000000);
+  assert.throws(() => f.db.prepare("DELETE FROM _project_wip_snapshots WHERE id=?").run(snap.id), /PROJECT_WIP_IMMUTABLE/);
+
+  // PROJ-009: Audit trail populated and immutable
+  const auditRows = f.projects.auditLog(owner, pid);
+  assert.ok(auditRows.length >= 10);
+  assert.throws(() => f.db.prepare("DELETE FROM _project_audit WHERE project_id=?").run(pid), /PROJECT_AUDIT_IMMUTABLE/);
+});

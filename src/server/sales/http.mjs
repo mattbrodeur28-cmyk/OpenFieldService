@@ -96,6 +96,21 @@ export function createSales({
   app.get("/quotes/:id/conversion",c=>c.json(quotes.conversion.summary(templateActor(c),c.req.param("id"))));
   app.post("/quotes/:id/conversion",async c=>{const data=await body(c);return c.json(quotes.conversion.convert(templateActor(c),c.req.param("id"),data));});
   app.post("/quotes/:id/conversion/cancel",async c=>{const data=await body(c);return c.json(quotes.conversion.cancel(templateActor(c),c.req.param("id"),data));});
+  // SALES-007: Multi-option customer quotes (Good/Better/Best / Alternates)
+  app.get("/quotes/:id/options", (c) => c.json(quotes.quoteOptions.list(templateActor(c), c.req.param("id"))));
+  app.post("/quotes/:id/options", async (c) => c.json(quotes.quoteOptions.save(templateActor(c), c.req.param("id"), await body(c))));
+  app.post("/quotes/:id/options/:optionId/select", async (c) => c.json(quotes.quoteOptions.select(templateActor(c), c.req.param("id"), c.req.param("optionId"), await body(c))));
+  app.delete("/quotes/:id/options/:optionId", (c) => c.json(quotes.quoteOptions.remove(templateActor(c), c.req.param("id"), c.req.param("optionId"))));
+  // SALES-016: Accepted quote to draft PO procurement allocation
+  app.get("/quotes/:id/procurement", (c) => c.json(quotes.procurement.summary(templateActor(c), c.req.param("id"))));
+  app.post("/quotes/:id/procurement", async (c) => c.json(quotes.procurement.allocate(templateActor(c), c.req.param("id"), await body(c))));
+  // SALES-012: Owner/Admin Sales audit log read
+  app.get("/audit", (c) => {
+    const user = templateActor(c);
+    if (!["owner", "admin"].includes(user.role)) throw new SalesError("Owner or Administrator access is required to view the Sales audit log.", 403);
+    const rows = storage.database.prepare("SELECT id,entity_type AS entityType,entity_id AS entityId,actor_id AS actorId,action,before_json AS beforeJson,after_json AS afterJson,created_at AS createdAt FROM _sales_audit ORDER BY id DESC LIMIT 200").all();
+    return c.json({ rows });
+  });
   app.get("/quote-issuer", c=>c.json(quotes.lifecycle.issuer.detail(templateActor(c),c.req.query())));
   app.post("/quote-issuer",async c=>{const data=await body(c);return c.json(quotes.lifecycle.issuer.save(templateActor(c),data));});
   app.get("/quotes/:id/lifecycle",c=>c.json(quotes.lifecycle.summary(templateActor(c),c.req.param("id"),c.req.query())));

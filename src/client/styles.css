@@ -1852,3 +1852,10 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .new-customer-card { margin-top: 10px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); }
 .new-customer-card .form-grid { margin-bottom: 10px; }
 .new-customer-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+/* New-customer card spans the whole job form width */
+.new-customer-card { grid-column: 1 / -1; margin: 0; padding: 16px; }
+.new-customer-card .form-grid { margin-bottom: 0; }
+.new-customer-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.new-customer-fields .form-group.full-width { grid-column: 1 / -1; }
+@media (max-width: 620px) { .new-customer-fields { grid-template-columns: minmax(0, 1fr); } }

@@ -91,22 +91,6 @@ export function CreateJob({ onClose, initialAsset, initialDate, onCreated }: { o
                 </select>
                 <button type="button" class="btn" onClick={() => { setNewCustomerOpen((v) => !v); setNewCustomerError(""); }} disabled={submitting}>+ New</button>
               </div>
-              {newCustomerOpen && (
-                <div class="new-customer-card">
-                  <p class="workspace-help">New customer for this service call. Add them, then finish the job below.</p>
-                  <div class="form-grid">
-                    <div class="form-group full-width"><label>Name *</label><input value={newCustomer.name} onInput={(e) => setNewCustomer({ ...newCustomer, name: e.currentTarget.value })} autoFocus /></div>
-                    <div class="form-group"><label>Phone</label><input type="tel" value={newCustomer.phone} onInput={(e) => setNewCustomer({ ...newCustomer, phone: e.currentTarget.value })} /></div>
-                    <div class="form-group"><label>Email</label><input type="email" value={newCustomer.email} onInput={(e) => setNewCustomer({ ...newCustomer, email: e.currentTarget.value })} /></div>
-                    <div class="form-group full-width"><label>Address</label><input value={newCustomer.address} onInput={(e) => setNewCustomer({ ...newCustomer, address: e.currentTarget.value })} /></div>
-                  </div>
-                  {newCustomerError && <p class="equipment-error" role="alert">{newCustomerError}</p>}
-                  <div class="new-customer-actions">
-                    <button type="button" class="btn btn-sm" onClick={() => { setNewCustomerOpen(false); setNewCustomerError(""); }}>Cancel</button>
-                    <button type="button" class="btn btn-sm btn-primary" disabled={newCustomerBusy} onClick={createNewCustomer}>{newCustomerBusy ? "Adding…" : "Add customer"}</button>
-                  </div>
-                </div>
-              )}
             </div>
             <div class="form-group">
               <label htmlFor="job-service">Service Type</label>
@@ -117,6 +101,22 @@ export function CreateJob({ onClose, initialAsset, initialDate, onCreated }: { o
                 ))}
               </select>
             </div>
+            {newCustomerOpen && (
+              <div class="new-customer-card full-width">
+                <p class="workspace-help">New customer for this service call. Add them, then finish the job below.</p>
+                <div class="new-customer-fields">
+                  <div class="form-group"><label>Name *</label><input value={newCustomer.name} onInput={(e) => setNewCustomer({ ...newCustomer, name: e.currentTarget.value })} autoFocus /></div>
+                  <div class="form-group"><label>Phone</label><input type="tel" value={newCustomer.phone} onInput={(e) => setNewCustomer({ ...newCustomer, phone: e.currentTarget.value })} /></div>
+                  <div class="form-group"><label>Email</label><input type="email" value={newCustomer.email} onInput={(e) => setNewCustomer({ ...newCustomer, email: e.currentTarget.value })} /></div>
+                  <div class="form-group full-width"><label>Address</label><input value={newCustomer.address} onInput={(e) => setNewCustomer({ ...newCustomer, address: e.currentTarget.value })} /></div>
+                </div>
+                {newCustomerError && <p class="equipment-error" role="alert">{newCustomerError}</p>}
+                <div class="new-customer-actions">
+                  <button type="button" class="btn btn-sm" onClick={() => { setNewCustomerOpen(false); setNewCustomerError(""); }}>Cancel</button>
+                  <button type="button" class="btn btn-sm btn-primary" disabled={newCustomerBusy} onClick={createNewCustomer}>{newCustomerBusy ? "Adding…" : "Add customer"}</button>
+                </div>
+              </div>
+            )}
             <div class="form-group">
               <label htmlFor="job-technician">Technician</label>
               <select id="job-technician" value={technicianId} onChange={(e) => setTechnicianId((e.target as HTMLSelectElement).value)}>

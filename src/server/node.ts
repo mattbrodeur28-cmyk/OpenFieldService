@@ -10,6 +10,7 @@ import { createProjectModule } from "./projects/http.mjs";
 import { createBusinessModule } from "./business/http.mjs";
 import { createResidentialModule } from "./residential/http.mjs";
 import { createRmsModule } from "./rms/http.mjs";
+import { createControlsModule } from "./controls/http.mjs";
 import { quoteMaterialSnapshots } from "./inventory/quote-pricing.mjs";
 import { createSales } from "./sales/http.mjs";
 import { createDispatcher } from "./dispatch/service.mjs";
@@ -51,6 +52,7 @@ const projects = createProjectModule({ storage, currentUser: auth.currentUser, p
 const business = createBusinessModule({ storage, currentUser: auth.currentUser });
 const residential = createResidentialModule({ storage, currentUser: auth.currentUser });
 const rms = createRmsModule({ storage, currentUser: auth.currentUser });
+const controls = createControlsModule({ storage, currentUser: auth.currentUser });
 const app = new Hono();
 // External customer portal uses its own customer-scoped bearer token, outside staff session guard.
 app.route("/api/portal", business.portalApp);
@@ -61,6 +63,7 @@ app.route("/api/projects",projects.app);
 app.route("/api/business",business.app);
 app.route("/api/residential",residential.app);
 app.route("/api/rms",rms.app);
+app.route("/api/controls",controls.app);
 app.route("/api/agreements",agreements.app);
 app.route("/api/hr",hr.app);
 app.route("/api/hr-documents",hrDocuments.app);
@@ -106,6 +109,7 @@ function stop() {
   dispatcher.close();
   const deadline = setTimeout(() => process.exit(1), 10000);
   deadline.unref();
+  (server as { closeAllConnections?: () => void }).closeAllConnections?.();
   server.close(() => { auth.close(); integrations.close(); workspace.close(); storage.close(); clearTimeout(deadline); });
 }
 process.on("SIGTERM", stop);

@@ -10,6 +10,21 @@ import { Plus, Download, Snowflake, Cylinder, Activity } from "lucide-preact";
 
 const uuid = () => crypto.randomUUID();
 const oz = (tenths?: number | null) => tenths == null ? "Unknown" : `${(tenths / 10).toFixed(1)} oz (${(tenths / 160).toFixed(2)} lb)`;
+const AUTO_GWP: Record<string, { name: string; gwp: number; ods: boolean }> = {
+  "R-11": { name: "R-11 (CFC-11)", gwp: 4750, ods: true },
+  "R-22": { name: "R-22 (HCFC-22)", gwp: 1810, ods: true },
+  "R-134A": { name: "R-134a (HFC-134a)", gwp: 1430, ods: false },
+  "R-404A": { name: "R-404A (HFC Blend)", gwp: 3922, ods: false },
+  "R-410A": { name: "R-410A (HFC Blend)", gwp: 2088, ods: false },
+  "R-32": { name: "R-32 (HFC-32)", gwp: 675, ods: false },
+  "R-454B": { name: "R-454B (HFO/HFC Blend)", gwp: 466, ods: false },
+  "R-407C": { name: "R-407C (HFC Blend)", gwp: 1774, ods: false },
+};
+function lookupGwp(code: string) {
+  const clean = code.trim().toUpperCase().replace(/^R[\s-]?/, "R-");
+  const norm = clean.startsWith("R-") ? clean : `R-${clean}`;
+  return AUTO_GWP[norm] || null;
+}
 
 export function RmsPage() {
   const { user } = useAccount();
@@ -22,7 +37,12 @@ export function RmsPage() {
   const [error, setError] = useState("");
   const [rev, setRev] = useState(0);
 
-  const [refForm, setRefForm] = useState({ code: "R-410A", name: "R-410A (HFC Blend)", gwp: "2088" });
+  const [refForm, setRefForm] = useState({ code: "R-410A", name: "R-410A (HFC Blend)", gwp: "2088", ozoneDepleting: false });
+  function updateRefCode(code: string) {
+    const match = lookupGwp(code);
+    if (match) setRefForm({ code, name: match.name, gwp: String(match.gwp), ozoneDepleting: match.ods });
+    else setRefForm((f) => ({ ...f, code }));
+  }
   const [cylForm, setCylForm] = useState({ tag: "", refrigerantId: "", status: "virgin", capacityOz: "400", currentOz: "400", certRef: "" });
   const [evForm, setEvForm] = useState({ eventType: "addition", refrigerantId: "", cylinderId: "", massOz: "16", reason: "Service charge addition" });
   const [ruleForm, setRuleForm] = useState({ code: "EPA-608-COMFORT", effectiveDate: "2026-01-01", equipmentClass: "comfort_cooling", thresholdLb: "50", maxLeakPct: "10", deadlineDays: "30" });
@@ -40,8 +60,16 @@ export function RmsPage() {
     e.preventDefault();
     setError("");
     try {
-      await api("POST", "/api/rms/refrigerants", { code: refForm.code, name: refForm.name, gwp: parseInt(refForm.gwp, 10) || 0, ozoneDepleting: false });
+      await api("POST", "/api/rms/refrigerants", { code: refForm.code, name: refForm.name, gwp: parseInt(refForm.gwp, 10) || 0, ozoneDepleting: refForm.ozoneDepleting });
       setRev((r) => r + 1);
+    } catch (err) { setError((err as Error).message); }
+  }
+
+  async function toggleRefrigerant(r: any) {
+    setError("");
+    try {
+      await api("POST", `/api/rms/refrigerants/${r.id}/toggle`, { active: !r.active });
+      setRev((v) => v + 1);
     } catch (err) { setError((err as Error).message); }
   }
 
@@ -97,7 +125,7 @@ export function RmsPage() {
     <div class="page">
       <header class="page-header">
         <div>
-          <h1><Snowflake size={18} style={{ marginRight: "6px" }} />Refrigerant Monitoring System (M14)</h1>
+          <h1><Snowflake size={18} style={{ marginRight: "6px" }} />Refrigerant Monitoring System</h1>
           <p class="workspace-help">Controlled refrigerant catalog, serialized cylinders, equipment charge baselines, balanced field events, and leak-rate monitoring.</p>
         </div>
         <div class="page-header-right">
@@ -132,10 +160,12 @@ export function RmsPage() {
       {tab === "dashboard" && data && (
         <div class="project-tab-stack">
           <Table label="Refrigerant stock by type">
-            <thead><tr><th>Refrigerant</th><th>Cylinders</th><th>Virgin / Reclaimed</th><th>Recovered</th></tr></thead>
+            <thead><tr><th>Refrigerant</th><th>GWP</th><th>ODS</th><th>Cylinders</th><th>Virgin / Reclaimed</th><th>Recovered</th></tr></thead>
             <tbody>{data.stockByRefrigerant.map((s: any) => (
               <tr key={s.refrigerantId}>
                 <th scope="row">{s.code} · {s.name}</th>
+                <td><strong>{s.gwp}</strong></td>
+                <td>{s.ozoneDepleting ? <Badge tone="warning">ODS</Badge> : <span class="text-muted">No</span>}</td>
                 <td>{s.cylinderCount}</td>
                 <td>{oz(s.virginTenthsOz)}</td>
                 <td>{oz(s.recoveredTenthsOz)}</td>
@@ -165,18 +195,33 @@ export function RmsPage() {
           {admin && (
             <form class="sales-form" onSubmit={saveRefrigerant}>
               <div class="sales-form-grid">
-                <TextField label="Refrigerant code" value={refForm.code} onInput={(e) => setRefForm({ ...refForm, code: (e.target as HTMLInputElement).value })} />
+                <TextField label="Refrigerant code (e.g. R-11, R-22, R-134A, R-404A, R-410A, R-32)" value={refForm.code} onInput={(e) => updateRefCode((e.target as HTMLInputElement).value)} />
                 <TextField label="Name" value={refForm.name} onInput={(e) => setRefForm({ ...refForm, name: (e.target as HTMLInputElement).value })} />
-                <TextField label="GWP" type="number" value={refForm.gwp} onInput={(e) => setRefForm({ ...refForm, gwp: (e.target as HTMLInputElement).value })} />
+                <TextField label="GWP (auto-filled)" type="number" value={refForm.gwp} onInput={(e) => setRefForm({ ...refForm, gwp: (e.target as HTMLInputElement).value })} />
               </div>
-              <div><Button variant="primary" type="submit"><Plus size={14} /> Add refrigerant</Button></div>
+              <div><Button variant="primary" type="submit"><Plus size={14} /> Save refrigerant</Button></div>
             </form>
           )}
           {data.refrigerants.length > 0 && (
+            <Table label="Refrigerant catalog">
+              <thead><tr><th>Code</th><th>Name</th><th>GWP</th><th>ODS</th><th>Status</th><th></th></tr></thead>
+              <tbody>{data.refrigerants.map((r: any) => (
+                <tr key={r.id}>
+                  <th scope="row">{r.code}</th>
+                  <td>{r.name}</td>
+                  <td><strong>{r.gwp}</strong></td>
+                  <td>{r.ozoneDepleting ? <Badge tone="warning">ODS</Badge> : <span class="text-muted">No</span>}</td>
+                  <td><Badge tone={r.active ? "success" : "neutral"}>{r.active ? "Enabled" : "Disabled"}</Badge></td>
+                  <td>{admin && <Button variant="ghost" onClick={() => void toggleRefrigerant(r)}>{r.active ? "Disable" : "Enable"}</Button>}</td>
+                </tr>
+              ))}</tbody>
+            </Table>
+          )}
+          {data.refrigerants.some((r: any) => r.active) && (
             <form class="sales-form" onSubmit={saveCylinder}>
               <div class="sales-form-grid">
                 <TextField label="Cylinder tag / serial" value={cylForm.tag} onInput={(e) => setCylForm({ ...cylForm, tag: (e.target as HTMLInputElement).value })} />
-                <Select label="Refrigerant" value={cylForm.refrigerantId} options={data.refrigerants.map((r: any) => ({ value: r.id, label: `${r.code} (${r.name})` }))} onValueChange={(refrigerantId) => setCylForm({ ...cylForm, refrigerantId })} />
+                <Select label="Refrigerant" value={cylForm.refrigerantId} options={data.refrigerants.filter((r: any) => r.active).map((r: any) => ({ value: r.id, label: `${r.code} (${r.name})` }))} onValueChange={(refrigerantId) => setCylForm({ ...cylForm, refrigerantId })} />
                 <Select label="Status" value={cylForm.status} options={["virgin", "recovered", "reclaimed", "empty"].map((v) => ({ value: v, label: v }))} onValueChange={(status) => setCylForm({ ...cylForm, status })} />
               </div>
               <div class="sales-form-grid">
@@ -209,7 +254,7 @@ export function RmsPage() {
             <form class="sales-form" onSubmit={recordEvent}>
               <div class="sales-form-grid">
                 <Select label="Event type" value={evForm.eventType} options={["purchase", "transfer", "addition", "recovery", "return", "reclaim", "disposal", "adjustment"].map((v) => ({ value: v, label: v }))} onValueChange={(eventType) => setEvForm({ ...evForm, eventType })} />
-                <Select label="Refrigerant" value={evForm.refrigerantId} options={data.refrigerants.map((r: any) => ({ value: r.id, label: r.code }))} onValueChange={(refrigerantId) => setEvForm({ ...evForm, refrigerantId })} />
+                <Select label="Refrigerant" value={evForm.refrigerantId} options={data.refrigerants.filter((r: any) => r.active).map((r: any) => ({ value: r.id, label: r.code }))} onValueChange={(refrigerantId) => setEvForm({ ...evForm, refrigerantId })} />
                 <Select label="Cylinder (optional)" value={evForm.cylinderId} options={[{ value: "", label: "None" }, ...data.cylinders.map((c: any) => ({ value: c.id, label: `${c.tag} (${c.refrigerantCode})` }))]} onValueChange={(cylinderId) => setEvForm({ ...evForm, cylinderId })} />
               </div>
               <div class="sales-form-grid">

@@ -114,7 +114,7 @@ export function OwnerHub() {
     <div class="page">
       <header class="page-header">
         <div>
-          <h1>Business Owner Hub (M8)</h1>
+          <h1>Business Owner Hub</h1>
           <p class="workspace-help">Executive visibility across dispatch, sales, contracts, labor, inventory, projects, reporting, automations, and customer portal access.</p>
         </div>
       </header>
@@ -144,7 +144,7 @@ export function OwnerHub() {
             <div onClick={() => navigate("/inventory")} style={{ cursor: "pointer" }}><span>Low-Stock Alerts</span><strong>{dash.inventory.lowStockCount}</strong></div>
             <div onClick={() => navigate("/purchasing")} style={{ cursor: "pointer" }}><span>Open PO Commitments</span><strong>{money(dash.inventory.openPoCommitmentCents)} ({dash.inventory.openPoCount})</strong></div>
             <div onClick={() => navigate("/projects")} style={{ cursor: "pointer" }}><span>Active Projects / Pay Apps</span><strong>{dash.projects.activeCount} / {dash.projects.pendingBillingApps}</strong></div>
-            <div onClick={() => navigate("/residential")} style={{ cursor: "pointer" }}><span>Residential Memberships / Open Calls</span><strong>{dash.residential.activeMemberships} / {dash.residential.openBookings}</strong></div>
+            <div onClick={() => navigate("/dispatcher")} style={{ cursor: "pointer" }}><span>Residential Memberships / Open Calls</span><strong>{dash.residential.activeMemberships} / {dash.residential.openBookings}</strong></div>
           </div>
         </div>
       )}

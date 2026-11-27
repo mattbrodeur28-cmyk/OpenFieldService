@@ -42,6 +42,11 @@ export function createRmsModule({ storage, currentUser }) {
     });
     app.post("/rules", async (c) => c.json(rms.saveRule(actor(c), await body(c))));
     app.post("/refrigerants", async (c) => c.json(rms.saveRefrigerant(actor(c), await body(c))));
+    app.post("/refrigerants/:id/toggle", async (c) => {
+        let data = {};
+        try { data = await c.req.json(); } catch {}
+        return c.json(rms.toggleRefrigerant(actor(c), c.req.param("id"), typeof data?.active === "boolean" ? data.active : undefined));
+    });
     app.post("/cylinders", async (c) => c.json(rms.saveCylinder(actor(c), await body(c))));
     app.post("/baselines", async (c) => c.json(rms.saveBaseline(actor(c), await body(c))));
     app.post("/events", async (c) => c.json(rms.recordEvent(actor(c), await body(c)), 201));

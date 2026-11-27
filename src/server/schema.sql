@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS customers (
   id TEXT PRIMARY KEY NOT NULL DEFAULT (lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', abs(random() % 4) + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))) CHECK(length(id) = 36 AND substr(id, 9, 1) = '-' AND substr(id, 14, 1) = '-' AND substr(id, 19, 1) = '-' AND substr(id, 24, 1) = '-' AND length(replace(id, '-', '')) = 32 AND lower(replace(id, '-', '')) NOT GLOB '*[^0-9a-f]*'),
   name TEXT NOT NULL,
+  customer_type TEXT NOT NULL DEFAULT 'residential' CHECK (customer_type IN ('residential','commercial')),
   email TEXT DEFAULT '',
   phone TEXT DEFAULT '',
   address TEXT DEFAULT '',

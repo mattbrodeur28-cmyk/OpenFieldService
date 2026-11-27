@@ -6,6 +6,7 @@ export const businessModules: Record<'finance' | 'fleet' | 'sales', BusinessModu
     { key: 'ledger', label: 'Ledger', path: '/finance/ledger', description: 'Money in and money out in one combined ledger.' },
     { key: 'invoices', label: 'Invoices', path: '/invoices', description: 'Job invoices and billing status.' },
     { key: 'receivables', label: 'Receivables', path: '/finance/receivables', description: 'Issued-invoice balances, aging, receipts, and collections notes.' },
+    { key: 'liabilities', label: 'Liabilities', path: '/finance/liabilities', description: 'Supplier bills, PO matching, vendor credits, approvals, and payables aging.' },
     { key: 'purchasing', label: 'Purchasing', path: '/purchasing', description: 'Suppliers, purchase orders, approvals, and receipts.' },
   ] },
   fleet: { view: 'fleet', label: 'Fleet', pages: [

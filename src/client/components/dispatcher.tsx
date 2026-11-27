@@ -17,6 +17,8 @@ import {
   AlertTriangle,
   SlidersHorizontal,
   PanelLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-preact";
 import { accountRequest, useAccount, isAdministrator } from "../auth";
 import { useConnectivity } from "../hooks/use-connectivity";
@@ -43,6 +45,8 @@ import {
   Table,
 } from "./ui/surfaces";
 import { DispatchHours } from "./dispatch-hours";
+import { DispatchCallIntake } from "./dispatch-call-intake";
+import { DispatchMap } from "./dispatch-map";
 import { Tooltip } from "./ui/tooltip";
 
 type DispatchJob = Job & {
@@ -509,7 +513,26 @@ export function Dispatcher() {
     [pipelineOpen, setPipelineOpen] = useState(true),
     [editingResource, setEditingResource] = useState<Resource | null>(null),
     [drag, setDrag] = useState<Drag | null>(null),
-    [now, setNow] = useState(new Date());
+    [now, setNow] = useState(new Date()),
+    [businessState, setBusinessState] = useState("CT"),
+    [showAllHours, setShowAllHours] = useState(false);
+  const viewRangeRef = useRef({ startMin: 420, endMin: 1080 });
+  useEffect(() => {
+    let active = true;
+    accountRequest<{ rows?: { active?: boolean; config?: { state?: string; jurisdiction?: string } }[] }>(
+      "/api/sales/billing-profiles?page=1",
+    )
+      .then((res) => {
+        if (!active) return;
+        const rows = res?.rows || [];
+        const prof = rows.find((r) => r.active && r.config?.state) || rows.find((r) => r.config?.state);
+        if (prof?.config?.state) setBusinessState(prof.config.state);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   const seq = useRef(0),
     alive = useRef(true),
     scroll = useRef<HTMLDivElement>(null),
@@ -598,7 +621,7 @@ export function Dispatcher() {
   }, [Boolean(board)]);
   useEffect(() => {
     if (board && scroll.current && !initialScroll.current) {
-      scroll.current.scrollLeft = 6 * hourWidth;
+      scroll.current.scrollLeft = showAllHours ? 6 * hourWidth : 0;
       initialScroll.current = true;
     }
   }, [board]);
@@ -700,7 +723,8 @@ export function Dispatcher() {
     const track = e.currentTarget.closest<HTMLElement>("[data-resource-track]");
     const grabOffset =
       mode === "move" && track
-        ? ((e.clientX - track.getBoundingClientRect().left) / hourWidth) * 60 -
+        ? viewRangeRef.current.startMin +
+          ((e.clientX - track.getBoundingClientRect().left) / hourWidth) * 60 -
           minuteOf(job.scheduled_time)
         : 0;
     const value: Drag = {
@@ -741,13 +765,17 @@ export function Dispatcher() {
       y: e.clientY,
       resourceId: track?.dataset.resourceTrack || null,
       minute: track
-        ? Math.min(
-            1440 - original.duration,
-            snapMinute(
-              ((e.clientX - track.getBoundingClientRect().left) / hourWidth) *
-                60 -
-                original.grabOffset,
-              snap,
+        ? Math.max(
+            viewRangeRef.current.startMin,
+            Math.min(
+              viewRangeRef.current.endMin - original.duration,
+              snapMinute(
+                viewRangeRef.current.startMin +
+                  ((e.clientX - track.getBoundingClientRect().left) / hourWidth) *
+                    60 -
+                  original.grabOffset,
+                snap,
+              ),
             ),
           )
         : original.minute,
@@ -786,8 +814,25 @@ export function Dispatcher() {
     const resourceId =
       value.mode === "resize" ? value.job.technician_id : value.resourceId;
     if (!resourceId) {
+      const overPipeline =
+        value.mode === "move" &&
+        !!value.job.technician_id &&
+        document
+          .elementsFromPoint(e.clientX, e.clientY)
+          .some((el) => !!el.closest("#dispatch-work-pipeline"));
+      if (overPipeline) {
+        dirty.current = false;
+        void save(
+          value.job,
+          null,
+          value.job.scheduled_date,
+          value.job.scheduled_time,
+          value.job.duration,
+        );
+        return;
+      }
       setError(
-        "Drop work onto a technician’s time row. No assignment changed.",
+        "Drop work onto a technician’s time row, or onto the Work Pipeline to unassign.",
       );
       if (dirty.current) {
         dirty.current = false;
@@ -899,12 +944,33 @@ export function Dispatcher() {
   const currentMinute =
       Number(currentParts.hour) * 60 + Number(currentParts.minute),
     isToday = board.date === dayInZone(board.timeZone, now);
+  const viewStartHour = showAllHours
+    ? 0
+    : board.operatingHours.enabled && board.operatingHours.open
+      ? Math.max(0, Math.floor(board.operatingHours.start / 60))
+      : 7;
+  const viewEndHour = showAllHours
+    ? 24
+    : board.operatingHours.enabled && board.operatingHours.open
+      ? Math.min(24, Math.max(viewStartHour + 1, Math.ceil(board.operatingHours.end / 60)))
+      : 18;
+  const viewStartMin = viewStartHour * 60,
+    viewEndMin = viewEndHour * 60,
+    viewHours = Math.max(1, viewEndHour - viewStartHour);
+  viewRangeRef.current = { startMin: viewStartMin, endMin: viewEndMin };
+  const mapJobs = (() => {
+    const byId = new Map<string, DispatchJob>();
+    for (const j of [...visibleJobs, ...board.pipeline]) {
+      if (active(j)) byId.set(j.id, j);
+    }
+    return [...byId.values()];
+  })();
   return (
     <div class="page dispatcher-page">
       {creating && <CreateJob initialDate={board.date} onClose={()=>setCreating(false)} onCreated={job=>{if(job.scheduled_date!==date)setDate(job.scheduled_date);else void load();}}/>}
       <div class="dispatch-title">
         <div>
-          <h1>Dispatcher</h1>
+          <h1>Dispatch Board</h1>
         </div>
         <div class="dispatch-metrics">
           <div>
@@ -928,6 +994,11 @@ export function Dispatcher() {
             <span>overlapping</span>
           </div>
         </div>
+        {board.jobs.some((j) => j.outside_service_hours) && (
+          <Badge tone="warning">
+            {board.jobs.filter((j) => j.outside_service_hours).length} after-hours
+          </Badge>
+        )}
         <Badge
           tone={
             failed ? "danger" : connection === "Live" ? "success" : "warning"
@@ -935,7 +1006,17 @@ export function Dispatcher() {
         >
           {failed ? "Updates unavailable" : connection}
         </Badge>
-        <Button disabled={!canWrite} onClick={()=>setCreating(true)}>Add job</Button>
+        {admin && (
+          <Tooltip label={board.operatingHours.enabled ? `Service hours: ${clockOf(board.operatingHours.start)}–${board.operatingHours.end === 1440 ? "24:00" : clockOf(board.operatingHours.end)}` : "Configure company service hours"}>
+            <Button
+              variant="ghost"
+              disabled={!canWrite}
+              onClick={() => setHoursOpen(true)}
+            >
+              <Clock3 size={14} /> Service hours
+            </Button>
+          </Tooltip>
+        )}
         <Tooltip label="Refresh the current board">
           <Button
             aria-label="Refresh dispatch board"
@@ -962,184 +1043,67 @@ export function Dispatcher() {
           Schedule changes are disabled until live access returns.
         </Notice>
       )}
-      <div class="dispatch-toolbar">
-        <Button
-          aria-expanded={pipelineOpen}
-          aria-controls="dispatch-work-pipeline"
-          onClick={() => setPipelineOpen(!pipelineOpen)}
-        >
-          <PanelLeft size={15} /> Pipeline
-        </Button>
-        <Select
-          label="Board view"
-          value={view}
-          onValueChange={setView}
-          options={[
-            { value: "gantt", label: "Hourly board" },
-            { value: "list", label: "Appointment list" },
-          ]}
-        />
-        <Select
-          label="Zoom"
-          value={String(hourWidth)}
-          onValueChange={(value) => setHourWidth(Number(value))}
-          options={[
-            { value: "64", label: "Compact" },
-            { value: "88", label: "Standard" },
-            { value: "128", label: "Detailed" },
-          ]}
-        />
-        <Select
-          label="Snap"
-          value={String(snap)}
-          onValueChange={(value) => setSnap(Number(value))}
-          options={[5, 15, 30].map((value) => ({
-            value: String(value),
-            label: value + " minutes",
-          }))}
-        />
-      </div>
-      <div class="dispatch-status-strip">
-        <p class="workspace-help">
-          {board.operatingHours.enabled
-            ? board.operatingHours.open
-              ? `Service hours: ${clockOf(board.operatingHours.start)}–${board.operatingHours.end === 1440 ? "24:00" : clockOf(board.operatingHours.end)}`
-              : "Closed for normal calls"
-            : "Company service hours are not enforced"}{" "}
-          · {board.operatingHours.label}
-        </p>
-        {admin && (
-          <Button disabled={!canWrite} onClick={() => setHoursOpen(true)}>
-            Service hours
-          </Button>
-        )}
-        <Badge
-          tone={
-            board.jobs.some((j) => j.outside_service_hours)
-              ? "warning"
-              : "neutral"
-          }
-        >
-          {board.jobs.filter((j) => j.outside_service_hours).length} after-hours
-          appointments
-        </Badge>
-      </div>
-      <div class="dispatch-weekly-schedule"><ScheduleView embedded allowCreate={false} hideHeading selectedDate={date} todayDate={dayInZone(board.timeZone,new Date())} onDateChange={next=>{setDate(next);setPage(1);}} /></div>
-      <div class={`dispatch-layout ${pipelineOpen ? "" : "pipeline-hidden"}`}>
-        <aside
-          id="dispatch-work-pipeline"
-          class="dispatch-pipeline"
-          hidden={!pipelineOpen}
-        >
-          <header>
-            <h2>Work pipeline</h2>
-            <Badge>{board.pipelineTotal}</Badge>
-          </header>
-          <Input
-            aria-label="Search work pipeline"
-            placeholder="Job, customer, equipment…"
-            value={search}
+      <DispatchCallIntake canWrite={canWrite} onDispatched={() => void load()} />
+      <div class="st-dispatch-shell">
+        <div class="st-dispatch-main">
+        <div class="st-date-bar">
+          <div class="st-date-nav">
+            <button
+              type="button"
+              class="btn-icon"
+              aria-label="Previous day"
+              onClick={() => {
+                const d = new Date(date + "T12:00:00Z");
+                d.setUTCDate(d.getUTCDate() - 1);
+                setDate(d.toISOString().slice(0, 10));
+                setPage(1);
+              }}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              type="button"
+              class="btn-icon"
+              aria-label="Next day"
+              onClick={() => {
+                const d = new Date(date + "T12:00:00Z");
+                d.setUTCDate(d.getUTCDate() + 1);
+                setDate(d.toISOString().slice(0, 10));
+                setPage(1);
+              }}
+            >
+              <ChevronRight size={16} />
+            </button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setDate(dayInZone(board.timeZone, new Date()));
+                setPage(1);
+              }}
+            >
+              Today
+            </Button>
+            <strong class="st-date-label">
+              {new Date(date + "T12:00:00Z").toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+                timeZone: "UTC",
+              })}
+            </strong>
+          </div>
+          <input
+            type="date"
+            class="st-date-input"
+            aria-label="Jump to date"
+            value={date}
             onInput={(e) => {
-              setSearch(e.currentTarget.value);
-              setPage(1);
+              const v = (e.target as HTMLInputElement).value;
+              if (v) { setDate(v); setPage(1); }
             }}
           />
-          <div class="dispatch-pipeline-filters">
-            <Select
-              label="Stage"
-              value={bucket}
-              onValueChange={(value) => {
-                setBucket(value);
-                setPage(1);
-              }}
-              options={[
-                { value: "all", label: "Open & active" },
-                { value: "open", label: "Open · scheduled / confirmed" },
-                { value: "active", label: "Active · in progress" },
-              ]}
-            />
-            <Select
-              label="Assignment"
-              value={assignment}
-              onValueChange={(value) => {
-                setAssignment(value);
-                setPage(1);
-              }}
-              options={[
-                { value: "unassigned", label: "Unassigned" },
-                { value: "all", label: "All work" },
-                { value: "assigned", label: "Assigned" },
-              ]}
-            />
-          </div>
-          <div class="dispatch-pipeline-jobs">
-            {board.pipeline.map((job) => (
-              <article
-                key={job.id}
-                class="dispatch-pipeline-card"
-                onPointerDown={(e) => pointerDown(e, job, "move")}
-              >
-                <div class="dispatch-job-top">
-                  {grip(job)}
-                  <strong>{job.identifier}</strong>
-                  <Badge
-                    tone={
-                      job.priority === "urgent"
-                        ? "danger"
-                        : job.priority === "high"
-                          ? "warning"
-                          : "neutral"
-                    }
-                  >
-                    {job.priority}
-                  </Badge>
-                </div>
-                <h3>{job.customer_name}</h3>
-                <p>
-                  {job.service_type_name || "Service visit"}
-                  {job.equipment_name ? " · " + job.equipment_name : ""}
-                </p>
-                {job.address && <small>{job.address}</small>}
-                <div class="dispatch-job-bottom">
-                  <span>
-                    {job.duration} min · {statusLabel[job.status]}
-                  </span>
-                  <Button disabled={!canWrite} onClick={() => setEditing(job)}>
-                    {job.technician_id ? "Reschedule" : "Assign"}
-                  </Button>
-                </div>
-                <small>
-                  {job.technician_name || "Unassigned"} · {job.scheduled_date}
-                </small>
-              </article>
-            ))}
-            {!board.pipeline.length && (
-              <EmptyState title="No matching work">
-                Try another stage, assignment filter or search.
-              </EmptyState>
-            )}
-          </div>
-          {(board.pipelineTotal > board.pageSize || page > 1) && (
-            <footer>
-              <Button
-                disabled={page <= 1 || busy}
-                onClick={() => setPage(page - 1)}
-              >
-                Previous
-              </Button>
-              <span>
-                Page {page} of{" "}
-                {Math.max(1, Math.ceil(board.pipelineTotal / board.pageSize))}
-              </span>
-              <Button
-                disabled={page * board.pageSize >= board.pipelineTotal || busy}
-                onClick={() => setPage(page + 1)}
-              >
-                Next
-              </Button>
-            </footer>
-          )}
-        </aside>
+        </div>
         <section class="dispatch-board" aria-label="Technician schedule">
           <div class="dispatch-resource-filters">
             <label class="dispatch-resource-search">
@@ -1170,14 +1134,16 @@ export function Dispatcher() {
                 ? ` (${[team, territory, skill].filter((v) => v !== "all").length})`
                 : ""}
             </Button>
-            <details class="dispatch-help">
-              <summary>How to schedule</summary>
-              <p>
-                Drag anywhere on a job to assign or move it. Stretch its right
-                edge to resize. Use Assign/Edit for keyboard or touch. Completed
-                and cancelled jobs are locked.
-              </p>
-            </details>
+            <Button
+              variant="ghost"
+              style={{ marginLeft: "auto" }}
+              onClick={() => setShowAllHours((v) => !v)}
+            >
+              <Clock3 size={14} />{" "}
+              {showAllHours
+                ? "Hide after-hours"
+                : `Show 24h (${clockOf(viewStartMin)}–${viewEndMin === 1440 ? "24:00" : clockOf(viewEndMin)})`}
+            </Button>
           </div>
           <div
             id="dispatch-advanced-filters"
@@ -1226,60 +1192,65 @@ export function Dispatcher() {
             >
               <div
                 class="dispatch-hours"
-                style={{ width: 200 + hourWidth * 24 }}
+                style={{ width: 200 + hourWidth * viewHours }}
               >
                 <div class="dispatch-resource-heading">
                   Technician / workload
                 </div>
                 <div
                   class="dispatch-hour-track"
-                  style={{ width: hourWidth * 24 }}
+                  style={{ width: hourWidth * viewHours }}
                 >
-                  {Array.from({ length: 24 }, (_, hour) => (
-                    <div style={{ width: hourWidth }}>{clockOf(hour * 60)}</div>
-                  ))}
+                  {Array.from({ length: viewHours }, (_, idx) => {
+                    const hour = viewStartHour + idx;
+                    return (
+                      <div key={hour} style={{ width: hourWidth }}>
+                        {clockOf(hour * 60)}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               {resources.map((resource) => {
-                const jobs = visibleJobs.filter(
-                    (job) => job.technician_id === resource.id,
-                  ),
+                const jobs = visibleJobs.filter((job) => {
+                    if (job.technician_id !== resource.id) return false;
+                    if (showAllHours) return true;
+                    const start = minuteOf(job.scheduled_time);
+                    return start + job.duration > viewStartMin && start < viewEndMin;
+                  }),
                   layout = layoutAppointments(jobs),
                   height = Math.max(80, layout.lanes * 58 + 20),
-                  work = jobs
-                    .filter(active)
+                  work = visibleJobs
+                    .filter((job) => job.technician_id === resource.id && active(job))
                     .reduce((sum, job) => sum + job.duration, 0);
                 return (
                   <div
                     class="dispatch-resource-row"
                     key={resource.id}
-                    style={{ width: 200 + hourWidth * 24, height }}
+                    style={{ width: 200 + hourWidth * viewHours, height: Math.max(58, layout.lanes * 44 + 14) }}
                   >
-                    <div class="dispatch-resource-label">
-                      <strong>{resource.name}</strong>
-                      <small>
-                        {(work / 60).toFixed(1)}h scheduled
-                        {!resource.active ? " · Inactive" : ""}
-                      </small>
-                      <small>
-                        {resource.availability
-                          ? resource.availability.available
-                            ? clockOf(resource.availability.start) +
-                              "–" +
-                              (resource.availability.end === 1440
-                                ? "24:00"
-                                : clockOf(resource.availability.end))
-                            : "Unavailable"
-                          : "Availability not declared"}
-                      </small>
-                      {admin && (
-                        <button
-                          class="dispatch-resource-edit"
-                          onClick={() => setEditingResource(resource)}
-                        >
-                          Edit resource
-                        </button>
-                      )}
+                    <div class="dispatch-resource-label st-tech-label">
+                      <span class="st-tech-avatar" style={{ background: resource.color || "#3b82f6" }}>
+                        {resource.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                      </span>
+                      <div class="st-tech-meta">
+                        <div class="st-tech-name-row">
+                          <strong>{resource.name}</strong>
+                          <span class={"st-tech-dot " + (resource.active ? "is-online" : "is-offline")} />
+                        </div>
+                        <small>
+                          {Math.floor(work / 60)}h {work % 60}m
+                          {!resource.active ? " · Inactive" : ""}
+                        </small>
+                        {admin && (
+                          <button
+                            class="dispatch-resource-edit"
+                            onClick={() => setEditingResource(resource)}
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div
                       data-resource-track={resource.id}
@@ -1290,7 +1261,7 @@ export function Dispatcher() {
                           : "")
                       }
                       style={{
-                        width: hourWidth * 24,
+                        width: hourWidth * viewHours,
                         "--hour-width": hourWidth + "px",
                       }}
                     >
@@ -1298,31 +1269,37 @@ export function Dispatcher() {
                         (!board.operatingHours.open ? (
                           <div
                             class="dispatch-service-closed"
-                            style={{ left: 0, width: hourWidth * 24 }}
+                            style={{ left: 0, width: hourWidth * viewHours }}
                             aria-label="Outside company service hours"
                           />
                         ) : (
                           <>
-                            <div
-                              class="dispatch-service-closed"
-                              style={{
-                                left: 0,
-                                width:
-                                  (board.operatingHours.start / 60) * hourWidth,
-                              }}
-                              aria-label="Before company service hours"
-                            />
-                            <div
-                              class="dispatch-service-closed"
-                              style={{
-                                left:
-                                  (board.operatingHours.end / 60) * hourWidth,
-                                width:
-                                  ((1440 - board.operatingHours.end) / 60) *
-                                  hourWidth,
-                              }}
-                              aria-label="After company service hours"
-                            />
+                            {board.operatingHours.start > viewStartMin && (
+                              <div
+                                class="dispatch-service-closed"
+                                style={{
+                                  left: 0,
+                                  width:
+                                    ((Math.min(board.operatingHours.start, viewEndMin) - viewStartMin) / 60) *
+                                    hourWidth,
+                                }}
+                                aria-label="Before company service hours"
+                              />
+                            )}
+                            {board.operatingHours.end < viewEndMin && (
+                              <div
+                                class="dispatch-service-closed"
+                                style={{
+                                  left:
+                                    ((Math.max(board.operatingHours.end, viewStartMin) - viewStartMin) / 60) *
+                                    hourWidth,
+                                  width:
+                                    ((viewEndMin - Math.max(board.operatingHours.end, viewStartMin)) / 60) *
+                                    hourWidth,
+                                }}
+                                aria-label="After company service hours"
+                              />
+                            )}
                           </>
                         ))}
                       {resource.availability &&
@@ -1333,31 +1310,36 @@ export function Dispatcher() {
                           />
                         ) : (
                           <>
-                            <div
-                              class="dispatch-unavailable"
-                              style={{
-                                left: 0,
-                                width:
-                                  (resource.availability.start / 60) *
-                                  hourWidth,
-                              }}
-                            />
-                            <div
-                              class="dispatch-unavailable"
-                              style={{
-                                left:
-                                  (resource.availability.end / 60) * hourWidth,
-                                width:
-                                  ((1440 - resource.availability.end) / 60) *
-                                  hourWidth,
-                              }}
-                            />
+                            {resource.availability.start > viewStartMin && (
+                              <div
+                                class="dispatch-unavailable"
+                                style={{
+                                  left: 0,
+                                  width:
+                                    ((Math.min(resource.availability.start, viewEndMin) - viewStartMin) / 60) *
+                                    hourWidth,
+                                }}
+                              />
+                            )}
+                            {resource.availability.end < viewEndMin && (
+                              <div
+                                class="dispatch-unavailable"
+                                style={{
+                                  left:
+                                    ((Math.max(resource.availability.end, viewStartMin) - viewStartMin) / 60) *
+                                    hourWidth,
+                                  width:
+                                    ((viewEndMin - Math.max(resource.availability.end, viewStartMin)) / 60) *
+                                    hourWidth,
+                                }}
+                              />
+                            )}
                           </>
                         ))}
-                      {isToday && (
+                      {isToday && currentMinute >= viewStartMin && currentMinute <= viewEndMin && (
                         <div
                           class="dispatch-now"
-                          style={{ left: (currentMinute / 60) * hourWidth }}
+                          style={{ left: ((currentMinute - viewStartMin) / 60) * hourWidth }}
                           aria-label="Current time"
                         />
                       )}
@@ -1368,7 +1350,7 @@ export function Dispatcher() {
                           class={`dispatch-appointment ${drag?.moved && drag.job.id === job.id ? "is-dragging" : ""} status-${job.status} ${overlaps.has(job.id) ? "has-overlap" : ""}`}
                           style={{
                             left:
-                              (minuteOf(job.scheduled_time) / 60) * hourWidth,
+                              ((minuteOf(job.scheduled_time) - viewStartMin) / 60) * hourWidth,
                             width: Math.max(
                               30,
                               ((drag?.job.id === job.id &&
@@ -1379,7 +1361,7 @@ export function Dispatcher() {
                                 hourWidth -
                                 3,
                             ),
-                            top: 10 + lane * 58,
+                            top: 8 + lane * 42,
                             "--job-color":
                               job.technician_color || "var(--info)",
                           }}
@@ -1432,6 +1414,27 @@ export function Dispatcher() {
                                 m
                               </small>
                             </button>
+                            {canWrite && !["completed", "cancelled"].includes(job.status) && job.technician_id && (
+                              <button
+                                type="button"
+                                class="btn-icon"
+                                title="Return to Work Pipeline (unassign)"
+                                aria-label={`Return ${job.identifier} to Work Pipeline`}
+                                onPointerDown={(ev) => ev.stopPropagation()}
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  void save(
+                                    job,
+                                    null,
+                                    job.scheduled_date,
+                                    job.scheduled_time,
+                                    job.duration,
+                                  );
+                                }}
+                              >
+                                <PanelLeft size={12} />
+                              </button>
+                            )}
                             {grip(job, "resize")}
                           </div>
                           {overlaps.has(job.id) && (
@@ -1449,7 +1452,7 @@ export function Dispatcher() {
                           <div
                             class="dispatch-drop-preview"
                             style={{
-                              left: (drag.minute / 60) * hourWidth,
+                              left: ((drag.minute - viewStartMin) / 60) * hourWidth,
                               width: (drag.duration / 60) * hourWidth,
                             }}
                           >
@@ -1541,6 +1544,169 @@ export function Dispatcher() {
             ))}
           </div>
         </section>
+
+        <section
+          id="dispatch-work-pipeline"
+          class="st-pipeline-panel"
+          hidden={!pipelineOpen}
+        >
+          <div class="st-pipeline-bar">
+            <div class="st-pipeline-tabs" role="tablist" aria-label="Work pipeline filter">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={assignment === "unassigned" && bucket === "all"}
+                class={"st-pill-tab" + (assignment === "unassigned" && bucket === "all" ? " is-active" : "")}
+                onClick={() => { setAssignment("unassigned"); setBucket("all"); setPage(1); }}
+              >
+                Unassigned <span class="st-pill-count">{board.pipelineTotal} jobs</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={bucket === "open" && assignment === "all"}
+                class={"st-pill-tab" + (bucket === "open" && assignment === "all" ? " is-active" : "")}
+                onClick={() => { setAssignment("all"); setBucket("open"); setPage(1); }}
+              >
+                Scheduled
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={bucket === "active" && assignment === "all"}
+                class={"st-pill-tab" + (bucket === "active" && assignment === "all" ? " is-active" : "")}
+                onClick={() => { setAssignment("all"); setBucket("active"); setPage(1); }}
+              >
+                Working
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={assignment === "assigned" && bucket === "all"}
+                class={"st-pill-tab" + (assignment === "assigned" && bucket === "all" ? " is-active" : "")}
+                onClick={() => { setAssignment("assigned"); setBucket("all"); setPage(1); }}
+              >
+                Assigned
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={assignment === "all" && bucket === "all"}
+                class={"st-pill-tab" + (assignment === "all" && bucket === "all" ? " is-active" : "")}
+                onClick={() => { setAssignment("all"); setBucket("all"); setPage(1); }}
+              >
+                All Work
+              </button>
+            </div>
+            <div class="st-pipeline-search">
+              <Input
+                aria-label="Search work pipeline"
+                placeholder="Search job, customer, address…"
+                value={search}
+                onInput={(e) => { setSearch(e.currentTarget.value); setPage(1); }}
+              />
+            </div>
+          </div>
+
+          <div class="table-scroll">
+            <table class="table st-pipeline-table">
+              <thead>
+                <tr>
+                  <th>Status / Tags</th>
+                  <th>Date</th>
+                  <th>Type / ID</th>
+                  <th>Start</th>
+                  <th>Technician</th>
+                  <th>Customer</th>
+                  <th>Address</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {board.pipeline.map((job) => (
+                  <tr
+                    key={job.id}
+                    class="st-pipeline-row"
+                    onPointerDown={(e) => pointerDown(e, job, "move")}
+                  >
+                    <td>
+                      <div class="btn-row">
+                        {grip(job)}
+                        <Badge tone={job.priority === "urgent" ? "danger" : job.priority === "high" ? "warning" : "neutral"}>
+                          {job.technician_id ? statusLabel[job.status] : "Unassigned"}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td class="text-muted">{job.scheduled_date}</td>
+                    <td><strong>{job.service_type_name || "Service"}</strong> <span class="text-muted">#{job.identifier}</span></td>
+                    <td class="text-muted">{job.scheduled_time || "—"} ({job.duration}m)</td>
+                    <td>{job.technician_name || <span class="text-muted">Unassigned</span>}</td>
+                    <td><strong>{job.customer_name}</strong></td>
+                    <td class="text-muted">{job.address || "—"}</td>
+                    <td>
+                      <Button
+                        variant="ghost"
+                        disabled={!canWrite}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => setEditing(job)}
+                      >
+                        {job.technician_id ? "Reschedule" : "Assign"}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!board.pipeline.length && (
+              <EmptyState title="No matching work">
+                Drag an assigned job here from the board to unassign it, or try another filter.
+              </EmptyState>
+            )}
+          </div>
+
+          {(board.pipelineTotal > board.pageSize || page > 1) && (
+            <div class="st-pipeline-pager">
+              <Button disabled={page <= 1 || busy} onClick={() => setPage(page - 1)}>Previous</Button>
+              <span class="text-muted">Page {page} of {Math.max(1, Math.ceil(board.pipelineTotal / board.pageSize))}</span>
+              <Button disabled={page * board.pageSize >= board.pipelineTotal || busy} onClick={() => setPage(page + 1)}>Next</Button>
+            </div>
+          )}
+        </section>
+
+        <DispatchMap
+          stateCode={businessState}
+          jobs={mapJobs}
+          onSelectJob={(jobId) => {
+            const target = mapJobs.find((j) => j.id === jobId);
+            if (target) setEditing(target);
+          }}
+        />
+        </div>
+
+        <aside class="st-messages-rail" aria-label="Dispatch activity feed">
+          <div class="st-messages-header">
+            <strong>Messages</strong>
+            <small>Live dispatch &amp; technician status updates for {board.date}.</small>
+          </div>
+          <div class="st-messages-list">
+            {visibleJobs.slice(0, 12).map((job) => (
+              <article
+                key={job.id}
+                class="st-message-item"
+                onClick={() => setEditing(job)}
+              >
+                <strong>{job.technician_name || "Unassigned"}:</strong>
+                <p>
+                  {statusLabel[job.status]} Job #{job.identifier} — {job.customer_name}
+                  {job.scheduled_time ? ` (${job.scheduled_time})` : ""}
+                </p>
+              </article>
+            ))}
+            {!visibleJobs.length && (
+              <p class="text-muted" style={{ padding: "12px" }}>No technician updates for this date yet.</p>
+            )}
+          </div>
+        </aside>
       </div>
       {hoursOpen && (
         <DispatchHours

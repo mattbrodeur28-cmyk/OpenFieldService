@@ -46,10 +46,32 @@ const ruleInput = z.object({
 const refrigerantInput = z.object({
     id: uuid.optional(),
     code: z.string().trim().min(1).max(40),
-    name: z.string().trim().min(1).max(120),
-    gwp: z.number().int().nonnegative().max(50000).default(0),
-    ozoneDepleting: z.boolean().default(false),
+    name: z.string().trim().max(120).optional(),
+    gwp: z.number().int().nonnegative().max(50000).optional(),
+    ozoneDepleting: z.boolean().optional(),
+    active: z.boolean().optional(),
 }).strict();
+
+// Standard EPA Section 608 / IPCC AR4 100-year GWP reference table.
+export const STANDARD_REFRIGERANTS = [
+    { code: "R-11", name: "R-11 (CFC-11)", gwp: 4750, ozoneDepleting: true },
+    { code: "R-22", name: "R-22 (HCFC-22)", gwp: 1810, ozoneDepleting: true },
+    { code: "R-134A", name: "R-134a (HFC-134a)", gwp: 1430, ozoneDepleting: false },
+    { code: "R-404A", name: "R-404A (HFC Blend)", gwp: 3922, ozoneDepleting: false },
+    { code: "R-410A", name: "R-410A (HFC Blend)", gwp: 2088, ozoneDepleting: false },
+    { code: "R-32", name: "R-32 (HFC-32)", gwp: 675, ozoneDepleting: false },
+];
+
+const EXTRA_GWP = {
+    "R-454B": { code: "R-454B", name: "R-454B (HFO/HFC Blend)", gwp: 466, ozoneDepleting: false },
+    "R-407C": { code: "R-407C", name: "R-407C (HFC Blend)", gwp: 1774, ozoneDepleting: false },
+};
+
+export function lookupStandardRefrigerant(rawCode) {
+    const clean = String(rawCode || "").trim().toUpperCase().replace(/^R[\s-]?/, "R-");
+    const norm = clean.startsWith("R-") ? clean : `R-${clean}`;
+    return STANDARD_REFRIGERANTS.find((r) => r.code === norm) || EXTRA_GWP[norm] || null;
+}
 
 const cylinderInput = z.object({
     id: uuid.optional(),
@@ -106,6 +128,12 @@ export function createRmsService({ storage }) {
     const db = storage.database;
     migrate(db, "_rms_migrations", [{ version: 1, sql: rmsSchema }]);
 
+    // Seed standard refrigerants with automatic EPA/IPCC AR4 GWP values if not yet present.
+    const seedRef = db.prepare("INSERT OR IGNORE INTO _rms_refrigerants(id,code,name,gwp,ozone_depleting,active) VALUES(?,?,?,?,?,1)");
+    for (const r of STANDARD_REFRIGERANTS) {
+        seedRef.run(randomUUID(), r.code, r.name, r.gwp, Number(r.ozoneDepleting));
+    }
+
     const replay = (user, key, fp) => {
         const prev = db.prepare("SELECT actor_id,request_hash,response_json FROM _rms_requests WHERE request_key=?").get(key);
         if (!prev) return null;
@@ -152,11 +180,28 @@ export function createRmsService({ storage }) {
     function saveRefrigerant(user, raw) {
         requireAdmin(user);
         const d = parse(refrigerantInput, raw);
-        const id = d.id || randomUUID();
+        const std = lookupStandardRefrigerant(d.code);
+        const code = std ? std.code : d.code.toUpperCase();
+        const name = (d.name && d.name.trim()) || std?.name || code;
+        const gwp = d.gwp ?? std?.gwp ?? 0;
+        const ozoneDepleting = d.ozoneDepleting ?? std?.ozoneDepleting ?? false;
+        const existing = db.prepare("SELECT id,active FROM _rms_refrigerants WHERE code=? COLLATE NOCASE").get(code);
+        const id = d.id || existing?.id || randomUUID();
+        const active = d.active ?? (existing ? existing.active === 1 : true);
         db.prepare(
-            `INSERT INTO _rms_refrigerants(id,code,name,gwp,ozone_depleting,active) VALUES(?,?,?,?,?,1)
-             ON CONFLICT(id) DO UPDATE SET code=excluded.code,name=excluded.name,gwp=excluded.gwp,ozone_depleting=excluded.ozone_depleting`
-        ).run(id, d.code, d.name, d.gwp, Number(d.ozoneDepleting));
+            `INSERT INTO _rms_refrigerants(id,code,name,gwp,ozone_depleting,active) VALUES(?,?,?,?,?,?)
+             ON CONFLICT(id) DO UPDATE SET code=excluded.code,name=excluded.name,gwp=excluded.gwp,ozone_depleting=excluded.ozone_depleting,active=excluded.active`
+        ).run(id, code, name, gwp, Number(ozoneDepleting), Number(active));
+        return { refrigerant: listRefrigerants(user).find((r) => r.id === id) };
+    }
+
+    function toggleRefrigerant(user, id, active) {
+        requireAdmin(user);
+        parse(uuid, id);
+        const row = db.prepare("SELECT id,active FROM _rms_refrigerants WHERE id=?").get(id);
+        if (!row) fail("Refrigerant not found.", 404);
+        const next = typeof active === "boolean" ? active : row.active !== 1;
+        db.prepare("UPDATE _rms_refrigerants SET active=? WHERE id=?").run(Number(next), id);
         return { refrigerant: listRefrigerants(user).find((r) => r.id === id) };
     }
 
@@ -348,11 +393,11 @@ export function createRmsService({ storage }) {
              ORDER BY e.event_at DESC,e.created_at DESC LIMIT 100`
         ).all().map((r) => ({ ...r }));
 
-        const stockByRefrigerant = refrigerants.map((ref) => {
+        const stockByRefrigerant = refrigerants.filter((r) => r.active).map((ref) => {
             const matching = cylinders.filter((c) => c.refrigerantId === ref.id);
             const virginTenthsOz = matching.filter((c) => c.status === "virgin" || c.status === "reclaimed").reduce((s, c) => s + c.currentMassTenthsOz, 0);
             const recoveredTenthsOz = matching.filter((c) => c.status === "recovered").reduce((s, c) => s + c.currentMassTenthsOz, 0);
-            return { refrigerantId: ref.id, code: ref.code, name: ref.name, cylinderCount: matching.length, virginTenthsOz, recoveredTenthsOz };
+            return { refrigerantId: ref.id, code: ref.code, name: ref.name, gwp: ref.gwp, ozoneDepleting: ref.ozoneDepleting, cylinderCount: matching.length, virginTenthsOz, recoveredTenthsOz };
         });
 
         const totalAddedTenthsOz = db.prepare("SELECT COALESCE(SUM(mass_tenths_oz),0) AS m FROM _rms_events WHERE event_type='addition'").get().m;
@@ -396,7 +441,7 @@ export function createRmsService({ storage }) {
     return {
         dashboard, exportRecords,
         listRules, saveRule,
-        listRefrigerants, saveRefrigerant,
+        listRefrigerants, saveRefrigerant, toggleRefrigerant,
         listCylinders, saveCylinder,
         saveBaseline, computeEquipmentStatus,
         recordEvent, recordLeakInspection,

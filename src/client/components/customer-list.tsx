@@ -50,6 +50,7 @@ export function CustomerList() {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Type</th>
                 <th>Phone</th>
                 <th>Email</th>
                 <th>Address</th>
@@ -61,6 +62,11 @@ export function CustomerList() {
               {customers.map((c) => (
                 <tr key={c.id} class="table-row clickable" onClick={() => navigate(`/customers/${c.id}`)}>
                   <td class="text-bold">{c.name}</td>
+                  <td>
+                    <span class={"badge " + (c.customer_type === "commercial" ? "badge-info" : "badge-muted")}>
+                      {c.customer_type === "commercial" ? "Commercial" : "Residential"}
+                    </span>
+                  </td>
                   <td class="text-muted">{c.phone || "—"}</td>
                   <td class="text-muted">{c.email || "—"}</td>
                   <td class="text-muted">{[c.address, c.city, c.state].filter(Boolean).join(", ") || "—"}</td>

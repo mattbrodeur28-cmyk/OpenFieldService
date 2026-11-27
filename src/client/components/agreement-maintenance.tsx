@@ -105,7 +105,7 @@ export function AgreementMaintenance({
 
       {entitlement && (
         <section class="detail-section">
-          <h3>Entitlement &amp; Coverage Usage (CONTRACT-005)</h3>
+          <h3>Entitlement &amp; Coverage Usage</h3>
           <div class="project-pl">
             <div><span>Billing Entitlement</span><strong>{entitlement.billingEntitlement || "Unknown"}</strong></div>
             <div><span>Included Visits</span><strong>{entitlement.includedVisits ?? "Unconfigured"}</strong></div>
@@ -119,7 +119,7 @@ export function AgreementMaintenance({
 
       <section class="detail-section">
         <div class="agreement-actions" style={{ justifyContent: "space-between" }}>
-          <h3>Maintenance Plans (CONTRACT-003)</h3>
+          <h3>Maintenance Plans</h3>
           {admin && <Button variant="primary" onClick={() => setModal(true)}><Plus size={14} /> Add maintenance plan</Button>}
         </div>
         {plans.length ? (
@@ -140,7 +140,7 @@ export function AgreementMaintenance({
       </section>
 
       <section class="detail-section">
-        <h3><CalendarCheck size={15} style={{ marginRight: "6px" }} />Due Work Preview — Next 90 Days (CONTRACT-004)</h3>
+        <h3><CalendarCheck size={15} style={{ marginRight: "6px" }} />Due Work Preview — Next 90 Days</h3>
         {preview?.occurrences?.length ? (
           <Table label="Due maintenance occurrences">
             <thead><tr><th>Due Date</th><th>Scheduled</th><th>Plan</th><th>Equipment</th><th>Status</th><th>Actions</th></tr></thead>

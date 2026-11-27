@@ -42,13 +42,18 @@ function RecordSection({
 export function CustomerDetail() {
   const { selectedCustomer: customer, selectedCustomerJobs: jobs, navigate, updateCustomer, deleteCustomer, setError } = useApp();
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "", state: "", zip: "", notes: "" });
+  const [converting, setConverting] = useState(false);
+  const [form, setForm] = useState({ name: "", customer_type: "residential" as "residential" | "commercial", email: "", phone: "", address: "", city: "", state: "", zip: "", notes: "" });
 
   if (!customer) return null;
 
+  const isCommercial = customer.customer_type === "commercial";
+
   const startEdit = () => {
     setForm({
-      name: customer.name, email: customer.email, phone: customer.phone,
+      name: customer.name,
+      customer_type: isCommercial ? "commercial" : "residential",
+      email: customer.email, phone: customer.phone,
       address: customer.address, city: customer.city, state: customer.state,
       zip: customer.zip, notes: customer.notes,
     });
@@ -60,8 +65,22 @@ export function CustomerDetail() {
     setEditing(false);
   };
 
+  const toggleCustomerType = async () => {
+    setConverting(true);
+    try {
+      await updateCustomer(customer.id, {
+        customer_type: isCommercial ? "residential" : "commercial",
+      });
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setConverting(false);
+    }
+  };
+
   const fields: [string, string][] = [
     ["Account Name", customer.name],
+    ["Customer Type", isCommercial ? "Commercial" : "Residential"],
     ["Phone", customer.phone],
     ["Email", customer.email],
     ["Billing Address", [customer.address, customer.city, customer.state, customer.zip].filter(Boolean).join(", ")],
@@ -101,8 +120,13 @@ export function CustomerDetail() {
           </button>
           <span class="account-icon" aria-hidden="true"><Building2 size={20} /></span>
           <div>
-            <span class="account-eyebrow">Account</span>
-            <h1 class="record-header-title">{customer.name}</h1>
+            <span class="account-eyebrow">Account · {isCommercial ? "Commercial" : "Residential"}</span>
+            <h1 class="record-header-title">
+              {customer.name}{" "}
+              <span class={"badge " + (isCommercial ? "badge-info" : "badge-muted")} style={{ verticalAlign: "middle", fontSize: "12px" }}>
+                {isCommercial ? "Commercial" : "Residential"}
+              </span>
+            </h1>
             <div class="record-header-subtitle">
               {customer.phone && <span>{customer.phone}</span>}
               {customer.email && <span>{customer.email}</span>}
@@ -118,6 +142,9 @@ export function CustomerDetail() {
             </>
           ) : (
             <>
+              <button class="btn" disabled={converting} onClick={toggleCustomerType}>
+                <Building2 size={14} /> {converting ? "Converting..." : isCommercial ? "Convert to Residential" : "Convert to Commercial"}
+              </button>
               <button class="btn" onClick={startEdit}><Edit3 size={14} /> Edit</button>
               <button class="btn btn-danger" onClick={() => deleteCustomer(customer.id).catch((err) => setError(err.message))}><Trash2 size={14} /> Delete</button>
             </>
@@ -128,7 +155,14 @@ export function CustomerDetail() {
       {editing ? (
         <div class="card detail-section">
           <div class="form-grid">
-            <div class="form-group full-width"><label>Name</label><input type="text" value={form.name} onInput={(e) => setForm({ ...form, name: (e.target as HTMLInputElement).value })} /></div>
+            <div class="form-group"><label>Name</label><input type="text" value={form.name} onInput={(e) => setForm({ ...form, name: (e.target as HTMLInputElement).value })} /></div>
+            <div class="form-group">
+              <label>Customer Type</label>
+              <select value={form.customer_type} onChange={(e) => setForm({ ...form, customer_type: (e.target as HTMLSelectElement).value as "residential" | "commercial" })}>
+                <option value="residential">Residential</option>
+                <option value="commercial">Commercial</option>
+              </select>
+            </div>
             <div class="form-group"><label>Email</label><input type="email" value={form.email} onInput={(e) => setForm({ ...form, email: (e.target as HTMLInputElement).value })} /></div>
             <div class="form-group"><label>Phone</label><input type="tel" value={form.phone} onInput={(e) => setForm({ ...form, phone: (e.target as HTMLInputElement).value })} /></div>
             <div class="form-group full-width"><label>Address</label><input type="text" value={form.address} onInput={(e) => setForm({ ...form, address: (e.target as HTMLInputElement).value })} /></div>

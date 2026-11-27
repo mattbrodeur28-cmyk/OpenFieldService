@@ -88,7 +88,7 @@ export function AgreementOperations({
       {error && <Notice tone="danger">{error}</Notice>}
 
       <section class="detail-section">
-        <h3><DollarSign size={15} style={{ marginRight: "4px" }} />Agreement Profitability (CONTRACT-008)</h3>
+        <h3><DollarSign size={15} style={{ marginRight: "4px" }} />Agreement Profitability</h3>
         {profitability ? (
           <div class="project-pl">
             <div><span>Authorized Value</span><strong>{money(profitability.contractValueCents)}</strong></div>
@@ -101,7 +101,7 @@ export function AgreementOperations({
       </section>
 
       <section class="detail-section">
-        <h3><RefreshCw size={15} style={{ marginRight: "6px" }} />Renewals (CONTRACT-006)</h3>
+        <h3><RefreshCw size={15} style={{ marginRight: "6px" }} />Renewals</h3>
         {renewals.length > 0 && (
           <Table label="Renewal history">
             <thead><tr><th>Agreement</th><th>Term</th><th>Created</th></tr></thead>
@@ -130,7 +130,7 @@ export function AgreementOperations({
       </section>
 
       <section class="detail-section">
-        <h3><FileEdit size={15} style={{ marginRight: "6px" }} />Amendments (CONTRACT-002)</h3>
+        <h3><FileEdit size={15} style={{ marginRight: "6px" }} />Amendments</h3>
         {amendments.length > 0 && (
           <Table label="Amendment history">
             <thead><tr><th>Amendment</th><th>Created</th><th>Reason</th></tr></thead>

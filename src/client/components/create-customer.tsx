@@ -6,6 +6,7 @@ export function CreateCustomer({ onClose }: { onClose: () => void }) {
   const { addCustomer, setError } = useApp();
 
   const [name, setName] = useState("");
+  const [customerType, setCustomerType] = useState<"residential" | "commercial">("residential");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -20,7 +21,7 @@ export function CreateCustomer({ onClose }: { onClose: () => void }) {
     if (!name.trim()) { setError("Name is required"); return; }
     setSubmitting(true);
     try {
-      await addCustomer({ name: name.trim(), email, phone, address, city, state, zip, notes });
+      await addCustomer({ name: name.trim(), customer_type: customerType, email, phone, address, city, state, zip, notes });
       onClose();
     } catch (err) {
       setError((err as Error).message);
@@ -38,9 +39,16 @@ export function CreateCustomer({ onClose }: { onClose: () => void }) {
         </div>
         <form onSubmit={handleSubmit}>
           <div class="form-grid">
-            <div class="form-group full-width">
+            <div class="form-group">
               <label>Name *</label>
               <input type="text" value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} required placeholder="John Smith" />
+            </div>
+            <div class="form-group">
+              <label>Customer Type *</label>
+              <select value={customerType} onChange={(e) => setCustomerType((e.target as HTMLSelectElement).value as "residential" | "commercial")}>
+                <option value="residential">Residential</option>
+                <option value="commercial">Commercial</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Email</label>

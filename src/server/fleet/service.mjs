@@ -28,8 +28,8 @@ const vehicleInput = z
   .object({
     id: uuid.optional(),
     expectedVersion: version,
-    locationId: uuid,
-    expectedLocationVersion: version,
+    locationId: uuid.nullable().optional(),
+    expectedLocationVersion: version.default(0),
     technicianId: uuid.nullable(),
     fleetNumber: z.string().trim().min(1).max(32),
     vin: z
@@ -48,7 +48,7 @@ const vehicleInput = z
     status: z.enum(["active", "out_of_service", "retired"]),
     distanceUnit: z.enum(["mi", "km"]),
     odometerTenths: distance,
-    reason,
+    reason: z.string().trim().max(1000).default(""),
   })
   .strict();
 const planInput = z
@@ -248,17 +248,57 @@ export function createFleet({
           "Odometer cannot decrease; a reviewed correction is required.",
           409,
         );
-      const loc = db
-        .prepare("SELECT * FROM _inventory_locations WHERE id=?")
-        .get(d.locationId);
-      if (!loc || loc.kind !== "truck")
-        fail("Choose an existing truck stock location.");
+      const effectiveReason =
+        d.reason.length >= 10
+          ? d.reason
+          : before
+            ? "Vehicle record and odometer updated."
+            : "Initial vehicle registration and truck stock setup.";
+      let targetLocationId = d.locationId || null;
+      if (!before && !targetLocationId) {
+        const cleanCode = d.fleetNumber.replace(/[^A-Za-z0-9]/g, "").slice(0, 12).toUpperCase();
+        const code = `TRK-${cleanCode || randomUUID().slice(0, 6).toUpperCase()}`;
+        const createdLoc = inventory.saveLocationInTransaction(user, {
+          expectedVersion: 0,
+          name: `Truck ${d.fleetNumber}`,
+          code,
+          kind: "truck",
+          technicianId: d.technicianId,
+          active: d.status !== "retired",
+          reason: effectiveReason,
+        });
+        targetLocationId = createdLoc.id;
+      } else {
+        const loc = db
+          .prepare("SELECT * FROM _inventory_locations WHERE id=?")
+          .get(targetLocationId);
+        if (!loc || loc.kind !== "truck")
+          fail("Choose an existing truck stock location.");
+        if (
+          db
+            .prepare(
+              "SELECT id FROM _fleet_vehicles WHERE id<>? AND (location_id=? OR fleet_number=? COLLATE NOCASE OR (vin<>'' AND vin=?))",
+            )
+            .get(d.id || "", targetLocationId, d.fleetNumber, d.vin)
+        )
+          fail("Truck location, fleet number or VIN is already assigned.", 409);
+        inventory.saveLocationInTransaction(user, {
+          id: loc.id,
+          expectedVersion: d.expectedLocationVersion,
+          name: loc.name,
+          code: loc.code,
+          kind: "truck",
+          technicianId: d.technicianId,
+          active: d.status !== "retired",
+          reason: effectiveReason,
+        });
+      }
       if (
         db
           .prepare(
             "SELECT id FROM _fleet_vehicles WHERE id<>? AND (location_id=? OR fleet_number=? COLLATE NOCASE OR (vin<>'' AND vin=?))",
           )
-          .get(d.id || "", d.locationId, d.fleetNumber, d.vin)
+          .get(d.id || "", targetLocationId, d.fleetNumber, d.vin)
       )
         fail("Truck location, fleet number or VIN is already assigned.", 409);
       if (
@@ -266,16 +306,6 @@ export function createFleet({
         db.prepare("SELECT COUNT(*) AS n FROM _fleet_vehicles").get().n >= 500
       )
         fail("Fleet scope exceeds the pilot limit.", 422);
-      inventory.saveLocationInTransaction(user, {
-        id: loc.id,
-        expectedVersion: d.expectedLocationVersion,
-        name: loc.name,
-        code: loc.code,
-        kind: "truck",
-        technicianId: d.technicianId,
-        active: d.status !== "retired",
-        reason: d.reason,
-      });
       const id = d.id || randomUUID();
       if (before)
         db.prepare(
@@ -296,7 +326,7 @@ export function createFleet({
           "INSERT INTO _fleet_vehicles(id,location_id,fleet_number,vin,plate,make,model,model_year,status,distance_unit,odometer_tenths) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
         ).run(
           id,
-          d.locationId,
+          targetLocationId,
           d.fleetNumber,
           d.vin,
           d.plate,
@@ -307,7 +337,7 @@ export function createFleet({
           d.distanceUnit,
           d.odometerTenths,
         );
-      audit(user, "vehicle_saved", id, before, vehicle(id), d.reason);
+      audit(user, "vehicle_saved", id, before, vehicle(id), effectiveReason);
       return vehicle(id);
     });
   }

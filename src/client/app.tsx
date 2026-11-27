@@ -1,8 +1,8 @@
 import {AgreementsPage} from "./components/agreements-page";
 import {ProjectsPage} from "./components/projects-page";
 import {OwnerHub} from "./components/owner-hub";
-import {ResidentialPage} from "./components/residential-page";
 import {RmsPage} from "./components/rms-page";
+import {ControlsPage} from "./components/controls-page";
 import { BusinessSection } from "./components/business-section";
 import {PurchasingPage} from "./components/purchasing-page";
 import {FleetPage} from "./components/fleet-page";
@@ -78,8 +78,8 @@ export function App() {
     if (view === "agreements") return <AgreementsPage id={id}/>;
     if (view === "projects") return <ProjectsPage id={id}/>;
     if (view === "owner") return <OwnerHub />;
-    if (view === "residential") return <ResidentialPage />;
     if (view === "rms") return <RmsPage />;
+    if (view === "controls") return <ControlsPage />;
     if (view === "sales") return <SalesPage opportunityId={id} quoteId={subId} />;
     if (view === "inventory") return <InventoryPage locationId={id}/>;
     if (view === "fleet") return <FleetPage section={id}/>;

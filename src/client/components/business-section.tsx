@@ -1,4 +1,5 @@
 import { ReceivablesPage } from "./finance/receivables-page";
+import { LiabilitiesPage } from "./finance/liabilities-page";
 import { LedgerPage } from "./finance/ledger-page";
 import { businessModules } from '../business-modules';
 import { ModuleOverview } from './module-overview';
@@ -31,6 +32,7 @@ export function BusinessSection({ view, id, invoiceDetail = false }: { view: Vie
     {section === 'ledger' && isAdministrator(user) && <LedgerPage/>}
     {section === 'invoices' && (invoiceDetail ? <InvoiceDetail /> : <InvoiceList />)}
     {section === 'receivables' && <ReceivablesPage/>}
+    {section === 'liabilities' && <LiabilitiesPage/>}
     {section === 'purchasing' && <PurchasingPage orderId={view === 'purchasing' ? id : null} />}
     {info && <div class="page"><div class="page-header"><h1>{info.title}</h1><span class="badge badge-muted">Planned</span></div><section class="workspace-editor"><h2>{info.description}</h2><p>{info.scope}</p></section></div>}
   </section>;

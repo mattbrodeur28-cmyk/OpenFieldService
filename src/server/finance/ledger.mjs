@@ -14,6 +14,10 @@ export function createLedger({ storage }) {
             const rows = db.prepare(`SELECT r.id, substr(r.created_at,1,10) AS occurredOn, o.number AS reference, s.name AS party, CAST(round(r.accepted_milli * r.unit_cost_cents / 1000.0) AS INTEGER) AS amountCents, 'purchase' AS method, 'Purchase receipt' AS memo FROM _purch_receipts r JOIN _purch_orders o ON o.id=r.order_id JOIN _purch_suppliers s ON s.id=o.supplier_id`).all();
             for (const r of rows) entries.push({ direction: "out", ...r });
         }
+        if (has("_finance_bill_payments") && has("_finance_supplier_bills")) {
+            const rows = db.prepare(`SELECT p.id, p.paid_on AS occurredOn, b.bill_number AS reference, b.supplier_name AS party, p.amount_cents AS amountCents, p.method AS method, COALESCE(NULLIF(p.reference,''), 'Supplier bill payment') AS memo FROM _finance_bill_payments p JOIN _finance_supplier_bills b ON b.id=p.bill_id`).all();
+            for (const r of rows) entries.push({ direction: "out", ...r });
+        }
         entries.sort((a, b) => (String(b.occurredOn) + b.id).localeCompare(String(a.occurredOn) + a.id));
         const totalInCents = entries.reduce((n, e) => e.direction === "in" ? n + e.amountCents : n, 0);
         const totalOutCents = entries.reduce((n, e) => e.direction === "out" ? n + e.amountCents : n, 0);

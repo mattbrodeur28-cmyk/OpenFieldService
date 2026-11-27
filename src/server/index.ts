@@ -103,6 +103,7 @@ const OkSchema = z.object({ ok: z.boolean() }).openapi("Ok");
 const CustomerSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
+  customer_type: z.enum(["residential", "commercial"]).optional(),
   email: z.string(),
   phone: z.string(),
   address: z.string(),
@@ -692,6 +693,7 @@ const createCustomer = createRoute({
     body: {
       content: { "application/json": { schema: z.object({
         name: z.string(),
+        customer_type: z.enum(["residential", "commercial"]).optional(),
         email: z.string().optional(),
         phone: z.string().optional(),
         address: z.string().optional(),
@@ -710,8 +712,8 @@ const createCustomer = createRoute({
 app.openapi(createCustomer, async (c) => {
   const data = c.req.valid("json");
   const customer = await get<z.infer<typeof CustomerSchema>>(
-    "INSERT INTO customers (name, email, phone, address, city, state, zip, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
-    [data.name, data.email || "", data.phone || "", data.address || "",
+    "INSERT INTO customers (name, customer_type, email, phone, address, city, state, zip, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+    [data.name, data.customer_type || "residential", data.email || "", data.phone || "", data.address || "",
     data.city || "", data.state || "", data.zip || "", data.notes || ""]
   );
   return c.json(customer!, 201);
@@ -725,6 +727,7 @@ const updateCustomer = createRoute({
     body: {
       content: { "application/json": { schema: z.object({
         name: z.string().optional(),
+        customer_type: z.enum(["residential", "commercial"]).optional(),
         email: z.string().optional(),
         phone: z.string().optional(),
         address: z.string().optional(),

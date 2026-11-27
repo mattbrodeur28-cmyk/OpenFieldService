@@ -430,7 +430,6 @@ function VehicleForm({
       value={form[name]}
       required={required}
       disabled={busy || disabled}
-      minLength={name === "reason" ? 10 : undefined}
       maxLength={name === "reason" ? 1000 : 120}
       onInput={(e) => setForm({ ...form, [name]: e.currentTarget.value })}
     />
@@ -445,15 +444,15 @@ function VehicleForm({
         class="sales-form"
         onSubmit={async (e) => {
           e.preventDefault();
-          if (busy || disabled || !location) return;
+          if (busy || disabled || (v && !location)) return;
           setBusy(true);
           setError("");
           try {
             await accountRequest("/api/service/fleet", "POST", {
               id: v?.id,
               expectedVersion: v?.version || 0,
-              locationId,
-              expectedLocationVersion: v?.location_version ?? location.version,
+              locationId: locationId || null,
+              expectedLocationVersion: v?.location_version ?? location?.version ?? 0,
               technicianId: tech === "none" ? null : tech,
               fleetNumber: form.fleetNumber,
               vin: form.vin,
@@ -479,7 +478,7 @@ function VehicleForm({
           value={locationId || "none"}
           disabled={!!v || busy || disabled}
           options={[
-            { value: "none", label: "Choose a truck stock location" },
+            { value: "none", label: "Auto-create new truck stock location" },
             ...locations.map((l) => ({
               value: l.id,
               label: l.name + " · " + l.code,
@@ -493,9 +492,8 @@ function VehicleForm({
           }}
         />
         <p class="workspace-help">
-          Create the truck in Inventory first. Linking preserves its existing
-          stock. Changing technician assignment changes custody without moving
-          material.
+          Leave as auto-create to automatically create a linked truck stock
+          location in Inventory, or select an existing truck.
         </p>
         {field("fleetNumber", "Fleet number", true)}
         <Select
@@ -534,12 +532,12 @@ function VehicleForm({
           onValueChange={(value) => setUnit(value as "mi" | "km")}
         />
         {field("odometer", "Recorded odometer", true)}
-        {field("reason", "Change / odometer reading reason", true)}
+        {v && field("reason", "Change / odometer note (optional)", false)}
         <div class="inventory-toolbar">
           <Button
             type="submit"
             variant="primary"
-            disabled={busy || disabled || !location}
+            disabled={busy || disabled || !form.fleetNumber.trim() || (!!v && !location)}
           >
             Save vehicle
           </Button>

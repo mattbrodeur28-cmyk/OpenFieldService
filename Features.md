@@ -858,21 +858,37 @@ realm isolation and partial failures. Production needs separate company verifica
 
 ## M7 — Controls, commissioning and handover
 
+**Status: Coded (source + automated tests; browser and LXC qualification remain open).**
+
 - [ ] **CTRL-001 — Hierarchy:** building → system → equipment → controller/components
   with stable identifiers and move/replacement history.
+  Coded (source + automated tests): `_ctrl_systems`, `_ctrl_controllers`, `_ctrl_history`
+  and `/api/controls/systems` + `/controllers/:id/move`.
 - [ ] **CTRL-002 — Controller inventory:** manufacturer/model, protocol, addressing,
   point/network references and software/firmware. Protect network information;
   passwords belong in secret storage rather than service notes.
+  Coded (source + automated tests): BACnet/Modbus/LonWorks inventory rejecting plaintext
+  passwords in network/secret reference fields.
 - [ ] **CTRL-003 — Checkout:** versioned point-to-point/sequence tests, readings,
   evidence, technician identity, review and sign-off.
+  Coded (source + automated tests): `/api/controls/checkouts` with admin-gated
+  approval/rejection sign-off.
 - [ ] **CTRL-004 — Drawings/backups:** versions, provenance, hashes, equipment links,
   access control, retention and reliable restore/export.
+  Coded (source + automated tests): `/api/controls/artifacts` auto-versioning with
+  SHA-256 digests and retention policies.
 - [ ] **CTRL-005 — Deficiencies:** severity, evidence, ownership, corrective work,
   retest and authorized closure.
+  Coded (source + automated tests): `/api/controls/deficiencies`, native corrective
+  Job creation (`/corrective-job`), and authorized retest closure (`/close`).
 - [ ] **CTRL-006 — Handover:** approved drawings/backups, checkout reports, open
   deficiencies and service history in an export or properly scoped customer portal.
+  Coded (source + automated tests): `GET /api/controls/systems/:id/handover` and
+  `/controls` Handover Package JSON export.
 - [ ] **CTRL-007 — Maintenance linkage:** tasks use the right equipment/template
   version and retain the exact version completed on a visit.
+  Coded (source + automated tests): `/api/controls/maintenance-links` preserving exact
+  template versions completed per controller/visit.
 
 **Acceptance:** complete a controller checkout, record a deficiency, attach a
 versioned backup, schedule corrective work and produce a traceable handover.
@@ -1481,9 +1497,14 @@ synchronization is owned by [M6](#m6--quickbooks-accounting).
 - [ ] **FIN-002 — Liabilities:** supplier bills, PO/receipt matching, credits, due
   dates, approval, and payment reconciliation. Separate committed PO spend from
   recognized payables; avoid double-counting QuickBooks balances.
+  Coded (source + automated tests): `_finance_supplier_bills`, `_finance_bill_payments`,
+  `_finance_bill_credits`, `/api/service/liabilities`, and `/finance/liabilities` UI
+  separating recognized payables from committed PO spend.
 - [ ] **FIN-003 — Finance permissions:** dedicated accounting capabilities and
   provider mappings. Current Finance app entry and Purchasing remain Owner/Admin;
   legacy invoice access is preserved. HR does not imply accounting permissions.
+  Coded (source + automated tests): `_finance_permissions` capability table and
+  `/api/service/finance-permissions` enforcing explicit accounting grants independent of HR.
 
 Receivables has recorded source and automated increments; deposits, overpayments,
 provider reconciliation and remaining acceptance gates keep FIN-001 open. Liabilities

@@ -27,6 +27,7 @@
     "@radix-ui/react-tooltip": "^1.4.1",
     "@salesforce-ux/design-system": "^2.264.3",
     "hono": "^4.6.0",
+    "leaflet": "^1.9.4",
     "lucide-preact": "^0.575.0",
     "number-flow": "^0.6.2",
     "preact": "^10.25.0",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.9.0",
+    "@types/leaflet": "^1.9.23",
     "@types/node": "^24.19.2",
     "concurrently": "^9.0.0",
     "typescript": "^5.7.0",

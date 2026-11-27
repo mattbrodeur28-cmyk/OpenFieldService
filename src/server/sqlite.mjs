@@ -15,6 +15,10 @@ export function openStorage(filename) {
     database.exec("BEGIN IMMEDIATE");
     try {
       database.exec(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));
+      const custCols = database.prepare("PRAGMA table_info(customers)").all();
+      if (!custCols.some((c) => c.name === "customer_type")) {
+        database.exec("ALTER TABLE customers ADD COLUMN customer_type TEXT NOT NULL DEFAULT 'residential';");
+      }
       database.exec("COMMIT");
     } catch (error) {
       database.exec("ROLLBACK");

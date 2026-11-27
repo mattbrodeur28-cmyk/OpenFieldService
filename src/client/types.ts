@@ -1,4 +1,4 @@
-export type View = "rms" | "owner" | "residential" | "agreements" | "projects" | "finance" | "purchasing" | "fleet" | "inventory" | "timesheets" | "sales" | "dispatcher" | "calendar" | "team" | "users" | "website" | "environment" | "chat" | "knowledge" | "integrations" | "builder" | "settings" | "assets" | "dashboard" | "schedule" | "jobs" | "customers" | "technicians" | "services" | "invoices" | "materials";
+export type View = "controls" | "rms" | "owner" | "agreements" | "projects" | "finance" | "purchasing" | "fleet" | "inventory" | "timesheets" | "sales" | "dispatcher" | "calendar" | "team" | "users" | "website" | "environment" | "chat" | "knowledge" | "integrations" | "builder" | "settings" | "assets" | "dashboard" | "schedule" | "jobs" | "customers" | "technicians" | "services" | "invoices" | "materials";
 
 export type JobStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled";
 export type Priority = "low" | "normal" | "high" | "urgent";
@@ -48,6 +48,7 @@ export interface Job {
 export interface Customer {
   id: string;
   name: string;
+  customer_type?: "residential" | "commercial";
   email: string;
   phone: string;
   address: string;

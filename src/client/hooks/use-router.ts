@@ -35,7 +35,6 @@ const VIEW_ROUTES: Record<string, View> = {
   materials: "materials",
   inventory: "inventory",
   fleet: "fleet",
-  hr: "hr",
   finance: "finance",
   purchasing: "purchasing",
 };

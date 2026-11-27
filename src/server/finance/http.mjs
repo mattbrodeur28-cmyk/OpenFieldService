@@ -1,10 +1,13 @@
 import {createJobAccounting} from './accounting.mjs';
+import {createLedger} from './ledger.mjs';
 import {ServiceIdentityError} from '../service/identity.mjs';
 export function mountJobAccounting(app,{storage,company,check}) {
  const accounting=createJobAccounting({storage,company});
+ const ledger=createLedger({storage});
  const actor=c=>{c.header('Cache-Control','private, no-store');return check(c);};
  async function body(c){try{return await c.req.json();}catch(error){if(error?.name==='BodyLimitError')throw new ServiceIdentityError('Request too large.',413);throw new ServiceIdentityError('Send valid JSON.');}}
  app.get('/receivables',c=>c.json(accounting.receivables.list(actor(c),c.req.query())));
+ app.get('/ledger',c=>{const user=actor(c);if(!user||!['owner','admin'].includes(user.role))return c.json({error:'Administrator access is required to view the ledger.'},403);return c.json(ledger.list(user,c.req.query()));});
  app.get('/invoices/:id/collections',c=>c.json(accounting.receivables.notes(actor(c),c.req.param('id'),c.req.query())));
  app.post('/invoices/:id/collections',async c=>{const d=await body(c);return c.json(accounting.receivables.addNote(actor(c),c.req.param('id'),d));});
  app.get('/jobs/:id/accounting',c=>c.json(accounting.detail(actor(c),c.req.param('id'),c.req.query())));

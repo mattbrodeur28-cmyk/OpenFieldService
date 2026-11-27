@@ -1,15 +1,11 @@
 import type { View } from './types';
 export interface ModulePage { key: string; label: string; path: string; description: string; planned?: boolean }
 export interface BusinessModule { view: View; label: string; pages: ModulePage[] }
-export const businessModules: Record<'hr' | 'finance' | 'fleet' | 'sales', BusinessModule> = {
-  hr: { view: 'hr', label: 'HR', pages: [
-    { key: 'staff', label: 'Staff', path: '/hr/staff', description: 'Employee profiles, employment history, and linked technician availability.' },
-    { key: 'onboarding', label: 'Onboarding', path: '/hr/onboarding', description: 'Employee checklists, assigned tasks, and acknowledgments.', planned: true },
-  ] },
-  finance: { view: 'finance', label: 'Finance', pages: [
+export const businessModules: Record<'finance' | 'fleet' | 'sales', BusinessModule> = {
+  finance: { view: 'finance', label: 'Ledger', pages: [
+    { key: 'ledger', label: 'Ledger', path: '/finance/ledger', description: 'Money in and money out in one combined ledger.' },
     { key: 'invoices', label: 'Invoices', path: '/invoices', description: 'Job invoices and billing status.' },
     { key: 'receivables', label: 'Receivables', path: '/finance/receivables', description: 'Issued-invoice balances, aging, receipts, and collections notes.' },
-    { key: 'liabilities', label: 'Liabilities', path: '/finance/liabilities', description: 'Supplier bills, credits, and payment reconciliation.', planned: true },
     { key: 'purchasing', label: 'Purchasing', path: '/purchasing', description: 'Suppliers, purchase orders, approvals, and receipts.' },
   ] },
   fleet: { view: 'fleet', label: 'Fleet', pages: [

@@ -1772,3 +1772,17 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .sales-kpi-controls { position: absolute; top: 6px; right: 6px; display: flex; gap: 2px; }
 .sales-kpi-controls .btn-icon { width: 22px; height: 22px; min-width: 22px; min-height: 22px; }
 .sales-overview-empty { grid-column: 1 / -1; font-size: 13px; color: var(--text-muted); text-align: center; padding: 20px; border: 1px dashed var(--border); border-radius: var(--radius); }
+
+/* Combined Money In / Money Out ledger */
+.ledger-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.ledger-summary-card { display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card-bg); box-shadow: var(--shadow); }
+.ledger-summary-card span { font-size: 12px; color: var(--text-muted); }
+.ledger-summary-card strong { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.ledger-summary-card.ledger-in strong { color: var(--success); }
+.ledger-summary-card.ledger-out strong { color: var(--warning); }
+.ledger-summary-card.ledger-net { border-color: var(--primary); }
+.ledger-tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+.ledger-tab { padding: 8px 14px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; }
+.ledger-tab.is-active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+.ledger-amount-in { color: var(--success); font-weight: 600; }
+.ledger-amount-out { color: var(--warning); font-weight: 600; }

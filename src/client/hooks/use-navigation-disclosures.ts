@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 
-const defaults: Record<string, boolean> = { fieldService: true, sales: true, fleet: true, hr: true, finance: true };
+const defaults: Record<string, boolean> = { fieldService: true, sales: true, fleet: true, finance: true };
 function read(key: string): Record<string, boolean> {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(key) || 'null');

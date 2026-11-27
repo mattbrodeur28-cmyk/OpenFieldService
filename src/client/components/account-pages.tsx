@@ -35,7 +35,7 @@ function UserRow({ item, refresh }: { item: AccountUser; refresh(): Promise<void
       <form class="account-inline-form" onSubmit={e => { e.preventDefault(); setBusy(true); setError(''); void accountRequest('/api/auth/users/' + item.id, 'PUT', { name, role, active, hr: role === 'member' && hr }).then(refresh).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>
         <label class="form-group">Name<input value={name} onInput={e => setName(e.currentTarget.value)} required maxLength={100} /></label>
         <label class="form-group">Role<select value={role} onChange={e => setRole(e.currentTarget.value as UserRole)}>{user.role === 'owner' && <option value="admin">Admin</option>}<option value="member">Member</option><option value="viewer">Viewer</option></select></label>
-        {isAdministrator(user) && role === 'member' && <label class="workspace-consent"><input type="checkbox" checked={hr} onChange={e => setHr(e.currentTarget.checked)} /> HR / people administration</label>}
+        {isAdministrator(user) && role === 'member' && <label class="workspace-consent"><input type="checkbox" checked={hr} onChange={e => setHr(e.currentTarget.checked)} /> People administration</label>}
         <label class="workspace-consent"><input type="checkbox" checked={active} onChange={e => setActive(e.currentTarget.checked)} /> Active</label><button class="btn" disabled={busy}>Save account</button>
       </form>
       <form class="account-inline-form" onSubmit={e => { e.preventDefault(); setBusy(true); setError(''); void accountRequest('/api/auth/users/' + item.id + '/reset-password', 'POST', { password }).then(() => { setPassword(''); return refresh(); }).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>

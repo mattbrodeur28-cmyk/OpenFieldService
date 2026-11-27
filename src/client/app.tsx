@@ -76,7 +76,7 @@ export function App() {
     if (view === "sales") return <SalesPage opportunityId={id} quoteId={subId} />;
     if (view === "inventory") return <InventoryPage locationId={id}/>;
     if (view === "fleet") return <FleetPage section={id}/>;
-    if (["hr", "finance", "purchasing", "invoices"].includes(view)) return <BusinessSection view={view} id={id} invoiceDetail={view === "invoices" && !!id && !!appState.selectedInvoice}/>;
+    if (["finance", "purchasing", "invoices"].includes(view)) return <BusinessSection view={view} id={id} invoiceDetail={view === "invoices" && !!id && !!appState.selectedInvoice}/>;
     if (view === "timesheets") return <Timesheets />;
     if (view === "dispatcher") return <Dispatcher />;
     if (view === "team" && id) return <TeamChannel key={id} id={id} />;

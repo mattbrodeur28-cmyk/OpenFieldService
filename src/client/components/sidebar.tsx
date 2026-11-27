@@ -4,8 +4,8 @@ import { Avatar } from './ui/surfaces';
 import { useEffect, useState } from "preact/hooks";
 import { ProfilePopup, type ProfileSection } from "./profile-popup";
 import { useApp } from "../context";
-import { useAccount, isAdministrator, canManagePeople } from "../auth";
-import { Wallet, ContactRound, Truck, TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Package, FolderKanban } from "lucide-preact";
+import { useAccount, isAdministrator } from "../auth";
+import { Wallet, Truck, TrendingUp, House, Globe, Plus, MessageSquare, BookOpen, Code2, ChevronDown, CalendarClock, LayoutDashboard, Briefcase, Users, Wrench, Package, FolderKanban } from "lucide-preact";
 import type { View } from "../types";
 
 const navItems: { view: View; path: string; label: string; icon: typeof LayoutDashboard }[] = [
@@ -103,7 +103,6 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
         </div>
         {moduleGroup(businessModules.sales, TrendingUp)}
         {user.role !== "viewer" && moduleGroup(businessModules.fleet, Truck)}
-        {canManagePeople(user) && moduleGroup(businessModules.hr, ContactRound)}
         {canManage && moduleGroup(businessModules.finance, Wallet)}
         {canManage && navItem({ view: "builder", path: "/builder", label: "App builder", icon: Code2 })}
         {navItem({ view: "knowledge", path: "/knowledge", label: "Knowledge", icon: BookOpen })}

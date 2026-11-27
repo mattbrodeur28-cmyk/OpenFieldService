@@ -783,8 +783,8 @@ export function FleetPage({section}:{section?:string|null}) {
   if(user.role==='viewer')return <div class="page"><h1>Fleet</h1><p>You do not have access to Fleet.</p></div>;
   if(!section)return <ModuleOverview module={businessModules.fleet}/>;
   if(section==='vehicles')return <FleetVehicles/>;
-  if(section==='inventory')return <StockInventoryPage locationKind="truck"/>;
+  if(section==='inventory')return <StockInventoryPage/>;
   if(section==='gps')return <div class="page"><div class="page-header"><h1>GPS</h1><span class="badge badge-muted">Planned</span></div><p>Live tracking is not connected. GPS ingestion, source configuration, and the dispatch map are planned.</p></div>;
-  if(/^[0-9a-f-]{36}$/i.test(section))return <StockInventoryPage key={section} locationId={section} locationKind="truck"/>;
+  if(/^[0-9a-f-]{36}$/i.test(section))return <StockInventoryPage key={section} locationId={section}/>;
   return <ModuleOverview module={businessModules.fleet}/>;
 }

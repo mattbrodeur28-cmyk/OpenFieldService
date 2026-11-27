@@ -10,7 +10,7 @@ export const businessModules: Record<'finance' | 'fleet' | 'sales', BusinessModu
   ] },
   fleet: { view: 'fleet', label: 'Fleet', pages: [
     { key: 'vehicles', label: 'Vehicles & maintenance', path: '/fleet/vehicles', description: 'Vehicle assignments, maintenance plans, and service history.' },
-    { key: 'inventory', label: 'Truck inventory', path: '/fleet/inventory', description: 'Truck stock, material movements, and job usage.' },
+    { key: 'inventory', label: 'Stock inventory', path: '/fleet/inventory', description: 'All shared stock locations (buildings and trucks), material movements, and job usage.' },
     { key: 'gps', label: 'GPS', path: '/fleet/gps', description: 'Vehicle locations and dispatch tracking.', planned: true },
   ] },
   sales: { view: 'sales', label: 'Sales', pages: [

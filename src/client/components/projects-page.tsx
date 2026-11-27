@@ -20,7 +20,7 @@ const uuid = () => crypto.randomUUID();
 const reason = "Reviewed project structure";
 
 type Project = { id: string; customer_id: string; title: string; description: string; status: string; project_manager: string; planned_start: string; planned_end: string; actual_start: string; actual_end: string; baseline_cost_cents: number | null; baseline_start: string; baseline_end: string; estimate_to_complete_cents: number | null; baselined_at: string | null; source_kind: string | null; source_id: string | null; version: number; archived: number };
-type Detail = { project: Project; phases: any[]; milestones: any[]; jobs: any[]; sites: any[]; deliverables: any[]; financials: { actualCostCents: number; committedCostCents: number | null; currency: string }; overdueActions: any[] };
+type Detail = { project: Project; phases: any[]; milestones: any[]; jobs: any[]; sites: any[]; deliverables: any[]; financials: { actualCostCents: number; committedCostCents: number | null; currency: string }; overdueActions: any[]; source: { kind: string; id?: string; quoteId?: string; opportunityId?: string; title?: string; value?: number; probability?: number; closeDate?: string; pipeline?: string; stage?: string; stageKind?: string } | null };
 
 function RecordSection({ title, count, defaultOpen = true, children }: { title: string; count?: number; defaultOpen?: boolean; children: ComponentChildren }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -145,6 +145,12 @@ export function ProjectsPage({ id }: { id: string | null }) {
                       <span class="account-field-value">{value || "—"}</span>
                     </div>
                   ))}
+                  {detail.source?.kind === "opportunity" && (
+                    <div class="account-field">
+                      <span class="account-field-label">Opportunity</span>
+                      <span class="account-field-value"><button type="button" class="account-link" onClick={() => navigate(`/sales/${detail.source!.opportunityId}`)}>{detail.source!.title} · {detail.source!.stage}</button></span>
+                    </div>
+                  )}
                 </div>
               </RecordSection>
               <RecordSection title="Financials">

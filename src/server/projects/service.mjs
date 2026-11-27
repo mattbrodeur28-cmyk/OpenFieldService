@@ -64,10 +64,22 @@ export function createProjects({ storage, proposalSource = null }) {
         }));
     }
 
+    // A project may originate from an accepted Sales proposal; surface the opportunity.
+    const source = (project) => {
+        if (!project?.source_kind || !project?.source_id) return null;
+        if (project.source_kind !== "quote") return { kind: project.source_kind, id: project.source_id };
+        try {
+            const row = db.prepare("SELECT q.id AS quoteId,o.id AS opportunityId,o.title,o.expected_value AS value,o.probability,o.expected_close_date AS closeDate,p.name AS pipeline,s.name AS stage,s.kind AS stageKind FROM _sales_quotes q JOIN _sales_opportunities o ON o.id=q.opportunity_id JOIN _sales_pipelines p ON p.id=o.pipeline_id JOIN _sales_stages s ON s.id=o.stage_id WHERE q.id=?").get(project.source_id);
+            return row ? { kind: "opportunity", ...row } : { kind: "quote", id: project.source_id };
+        } catch {
+            return { kind: "quote", id: project.source_id };
+        }
+    };
+
     function detail(user, id) {
         reader(user);
         parse(uuid, id);
-        return transaction(db, () => ({ project: get(id), phases: phases(id), milestones: milestones(id), jobs: jobs(id), sites: sites(id), deliverables: deliverables(id), issues: issues(id), dependencies: dependencies(id), financials: financials(id), overdueActions: overdueActions(id) }));
+        return transaction(db, () => ({ project: get(id), phases: phases(id), milestones: milestones(id), jobs: jobs(id), sites: sites(id), deliverables: deliverables(id), issues: issues(id), dependencies: dependencies(id), financials: financials(id), overdueActions: overdueActions(id), source: source(get(id)) }));
     }
 
     function savePhase(user, projectId, raw) {

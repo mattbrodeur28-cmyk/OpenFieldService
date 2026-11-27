@@ -1885,3 +1885,7 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .project-overdue { margin-top: 10px; font-size: 12px; color: var(--warning); font-weight: 600; }
 @media (max-width: 1100px) { .projects-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 @media (max-width: 760px) { .projects-layout { grid-template-columns: minmax(0, 1fr); } .project-gantt-row { grid-template-columns: 90px minmax(0, 1fr); } .project-gantt-months { margin-left: 100px; } }
+
+/* Linked-opportunity link inside the project About card */
+.account-link { background: none; border: 0; padding: 0; font: inherit; color: var(--primary); cursor: pointer; text-align: left; }
+.account-link:hover { text-decoration: underline; }

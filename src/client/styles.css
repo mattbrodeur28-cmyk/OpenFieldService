@@ -1754,3 +1754,21 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .service-type-dialog { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; padding: clamp(16px, 3vw, 28px); }
 .service-type-dialog .page { padding: 0; margin: 0; }
 .service-type-dialog .page-header { margin: 0 0 16px; }
+
+/* Salesforce-style configurable Sales overview KPI dashboard */
+.sales-overview { margin-bottom: 22px; }
+.sales-overview-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.sales-overview-head h2 { margin: 0; font-size: 17px; }
+.sales-overview-editor { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border: 1px dashed var(--border); border-radius: var(--radius); margin-bottom: 12px; background: var(--surface-sunken); }
+.sales-overview-hint { flex: 1 1 100%; font-size: 12px; color: var(--text-muted); }
+.sales-overview-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--card-bg); cursor: pointer; }
+.sales-overview-toggle input { margin: 0; }
+.sales-overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; }
+.sales-kpi { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card-bg); box-shadow: var(--shadow); min-height: 104px; }
+.sales-kpi.is-editing { border-style: dashed; }
+.sales-kpi-value { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; overflow-wrap: anywhere; }
+.sales-kpi-title { font-size: 13px; font-weight: 500; }
+.sales-kpi-sub { font-size: 11px; color: var(--text-muted); }
+.sales-kpi-controls { position: absolute; top: 6px; right: 6px; display: flex; gap: 2px; }
+.sales-kpi-controls .btn-icon { width: 22px; height: 22px; min-width: 22px; min-height: 22px; }
+.sales-overview-empty { grid-column: 1 / -1; font-size: 13px; color: var(--text-muted); text-align: center; padding: 20px; border: 1px dashed var(--border); border-radius: var(--radius); }

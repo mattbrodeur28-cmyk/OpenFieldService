@@ -24,6 +24,7 @@ import type {
 import { salesMoney, salesMinor } from "../sales-types";
 import { dateLabel, stageAge } from "../sales-format";
 import { PipelineEditor } from "./sales/pipeline-editor";
+import { SalesOverview } from "./sales/sales-overview";
 import { FollowUpInbox, ReminderSummary } from "./sales/activities";
 import { OpportunityEditor } from "./sales/opportunity-editor";
 import { MoveForm } from "./sales/move-form";
@@ -515,6 +516,7 @@ function SalesWorkspace({ opportunityId }: { opportunityId: string | null }) {
           updates failed.
         </Notice>
       )}
+      <SalesOverview />
       <div class="sales-metrics">
         <div>
           <span>Opportunities · current filters</span>

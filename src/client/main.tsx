@@ -3,7 +3,8 @@ import { AuthGate } from "./auth";
 import { CompanyWebsite } from "./components/account-pages";
 import { App } from "./app";
 import { prepareOfflineSupport } from "./offline";
-import "@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.min.css";
+// Use source CSS: the vendor minified file corrupts nth-child(1 of ...) selectors.
+import "@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.css";
 import "./tokens.css";
 import "./styles.css";
 

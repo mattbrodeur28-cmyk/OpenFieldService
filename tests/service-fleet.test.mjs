@@ -302,3 +302,23 @@ test("Maintenance plan creation cannot duplicate on retry, and one-time threshol
   );
   assert.throws(() => plan(f, { dueDate: "2026-02-30" }), /real date/);
 });
+
+test("Fleet truck inventory shares the Field Service inventory database and tables", (t) => {
+  const f = setup(t);
+  // The vehicle's custody location is the exact row created through Inventory.
+  const row = f.storage.database
+    .prepare("SELECT id,kind FROM _inventory_locations WHERE id=?")
+    .get(f.truck.id);
+  assert.ok(row, "truck location lives in the shared _inventory_locations table");
+  assert.equal(row.kind, "truck");
+  assert.equal(
+    f.storage.database
+      .prepare("SELECT location_id FROM _fleet_vehicles WHERE id=?")
+      .get(f.vehicle.id).location_id,
+    f.truck.id,
+  );
+  // The Field Service inventory service reads the same truck location.
+  const detail = f.inv.detail(owner, f.truck.id);
+  assert.equal(detail.location.id, f.truck.id);
+  assert.equal(detail.location.kind, "truck");
+});

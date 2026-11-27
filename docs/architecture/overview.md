@@ -74,3 +74,14 @@ contracts. [Native module metadata](../api/platform-metadata.md) is an unqualifi
 source foundation, not completion of those services. PostgreSQL is the intended
 shared-state production target; current SQLite remains the single-instance profile
 and no PostgreSQL migration or multi-replica qualification is claimed.
+
+## Shared database
+
+Every business module (CRM, Inventory, Fleet/truck inventory, Sales, Agreements,
+Projects, Purchasing, Finance/Ledger, Dispatch, Service) uses the one service database
+(`DATABASE_PATH`, default `data/openfieldservice.sqlite`). Modules add their own tables
+through versioned migrations but read and write the same connection, so truck inventory
+in Fleet is literally the same `_inventory_locations` / `_inventory_movements` /
+`_inventory_balances` rows as Inventory in Field Service; a `_fleet_vehicles` row
+references an `_inventory_locations` row by `location_id`. The only separate file is
+`workspace.sqlite`, which holds authentication, teams and integration secrets.

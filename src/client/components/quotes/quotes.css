@@ -291,3 +291,9 @@
 /* Quote form fields live in the new side/main columns */
 .quote-side .ui-field, .quote-main .ui-field { margin: 12px 0; min-width: 0; }
 .quote-side label.ui-field, .quote-main label.ui-field { display: grid; gap: 6px; font-size: 13px; }
+
+/* Quote Details meta (account + contact) */
+.quote-details-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.quote-details-meta div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); }
+.quote-details-meta span { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
+.quote-details-meta strong { font-size: 13px; font-weight: 600; }

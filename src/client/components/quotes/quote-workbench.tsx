@@ -85,6 +85,16 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
   const [opportunity, setOpportunity] = useState<QuoteOpportunity | null>(null),
     [profile, setProfile] = useState<BillingProfile | null>(null),
     [latestProfile, setLatestProfile] = useState<BillingProfile | null>(null);
+  const [oppContact, setOppContact] = useState<string | null>(null);
+  useEffect(() => {
+    const id = saved?.opportunityId;
+    if (!id) { setOppContact(null); return; }
+    let live = true;
+    accountRequest<{ opportunity: { contact_name?: string } }>(`/api/sales/opportunities/${id}`)
+      .then((r) => { if (live) setOppContact(r.opportunity?.contact_name || null); })
+      .catch(() => { if (live) setOppContact(null); });
+    return () => { live = false; };
+  }, [saved?.opportunityId]);
   const [document, setDocument] = useState<QuoteDocument>({
     title: "",
     scope: "",
@@ -502,11 +512,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               </Button>
             </Notice>
           )}
-          {!historical && !lockedQuote && <QuoteSection title="Start from a template" class="quote-template-apply">
-            
-            {opportunity ? <SearchPicker<TemplateSummary> key={`${opportunity.segment}:${templateRefresh}`} label="Reusable quote template" endpoint={`/api/sales/quote-templates?segment=${opportunity.segment}`} selected={template?{id:template.id,label:`${template.name??"Template"} · v${template.version}`}:null} disabled={disabled} format={row=>`${row.name} · v${row.version}`} change={row=>void applyTemplate(row)}/> : <p class="workspace-help">Choose an opportunity to see templates for its work segment.</p>}
-            {template&&<Button disabled={disabled} onClick={()=>{changed();setTemplate(null);}}>Detach template reference</Button>}
-          </QuoteSection>}
+          
           <div class="quote-layout">
             <div class="quote-side">
               <QuoteSection title="Opportunity and billing">
@@ -638,7 +644,11 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               </QuoteSection>
             </div>
             <div class="quote-main">
-              <QuoteSection title="Scope and terms">
+              <QuoteSection title="Quote Details">
+                <div class="quote-details-meta">
+                  <div><span>Associated account</span><strong>{opportunity?.customerName || "—"}</strong></div>
+                  <div><span>Contact</span><strong>{oppContact || "—"}</strong></div>
+                </div>
                 
                 <TextField
                   label="Quote title"

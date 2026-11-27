@@ -297,3 +297,9 @@
 .quote-details-meta div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); }
 .quote-details-meta span { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
 .quote-details-meta strong { font-size: 13px; font-weight: 600; }
+
+/* Three side-by-side columns: Quote Details | Opportunity | Job costing */
+.quote-layout { grid-template-columns: minmax(260px, 300px) minmax(260px, 300px) minmax(0, 1fr); }
+.quote-col { min-width: 0; display: grid; gap: 18px; align-content: start; }
+@media (max-width: 1300px) { .quote-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .quote-main { grid-column: 1 / -1; } }
+@media (max-width: 820px) { .quote-layout { grid-template-columns: minmax(0, 1fr); } .quote-main { grid-column: auto; } }

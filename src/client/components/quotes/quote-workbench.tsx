@@ -514,7 +514,49 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           )}
           
           <div class="quote-layout">
-            <div class="quote-side">
+            <div class="quote-col">
+              <QuoteSection title="Quote Details">
+                <div class="quote-details-meta">
+                  <div><span>Associated account</span><strong>{opportunity?.customerName || "—"}</strong></div>
+                  <div><span>Contact</span><strong>{oppContact || "—"}</strong></div>
+                </div>
+                
+                <TextField
+                  label="Quote title"
+                  value={document.title}
+                  required
+                  maxLength={200}
+                  disabled={disabled}
+                  onInput={(e) =>
+                    patchDocument({ title: e.currentTarget.value })
+                  }
+                />
+                <label class="ui-field">
+                  Scope
+                  <Textarea
+                    value={document.scope}
+                    required
+                    maxLength={12000}
+                    disabled={disabled}
+                    onInput={(e) =>
+                      patchDocument({ scope: e.currentTarget.value })
+                    }
+                  />
+                </label>
+                <label class="ui-field">
+                  Exclusions
+                  <Textarea
+                    value={document.exclusions}
+                    maxLength={10000}
+                    disabled={disabled}
+                    onInput={(e) =>
+                      patchDocument({ exclusions: e.currentTarget.value })
+                    }
+                  />
+                </label>
+              </QuoteSection>
+            </div>
+            <div class="quote-col">
               <QuoteSection title="Opportunity and billing">
                 
                 {saved ? (
@@ -644,52 +686,11 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               </QuoteSection>
             </div>
             <div class="quote-main">
-              <QuoteSection title="Quote Details">
-                <div class="quote-details-meta">
-                  <div><span>Associated account</span><strong>{opportunity?.customerName || "—"}</strong></div>
-                  <div><span>Contact</span><strong>{oppContact || "—"}</strong></div>
-                </div>
-                
-                <TextField
-                  label="Quote title"
-                  value={document.title}
-                  required
-                  maxLength={200}
-                  disabled={disabled}
-                  onInput={(e) =>
-                    patchDocument({ title: e.currentTarget.value })
-                  }
-                />
-                <label class="ui-field">
-                  Scope
-                  <Textarea
-                    value={document.scope}
-                    required
-                    maxLength={12000}
-                    disabled={disabled}
-                    onInput={(e) =>
-                      patchDocument({ scope: e.currentTarget.value })
-                    }
-                  />
-                </label>
-                <label class="ui-field">
-                  Exclusions
-                  <Textarea
-                    value={document.exclusions}
-                    maxLength={10000}
-                    disabled={disabled}
-                    onInput={(e) =>
-                      patchDocument({ exclusions: e.currentTarget.value })
-                    }
-                  />
-                </label>
-              </QuoteSection>
               <QuoteSection title="Job costing">
                 <CostingSheet lines={lines} preview={preview} disabled={disabled} replace={next=>{changed();setLines(next);}} details={setLineDetails} onSave={() => void save()} saving={busy} canSave={!disabled}/>
                 {lineDetails&&lines.some(l=>l.id===lineDetails)&&<Dialog class="bid-review-dialog" close={()=>setLineDetails(null)}><DialogTitle>Costing row details</DialogTitle>{lines.filter(l=>l.id===lineDetails).map(line=><QuoteLineEditor key={line.id} line={line} index={lines.findIndex(l=>l.id===line.id)} opportunityId={opportunity?.id??""} material={line.materialId?materials[line.materialId]:undefined} disabled={disabled} onRefreshing={active=>setRefreshingLines(current=>active?[...new Set([...current,line.id])]:current.filter(id=>id!==line.id))} rememberMaterial={row=>{changed();setMaterials(current=>({...current,[row.id]:row}));}} patch={patch=>patchLine(line.id,patch)} remove={()=>{changed();setLines(current=>current.filter(l=>l.id!==line.id));setLineDetails(null);}}/>)}<Button disabled={resourceBusy} onClick={()=>setLineDetails(null)}>Done</Button></Dialog>}
               </QuoteSection>
-            </div>
-            <aside class="quote-summary" aria-label="Quote pricing summary">
+              <aside class="quote-summary" aria-label="Quote pricing summary">
               <Card>
                 <h2>
                   {savedEvidence ? "Saved revision prices" : "Price review"}
@@ -818,6 +819,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               {saved && <QuoteConversionPanel key={`conversion:${saved.id}:${saved.revision}`} refreshKey={`${saved.status}:${saved.updatedAt}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} reloaded={()=>void load()}/>}
               {saved && <BidReviewPanel key={`${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} onChanged={()=>setReviewRefresh(value=>value+1)}/>}
             </aside>
+            </div>
           </div>
         </>
       )}

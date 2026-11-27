@@ -75,6 +75,29 @@ function QuoteSection({ title, class: className = "", defaultOpen = true, childr
   );
 }
 
+function QuoteStage({ status, reviewStatus }: { status?: string; reviewStatus?: string }) {
+  const stages = [
+    { key: "draft", label: "Draft", tone: "neutral" },
+    { key: "review", label: "Bid review", tone: "info" },
+    { key: "offered", label: "Offered", tone: "warning" },
+    { key: "accepted", label: "Accepted", tone: "success" },
+  ];
+  let current = 0;
+  if (status === "accepted") current = 3;
+  else if (status === "offered") current = 2;
+  else if (reviewStatus) current = 1;
+  return (
+    <div class="quote-stage" role="list" aria-label="Quote pipeline status">
+      {stages.map((stage, index) => (
+        <div key={stage.key} role="listitem" class={"quote-stage-step" + (index < current ? " is-done" : index === current ? " is-current tone-" + stage.tone : "")}>
+          <span class="quote-stage-dot">{index < current ? "✓" : index + 1}</span>
+          <span class="quote-stage-label">{stage.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
   const { user } = useAccount();
   const { navigate } = useApp(),
@@ -464,10 +487,12 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
             <span class="account-eyebrow">Quote</span>
             <h1 class="record-header-title">{saved?.identifier ?? "New quote"}</h1>
             <div class="record-header-subtitle">
-              <span>{saved?.status && saved.status !== "draft" ? saved.status : "Internal draft"}</span>
+              <span>{opportunity?.customerName || "No account"}</span>
+              {oppContact && <span>{oppContact}</span>}
               <span>{saved ? `Revision ${saved.revision} of ${saved.version}` : "Not saved"}</span>
               {dirty && <span>Unsaved changes</span>}
             </div>
+            <QuoteStage status={saved?.status} />
           </div>
         </div>
         <div class="page-header-right">
@@ -523,11 +548,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           
           <div class="quote-layout">
             <div class="quote-col">
-              <QuoteSection title="Quote Details">
-                <div class="quote-details-meta">
-                  <div><span>Associated account</span><strong>{opportunity?.customerName || "—"}</strong></div>
-                  <div><span>Contact</span><strong>{oppContact || "—"}</strong></div>
-                </div>
+              <QuoteSection title="Scope & terms">
                 
                 <TextField
                   label="Quote title"
@@ -710,15 +731,18 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                 )}
               </Card>
               
-              {saved && <QuoteLifecyclePanel key={`lifecycle:${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} refreshKey={reviewRefresh} reloaded={()=>void load()}/>}
-              {saved && <QuoteConversionPanel key={`conversion:${saved.id}:${saved.revision}`} refreshKey={`${saved.status}:${saved.updatedAt}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} reloaded={()=>void load()}/>}
-              {saved && <BidReviewPanel key={`${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} onChanged={()=>setReviewRefresh(value=>value+1)}/>}
             </aside>
           </div>
           <QuoteSection title="Job costing">
                 <CostingSheet lines={lines} preview={preview} disabled={disabled} replace={next=>{changed();setLines(next);}} details={setLineDetails} onSave={() => void save()} saving={busy} canSave={!disabled}/>
                 {lineDetails&&lines.some(l=>l.id===lineDetails)&&<Dialog class="bid-review-dialog" close={()=>setLineDetails(null)}><DialogTitle>Costing row details</DialogTitle>{lines.filter(l=>l.id===lineDetails).map(line=><QuoteLineEditor key={line.id} line={line} index={lines.findIndex(l=>l.id===line.id)} opportunityId={opportunity?.id??""} material={line.materialId?materials[line.materialId]:undefined} disabled={disabled} onRefreshing={active=>setRefreshingLines(current=>active?[...new Set([...current,line.id])]:current.filter(id=>id!==line.id))} rememberMaterial={row=>{changed();setMaterials(current=>({...current,[row.id]:row}));}} patch={patch=>patchLine(line.id,patch)} remove={()=>{changed();setLines(current=>current.filter(l=>l.id!==line.id));setLineDetails(null);}}/>)}<Button disabled={resourceBusy} onClick={()=>setLineDetails(null)}>Done</Button></Dialog>}
               </QuoteSection>
+
+          <div class="quote-extras">
+              {saved && <QuoteLifecyclePanel key={`lifecycle:${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} refreshKey={reviewRefresh} reloaded={()=>void load()}/>}
+              {saved && <QuoteConversionPanel key={`conversion:${saved.id}:${saved.revision}`} refreshKey={`${saved.status}:${saved.updatedAt}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} reloaded={()=>void load()}/>}
+              {saved && <BidReviewPanel key={`${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} onChanged={()=>setReviewRefresh(value=>value+1)}/>}
+          </div>
         </>
       )}
     </div>

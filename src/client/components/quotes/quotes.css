@@ -312,3 +312,18 @@
 /* Quote: 3-column details/opportunity/summary header, then full-width job costing */
 .quote-workbench .quote-layout { grid-template-columns: minmax(260px, 300px) minmax(260px, 300px) minmax(0, 1fr); }
 .quote-workbench .quote-layout > .quote-summary { grid-column: auto; }
+
+/* Colorful quote pipeline stage */
+.quote-stage { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.quote-stage-step { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-sunken); font-size: 11px; color: var(--text-muted); }
+.quote-stage-dot { width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--border); color: var(--text-muted); font-size: 10px; font-weight: 700; }
+.quote-stage-step.is-done { border-color: var(--success); background: var(--success-tint); color: var(--success); }
+.quote-stage-step.is-done .quote-stage-dot { background: var(--success); color: #fff; }
+.quote-stage-step.is-current.tone-neutral { border-color: var(--border); background: var(--card-bg); color: var(--text); }
+.quote-stage-step.is-current.tone-info { border-color: var(--info); background: var(--info-tint); color: var(--info); }
+.quote-stage-step.is-current.tone-warning { border-color: var(--warning); background: var(--warning-tint); color: var(--warning); }
+.quote-stage-step.is-current.tone-success { border-color: var(--success); background: var(--success-tint); color: var(--success); }
+.quote-stage-step.is-current .quote-stage-dot { background: currentColor; color: var(--card-bg); }
+
+/* Div 3: remaining panels below the full-width job costing */
+.quote-extras { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; margin-top: 16px; align-items: start; }

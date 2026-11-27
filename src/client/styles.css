@@ -1819,3 +1819,10 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .account-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 @media (max-width: 1200px) { .account-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 @media (max-width: 760px) { .account-layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* Lighter, balanced Account layout: About rail + related 2-up grid */
+.account-layout { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); }
+.account-main { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.record-section.is-wide { grid-column: 1 / -1; }
+@media (max-width: 1100px) { .account-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) { .account-main { grid-template-columns: minmax(0, 1fr); } }

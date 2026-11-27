@@ -17,17 +17,19 @@ function RecordSection({
   count,
   defaultOpen = true,
   component = false,
+  wide = false,
   children,
 }: {
   title: string;
   count?: number;
   defaultOpen?: boolean;
   component?: boolean;
+  wide?: boolean;
   children: ComponentChildren;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section class={"record-section" + (open ? " is-open" : "")}>
+    <section class={"record-section" + (open ? " is-open" : "") + (wide ? " is-wide" : "")}>
       <button type="button" class="record-section-heading" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <ChevronDown size={16} class={"record-section-chevron" + (open ? "" : " is-closed")} />
         <span class="record-section-title">{title}</span>
@@ -115,7 +117,7 @@ export function CustomerDetail() {
         </div>
       ) : (
         <div class="account-layout">
-          <div class="account-col">
+          <div class="account-about">
             <RecordSection title="About">
               <div class="account-fields">
                 {fields.map(([label, value]) => (
@@ -130,36 +132,28 @@ export function CustomerDetail() {
             </RecordSection>
           </div>
 
-          <div class="account-col">
-            <RecordSection title="Activity">
-              <CustomerActivity customerId={customer.id} />
-            </RecordSection>
-            <RecordSection title="Account overview" component>
+          <div class="account-main">
+            <RecordSection title="Account overview" component wide>
               <CustomerOverview key={"overview-" + customer.id} customerId={customer.id} />
             </RecordSection>
-          </div>
-
-          <div class="account-col">
             <RecordSection title="Contacts" component>
               <CustomerContacts key={"contacts-" + customer.id} customerId={customer.id} />
             </RecordSection>
             <RecordSection title="Opportunities" component>
               <CustomerSales key={"sales-" + customer.id} customerId={customer.id} />
             </RecordSection>
-            <RecordSection title="Service history" count={jobs.length}>
+            <RecordSection title="Service history" count={jobs.length} defaultOpen={false}>
               {jobs.length === 0 ? (
                 <p class="text-muted">No jobs yet</p>
               ) : (
                 <div class="table-scroll">
                   <table class="table">
-                    <thead><tr><th>ID</th><th>Date</th><th>Service</th><th>Technician</th><th>Status</th><th>Price</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Date</th><th>Status</th><th>Price</th></tr></thead>
                     <tbody>
                       {jobs.map((j) => (
                         <tr key={j.id} class="table-row clickable" onClick={() => navigate(`/jobs/${j.id}`)}>
                           <td><span class="identifier">{j.identifier}</span></td>
                           <td>{j.scheduled_date}</td>
-                          <td>{j.service_type_name || "—"}</td>
-                          <td>{j.technician_name || "Unassigned"}</td>
                           <td><StatusBadge status={j.status} /></td>
                           <td class="text-right">${j.price.toFixed(2)}</td>
                         </tr>
@@ -169,8 +163,11 @@ export function CustomerDetail() {
                 </div>
               )}
             </RecordSection>
-            <RecordSection title="Locations & equipment" component>
+            <RecordSection title="Locations & equipment" component defaultOpen={false}>
               <CustomerEquipment key={customer.id} customerId={customer.id} />
+            </RecordSection>
+            <RecordSection title="Activity" defaultOpen={false}>
+              <CustomerActivity customerId={customer.id} />
             </RecordSection>
             <RecordSection title="Relationships" component defaultOpen={false}>
               <CustomerRelationships key={"relationships-" + customer.id} customerId={customer.id} />

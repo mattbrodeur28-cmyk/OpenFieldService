@@ -1845,3 +1845,10 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .tech-layout { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); }
 .tech-timesheet-body .page { padding: 0; margin: 0; }
 @media (max-width: 1100px) { .tech-layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* Inline new-customer in the job creation form */
+.job-customer-row { display: flex; gap: 8px; align-items: stretch; }
+.job-customer-row select { flex: 1; min-width: 0; }
+.new-customer-card { margin-top: 10px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); }
+.new-customer-card .form-grid { margin-bottom: 10px; }
+.new-customer-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }

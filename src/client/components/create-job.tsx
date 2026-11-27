@@ -6,7 +6,7 @@ import { EquipmentDialog } from "./equipment-forms";
 import type { Asset, Job } from "../types";
 
 export function CreateJob({ onClose, initialAsset, initialDate, onCreated }: { onClose: () => void; initialAsset?: Asset; initialDate?: string; onCreated?: (job: Job) => void }) {
-  const { addJob, customerLookup, technicianLookup, serviceTypes } = useApp();
+  const { addJob, addCustomer, customerLookup, technicianLookup, serviceTypes } = useApp();
 
   const [customerId, setCustomerId] = useState(initialAsset ? String(initialAsset.customer_id) : "");
   const [assetId, setAssetId] = useState<string | null>(initialAsset?.id ?? null);
@@ -20,6 +20,31 @@ export function CreateJob({ onClose, initialAsset, initialDate, onCreated }: { o
   const [submitting, setSubmitting] = useState(false);
 
   const [error, setError] = useState("");
+
+  // Inline "new customer" so a dispatcher can take a service call without leaving the job form.
+  const [newCustomerOpen, setNewCustomerOpen] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", email: "", address: "" });
+  const [createdCustomer, setCreatedCustomer] = useState<{ id: string; name: string } | null>(null);
+  const [newCustomerError, setNewCustomerError] = useState("");
+  const [newCustomerBusy, setNewCustomerBusy] = useState(false);
+
+  async function createNewCustomer() {
+    if (!newCustomer.name.trim()) { setNewCustomerError("Customer name is required."); return; }
+    setNewCustomerError("");
+    setNewCustomerBusy(true);
+    try {
+      const created = await addCustomer({ name: newCustomer.name.trim(), phone: newCustomer.phone, email: newCustomer.email, address: newCustomer.address });
+      setCreatedCustomer({ id: created.id, name: created.name });
+      setCustomerId(created.id);
+      setAssetId(null);
+      setNewCustomerOpen(false);
+      setNewCustomer({ name: "", phone: "", email: "", address: "" });
+    } catch (err) {
+      setNewCustomerError((err as Error).message);
+    } finally {
+      setNewCustomerBusy(false);
+    }
+  }
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
@@ -55,13 +80,33 @@ export function CreateJob({ onClose, initialAsset, initialDate, onCreated }: { o
           <fieldset class="form-grid job-form-fields" disabled={submitting}>
             <div class="form-group">
               <label htmlFor="job-customer">Customer *</label>
-              <select id="job-customer" autoFocus value={customerId} onChange={(e) => { setCustomerId((e.target as HTMLSelectElement).value); setAssetId(null); }} required>
-                <option value="">Select customer...</option>
-                {initialAsset && !customerLookup.some((c) => c.id === initialAsset.customer_id) && <option value={initialAsset.customer_id}>{initialAsset.customer_name}</option>}
-                {customerLookup.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <div class="job-customer-row">
+                <select id="job-customer" autoFocus value={customerId} onChange={(e) => { setCustomerId((e.target as HTMLSelectElement).value); setAssetId(null); }} required>
+                  <option value="">Select customer...</option>
+                  {initialAsset && !customerLookup.some((c) => c.id === initialAsset.customer_id) && <option value={initialAsset.customer_id}>{initialAsset.customer_name}</option>}
+                  {createdCustomer && !customerLookup.some((c) => c.id === createdCustomer.id) && <option value={createdCustomer.id}>{createdCustomer.name}</option>}
+                  {customerLookup.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <button type="button" class="btn" onClick={() => { setNewCustomerOpen((v) => !v); setNewCustomerError(""); }} disabled={submitting}>+ New</button>
+              </div>
+              {newCustomerOpen && (
+                <div class="new-customer-card">
+                  <p class="workspace-help">New customer for this service call. Add them, then finish the job below.</p>
+                  <div class="form-grid">
+                    <div class="form-group full-width"><label>Name *</label><input value={newCustomer.name} onInput={(e) => setNewCustomer({ ...newCustomer, name: e.currentTarget.value })} autoFocus /></div>
+                    <div class="form-group"><label>Phone</label><input type="tel" value={newCustomer.phone} onInput={(e) => setNewCustomer({ ...newCustomer, phone: e.currentTarget.value })} /></div>
+                    <div class="form-group"><label>Email</label><input type="email" value={newCustomer.email} onInput={(e) => setNewCustomer({ ...newCustomer, email: e.currentTarget.value })} /></div>
+                    <div class="form-group full-width"><label>Address</label><input value={newCustomer.address} onInput={(e) => setNewCustomer({ ...newCustomer, address: e.currentTarget.value })} /></div>
+                  </div>
+                  {newCustomerError && <p class="equipment-error" role="alert">{newCustomerError}</p>}
+                  <div class="new-customer-actions">
+                    <button type="button" class="btn btn-sm" onClick={() => { setNewCustomerOpen(false); setNewCustomerError(""); }}>Cancel</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled={newCustomerBusy} onClick={createNewCustomer}>{newCustomerBusy ? "Adding…" : "Add customer"}</button>
+                  </div>
+                </div>
+              )}
             </div>
             <div class="form-group">
               <label htmlFor="job-service">Service Type</label>

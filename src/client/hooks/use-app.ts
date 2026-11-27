@@ -273,9 +273,10 @@ export function useAppState(isAgent: boolean, navigate: (to: string) => void): A
   const setCustomersPage = useCallback((page: number) => setCustomersPag((p) => ({ ...p, page })), []);
 
   const addCustomer = useCallback(async (data: Partial<Customer>) => {
-    await api("POST", "/api/customers", data);
+    const created = await api<Customer>("POST", "/api/customers", data);
     await fetchCustomers(customersPag, customersSearch);
     await Promise.all([fetchStats(), fetchLookups()]);
+    return created;
   }, [customersPag, customersSearch, fetchCustomers, fetchStats, fetchLookups]);
 
   const updateCustomer = useCallback(async (id: string, data: Partial<Customer>) => {

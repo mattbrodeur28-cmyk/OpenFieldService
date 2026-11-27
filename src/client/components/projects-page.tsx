@@ -10,7 +10,7 @@ import { Select } from "./ui/select";
 import { Notice, Table, Badge, EmptyState } from "./ui/surfaces";
 import { Dialog, DialogTitle } from "./ui/dialog";
 import { ProjectGantt } from "./projects/project-gantt";
-import { Plus, CheckCircle2, FolderKanban, ChevronDown } from "lucide-preact";
+import { Plus, CheckCircle2, FolderKanban, ChevronDown, Edit3 } from "lucide-preact";
 
 const money = (cents?: number | null) => cents == null ? "—" : "$" + (cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -48,6 +48,54 @@ export function ProjectsPage({ id }: { id: string | null }) {
   const [revision, setRevision] = useState(0);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ customerId: "", title: "", status: "active", projectManager: "", plannedStart: "", plannedEnd: "" });
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ title: "", status: "active", projectManager: "", plannedStart: "", plannedEnd: "", actualStart: "", actualEnd: "", description: "" });
+  const [phaseForm, setPhaseForm] = useState<null | { name: string; costCode: string; owner: string; plannedStart: string; plannedEnd: string; percentComplete: number }>(null);
+  const [milestoneForm, setMilestoneForm] = useState<null | { name: string; dueDate: string }>(null);
+  const [deliverableForm, setDeliverableForm] = useState<null | { name: string; dueDate: string }>(null);
+
+  const startEdit = () => {
+    const p = detail?.project;
+    if (!p) return;
+    setEditForm({ title: p.title, status: p.status, projectManager: p.project_manager, plannedStart: p.planned_start, plannedEnd: p.planned_end, actualStart: p.actual_start, actualEnd: p.actual_end, description: p.description });
+    setEditing(true);
+  };
+  async function saveProject() {
+    if (!detail) return;
+    setError("");
+    try {
+      await api("POST", "/api/projects", { id: detail.project.id, requestKey: uuid(), expectedVersion: detail.project.version, customerId: detail.project.customer_id, title: editForm.title, description: editForm.description, status: editForm.status, projectManager: editForm.projectManager, plannedStart: editForm.plannedStart, plannedEnd: editForm.plannedEnd, actualStart: editForm.actualStart, actualEnd: editForm.actualEnd, sourceKind: detail.project.source_kind, sourceId: detail.project.source_id, archived: false, reason, reviewAttested: true });
+      setEditing(false);
+      setRevision((r) => r + 1);
+    } catch (e) { setError((e as Error).message); }
+  }
+  async function savePhase() {
+    if (!id || !phaseForm) return;
+    setError("");
+    try {
+      await api("POST", `/api/projects/${id}/phases`, { id: uuid(), requestKey: uuid(), expectedVersion: 0, name: phaseForm.name, costCode: phaseForm.costCode, owner: phaseForm.owner, plannedStart: phaseForm.plannedStart, plannedEnd: phaseForm.plannedEnd, actualStart: "", actualEnd: "", position: (detail?.phases.length ?? 0) + 1, percentComplete: Number(phaseForm.percentComplete) || 0, reason, reviewAttested: true });
+      setPhaseForm(null);
+      setRevision((r) => r + 1);
+    } catch (e) { setError((e as Error).message); }
+  }
+  async function saveMilestoneEntry() {
+    if (!id || !milestoneForm) return;
+    setError("");
+    try {
+      await api("POST", `/api/projects/${id}/milestones`, { id: uuid(), requestKey: uuid(), name: milestoneForm.name, dueDate: milestoneForm.dueDate, completed: false, reason, reviewAttested: true });
+      setMilestoneForm(null);
+      setRevision((r) => r + 1);
+    } catch (e) { setError((e as Error).message); }
+  }
+  async function saveDeliverableEntry() {
+    if (!id || !deliverableForm) return;
+    setError("");
+    try {
+      await api("POST", `/api/projects/${id}/deliverables`, { id: uuid(), requestKey: uuid(), name: deliverableForm.name, dueDate: deliverableForm.dueDate, completed: false, reason, reviewAttested: true });
+      setDeliverableForm(null);
+      setRevision((r) => r + 1);
+    } catch (e) { setError((e as Error).message); }
+  }
 
   useEffect(() => {
     let live = true;
@@ -121,6 +169,9 @@ export function ProjectsPage({ id }: { id: string | null }) {
                 </div>
               </div>
             </div>
+            <div class="page-header-right">
+              <Button onClick={startEdit} disabled={!canWrite}><Edit3 size={14} /> Edit project</Button>
+            </div>
           </div>
 
           <RecordSection title="Gantt">
@@ -173,6 +224,7 @@ export function ProjectsPage({ id }: { id: string | null }) {
 
             <div class="account-col">
               <RecordSection title="Phases" count={detail.phases.length}>
+                <div class="record-section-toolbar"><Button variant="ghost" disabled={!canWrite} onClick={() => setPhaseForm({ name: "", costCode: "", owner: "", plannedStart: "", plannedEnd: "", percentComplete: 0 })}><Plus size={14} /> Add phase</Button></div>
                 {detail.phases.length ? (
                   <table class="table"><thead><tr><th>Phase</th><th>Cost code</th><th>Owner</th></tr></thead>
                     <tbody>{detail.phases.map((p) => <tr key={p.id}><th scope="row">{p.name}</th><td>{p.costCode || "—"}</td><td class="text-muted">{p.owner || "—"}</td></tr>)}</tbody>
@@ -180,6 +232,7 @@ export function ProjectsPage({ id }: { id: string | null }) {
                 ) : <p class="text-muted">No phases yet.</p>}
               </RecordSection>
               <RecordSection title="Milestones" count={detail.milestones.length}>
+                <div class="record-section-toolbar"><Button variant="ghost" disabled={!canWrite} onClick={() => setMilestoneForm({ name: "", dueDate: "" })}><Plus size={14} /> Add milestone</Button></div>
                 {detail.milestones.length ? (
                   <table class="table"><thead><tr><th>Milestone</th><th>Due</th><th>Status</th></tr></thead>
                     <tbody>{detail.milestones.map((m) => <tr key={m.id}><th scope="row">{m.name}</th><td class="text-muted">{m.dueDate || "—"}</td><td><Badge tone={m.completed ? "success" : "neutral"}>{m.completed ? "Complete" : "Open"}</Badge></td></tr>)}</tbody>
@@ -190,6 +243,7 @@ export function ProjectsPage({ id }: { id: string | null }) {
 
             <div class="account-col">
               <RecordSection title="Deliverables" count={detail.deliverables.length}>
+                <div class="record-section-toolbar"><Button variant="ghost" disabled={!canWrite} onClick={() => setDeliverableForm({ name: "", dueDate: "" })}><Plus size={14} /> Add deliverable</Button></div>
                 {detail.deliverables.length ? (
                   <table class="table"><thead><tr><th>Deliverable</th><th>Due</th><th>Status</th></tr></thead>
                     <tbody>{detail.deliverables.map((d) => <tr key={d.id}><th scope="row">{d.name}</th><td class="text-muted">{d.dueDate || "—"}</td><td><Badge tone={d.completed ? "success" : "neutral"}>{d.completed ? "Complete" : "Open"}</Badge></td></tr>)}</tbody>
@@ -218,6 +272,84 @@ export function ProjectsPage({ id }: { id: string | null }) {
             <div class="dialog-actions">
               <Button onClick={() => setCreating(false)}>Cancel</Button>
               <Button variant="primary" type="submit" disabled={!canWrite}><CheckCircle2 size={14} /> Create project</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
+
+      {editing && detail && (
+        <Dialog class="project-form" close={() => setEditing(false)}>
+          <DialogTitle>Edit project</DialogTitle>
+          <form class="sales-form" onSubmit={(e) => { e.preventDefault(); void saveProject(); }}>
+            <TextField label="Title" value={editForm.title} onInput={(e) => setEditForm({ ...editForm, title: (e.target as HTMLInputElement).value })} />
+            <Select label="Status" value={editForm.status} options={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))} onValueChange={(status) => setEditForm({ ...editForm, status })} />
+            <TextField label="Project manager" value={editForm.projectManager} onInput={(e) => setEditForm({ ...editForm, projectManager: (e.target as HTMLInputElement).value })} />
+            <div class="sales-form-grid">
+              <TextField label="Planned start" type="date" value={editForm.plannedStart} onInput={(e) => setEditForm({ ...editForm, plannedStart: (e.target as HTMLInputElement).value })} />
+              <TextField label="Planned end" type="date" value={editForm.plannedEnd} onInput={(e) => setEditForm({ ...editForm, plannedEnd: (e.target as HTMLInputElement).value })} />
+            </div>
+            <div class="sales-form-grid">
+              <TextField label="Actual start" type="date" value={editForm.actualStart} onInput={(e) => setEditForm({ ...editForm, actualStart: (e.target as HTMLInputElement).value })} />
+              <TextField label="Actual end" type="date" value={editForm.actualEnd} onInput={(e) => setEditForm({ ...editForm, actualEnd: (e.target as HTMLInputElement).value })} />
+            </div>
+            <label class="ui-field"><span>Description</span><textarea rows={3} value={editForm.description} onInput={(e) => setEditForm({ ...editForm, description: (e.target as HTMLTextAreaElement).value })} /></label>
+            {error && <p class="workspace-error" role="alert">{error}</p>}
+            <div class="dialog-actions">
+              <Button onClick={() => setEditing(false)}>Cancel</Button>
+              <Button variant="primary" type="submit" disabled={!canWrite}><CheckCircle2 size={14} /> Save project</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
+
+      {phaseForm && (
+        <Dialog class="project-form" close={() => setPhaseForm(null)}>
+          <DialogTitle>Add phase</DialogTitle>
+          <form class="sales-form" onSubmit={(e) => { e.preventDefault(); void savePhase(); }}>
+            <TextField label="Phase name" value={phaseForm.name} onInput={(e) => setPhaseForm({ ...phaseForm, name: (e.target as HTMLInputElement).value })} />
+            <div class="sales-form-grid">
+              <TextField label="Cost code" value={phaseForm.costCode} onInput={(e) => setPhaseForm({ ...phaseForm, costCode: (e.target as HTMLInputElement).value })} />
+              <TextField label="Owner" value={phaseForm.owner} onInput={(e) => setPhaseForm({ ...phaseForm, owner: (e.target as HTMLInputElement).value })} />
+            </div>
+            <div class="sales-form-grid">
+              <TextField label="Planned start" type="date" value={phaseForm.plannedStart} onInput={(e) => setPhaseForm({ ...phaseForm, plannedStart: (e.target as HTMLInputElement).value })} />
+              <TextField label="Planned end" type="date" value={phaseForm.plannedEnd} onInput={(e) => setPhaseForm({ ...phaseForm, plannedEnd: (e.target as HTMLInputElement).value })} />
+            </div>
+            <TextField label="% complete" type="number" value={String(phaseForm.percentComplete)} onInput={(e) => setPhaseForm({ ...phaseForm, percentComplete: Number((e.target as HTMLInputElement).value) || 0 })} />
+            {error && <p class="workspace-error" role="alert">{error}</p>}
+            <div class="dialog-actions">
+              <Button onClick={() => setPhaseForm(null)}>Cancel</Button>
+              <Button variant="primary" type="submit" disabled={!canWrite}><Plus size={14} /> Add phase</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
+
+      {milestoneForm && (
+        <Dialog class="project-form" close={() => setMilestoneForm(null)}>
+          <DialogTitle>Add milestone</DialogTitle>
+          <form class="sales-form" onSubmit={(e) => { e.preventDefault(); void saveMilestoneEntry(); }}>
+            <TextField label="Milestone" value={milestoneForm.name} onInput={(e) => setMilestoneForm({ ...milestoneForm, name: (e.target as HTMLInputElement).value })} />
+            <TextField label="Due date" type="date" value={milestoneForm.dueDate} onInput={(e) => setMilestoneForm({ ...milestoneForm, dueDate: (e.target as HTMLInputElement).value })} />
+            {error && <p class="workspace-error" role="alert">{error}</p>}
+            <div class="dialog-actions">
+              <Button onClick={() => setMilestoneForm(null)}>Cancel</Button>
+              <Button variant="primary" type="submit" disabled={!canWrite}><Plus size={14} /> Add milestone</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
+
+      {deliverableForm && (
+        <Dialog class="project-form" close={() => setDeliverableForm(null)}>
+          <DialogTitle>Add deliverable</DialogTitle>
+          <form class="sales-form" onSubmit={(e) => { e.preventDefault(); void saveDeliverableEntry(); }}>
+            <TextField label="Deliverable" value={deliverableForm.name} onInput={(e) => setDeliverableForm({ ...deliverableForm, name: (e.target as HTMLInputElement).value })} />
+            <TextField label="Due date" type="date" value={deliverableForm.dueDate} onInput={(e) => setDeliverableForm({ ...deliverableForm, dueDate: (e.target as HTMLInputElement).value })} />
+            {error && <p class="workspace-error" role="alert">{error}</p>}
+            <div class="dialog-actions">
+              <Button onClick={() => setDeliverableForm(null)}>Cancel</Button>
+              <Button variant="primary" type="submit" disabled={!canWrite}><Plus size={14} /> Add deliverable</Button>
             </div>
           </form>
         </Dialog>

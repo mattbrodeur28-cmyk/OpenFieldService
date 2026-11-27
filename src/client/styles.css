@@ -1889,3 +1889,7 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 /* Linked-opportunity link inside the project About card */
 .account-link { background: none; border: 0; padding: 0; font: inherit; color: var(--primary); cursor: pointer; text-align: left; }
 .account-link:hover { text-decoration: underline; }
+
+/* Compact action row inside a record-section card */
+.record-section-toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.record-section-toolbar .btn { font-size: 12px; padding: 4px 10px; min-height: 26px; }

@@ -327,3 +327,7 @@
 
 /* Div 3: remaining panels below the full-width job costing */
 .quote-extras { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; margin-top: 16px; align-items: start; }
+
+/* After removing Opportunity, Div 1 is Scope & terms | Price review (2 columns) */
+.quote-workbench .quote-layout { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); }
+@media (max-width: 900px) { .quote-workbench .quote-layout { grid-template-columns: minmax(0, 1fr); } }

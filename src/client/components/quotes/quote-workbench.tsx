@@ -1,8 +1,6 @@
 import {QuoteConversionPanel} from "./quote-conversion";
 import {CostingSheet} from "./costing-sheet";
 import {Dialog,DialogTitle} from "../ui/dialog";
-import {QuoteLifecyclePanel} from "./quote-lifecycle";
-import { BidReviewPanel } from "./bid-review";
 import { commandFailureIsDefinite } from "../../command-recovery.mjs";
 import { TemplateCommandDialog } from "./template-command";
 import { QuoteDocumentPreview } from "./document-preview";
@@ -585,85 +583,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                 </label>
               </QuoteSection>
             </div>
-            <div class="quote-col">
-              <QuoteSection title="Opportunity">
-                
-                {saved ? (
-                  <div class="quote-linked-opportunity">
-                    <strong>{opportunity?.title ?? saved.opportunityId}</strong>
-                    <p>
-                      {opportunity?.customerName} · {opportunity?.segment}
-                    </p>
-                    <Button
-                      disabled={busy || uncertain}
-                      onClick={() => navigate("/sales/" + saved.opportunityId)}
-                    >
-                      Open opportunity
-                    </Button>
-                  </div>
-                ) : (
-                  <SearchPicker<QuoteOpportunity>
-                    label="Opportunity"
-                    endpoint="/api/sales/quotes/options?kind=opportunities"
-                    selected={
-                      opportunity
-                        ? {
-                            id: opportunity.id,
-                            label:
-                              opportunity.title +
-                              " · " +
-                              opportunity.customerName,
-                          }
-                        : null
-                    }
-                    disabled={disabled}
-                    format={(row) => row.title + " · " + row.customerName}
-                    change={(row) => {
-                      changed();
-                      setOpportunity(row);
-                      if (profile && profile.config.segment !== row.segment) {
-                        setProfile(null);
-                        setLatestProfile(null);
-                      }
-                      if (!document.title)
-                        setDocument((current) => ({
-                          ...current,
-                          title: row.title + " estimate",
-                        }));
-                    }}
-                  />
-                )}
-                                <Button
-                  disabled={disabled || !opportunity}
-                  onClick={() => void refreshSources()}
-                >
-                  Refresh linked records
-                </Button>
-                <div class="quote-date-fields">
-                  <TextField
-                    label="Pricing date"
-                    type="date"
-                    value={pricingDate}
-                    required
-                    disabled={disabled}
-                    onInput={(e) => {
-                      changed();
-                      setPricingDate(e.currentTarget.value);
-                    }}
-                  />
-                  <TextField
-                    label="Valid until"
-                    type="date"
-                    value={document.validUntil}
-                    required
-                    disabled={disabled}
-                    onInput={(e) =>
-                      patchDocument({ validUntil: e.currentTarget.value })
-                    }
-                  />
-                </div>
-              </QuoteSection>
-            </div>
+
             <aside class="quote-summary" aria-label="Quote pricing summary">
               <Card>
                 <h2>
@@ -739,9 +659,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               </QuoteSection>
 
           <div class="quote-extras">
-              {saved && <QuoteLifecyclePanel key={`lifecycle:${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} refreshKey={reviewRefresh} reloaded={()=>void load()}/>}
               {saved && <QuoteConversionPanel key={`conversion:${saved.id}:${saved.revision}`} refreshKey={`${saved.status}:${saved.updatedAt}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} reloaded={()=>void load()}/>}
-              {saved && <BidReviewPanel key={`${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} onChanged={()=>setReviewRefresh(value=>value+1)}/>}
           </div>
         </>
       )}

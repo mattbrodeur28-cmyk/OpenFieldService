@@ -247,3 +247,11 @@
 .quote-workbench .quote-layout{grid-template-columns:minmax(0,1fr)}
 .quote-workbench .quote-summary{grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));align-items:start}
 .costing-workbook .ui-notice{margin:10px 12px}
+
+/* Unified costing: all sections stacked on one page */
+.costing-section { border-top: 1px solid var(--border); }
+.costing-section:first-of-type { border-top: 0; }
+.costing-section-header { padding: 10px 12px 4px; }
+.costing-section-header h4 { font-size: 14px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; }
+.costing-section-count { font-size: 11px; font-weight: 400; color: var(--text-muted); background: var(--surface-sunken); border-radius: 999px; padding: 1px 8px; }
+.costing-title { font-size: 13px; font-weight: 600; }

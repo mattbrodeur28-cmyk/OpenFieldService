@@ -1863,3 +1863,25 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 /* Projects record: two balanced columns (About/Phases | Milestones/Deliverables) */
 .projects-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 @media (max-width: 900px) { .projects-layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* Project Gantt + 3-column project record */
+.projects-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); }
+.projects-page .account-layout { margin-top: 14px; }
+.project-gantt { padding: 2px 0; }
+.project-gantt-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.project-gantt-range { font-size: 12px; color: var(--text-muted); }
+.project-gantt-zoom { display: flex; gap: 4px; }
+.project-gantt-months { position: relative; height: 16px; margin-left: 150px; }
+.project-gantt-months span { position: absolute; font-size: 11px; color: var(--text-muted); transform: translateX(-50%); white-space: nowrap; }
+.project-gantt-rows { display: flex; flex-direction: column; gap: 4px; }
+.project-gantt-row { display: grid; grid-template-columns: 140px minmax(0, 1fr); align-items: center; gap: 10px; }
+.project-gantt-label { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-gantt-track { position: relative; height: 26px; background: var(--surface-sunken); border-radius: 4px; }
+.project-gantt-bar { position: absolute; top: 4px; height: 18px; background: var(--primary-light); border: 1px solid var(--primary); border-radius: 4px; overflow: hidden; display: flex; align-items: center; }
+.project-gantt-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--primary); opacity: 0.3; }
+.project-gantt-bar-text { position: relative; font-size: 10px; font-weight: 600; color: var(--primary); padding: 0 6px; white-space: nowrap; }
+.project-gantt-milestone { position: absolute; top: 50%; width: 10px; height: 10px; background: var(--warning); transform: translate(-50%, -50%) rotate(45deg); border-radius: 2px; }
+.project-gantt-milestone.is-done { background: var(--success); }
+.project-overdue { margin-top: 10px; font-size: 12px; color: var(--warning); font-weight: 600; }
+@media (max-width: 1100px) { .projects-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 760px) { .projects-layout { grid-template-columns: minmax(0, 1fr); } .project-gantt-row { grid-template-columns: 90px minmax(0, 1fr); } .project-gantt-months { margin-left: 100px; } }

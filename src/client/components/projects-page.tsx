@@ -9,15 +9,18 @@ import { TextField } from "./ui/input";
 import { Select } from "./ui/select";
 import { Notice, Table, Badge, EmptyState } from "./ui/surfaces";
 import { Dialog, DialogTitle } from "./ui/dialog";
+import { ProjectGantt } from "./projects/project-gantt";
 import { Plus, CheckCircle2, FolderKanban, ChevronDown } from "lucide-preact";
+
+const money = (cents?: number | null) => cents == null ? "—" : "$" + (cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const STATUSES = ["draft", "active", "on_hold", "completed", "closed"] as const;
 const STATUS_LABEL: Record<string, string> = { draft: "Draft", active: "Active", on_hold: "On hold", completed: "Completed", closed: "Closed" };
 const uuid = () => crypto.randomUUID();
 const reason = "Reviewed project structure";
 
-type Project = { id: string; customer_id: string; title: string; description: string; status: string; project_manager: string; planned_start: string; planned_end: string; actual_start: string; actual_end: string; source_kind: string | null; source_id: string | null; version: number; archived: number };
-type Detail = { project: Project; phases: any[]; milestones: any[]; jobs: any[]; sites: any[]; deliverables: any[] };
+type Project = { id: string; customer_id: string; title: string; description: string; status: string; project_manager: string; planned_start: string; planned_end: string; actual_start: string; actual_end: string; baseline_cost_cents: number | null; baseline_start: string; baseline_end: string; estimate_to_complete_cents: number | null; baselined_at: string | null; source_kind: string | null; source_id: string | null; version: number; archived: number };
+type Detail = { project: Project; phases: any[]; milestones: any[]; jobs: any[]; sites: any[]; deliverables: any[]; financials: { actualCostCents: number; committedCostCents: number | null; currency: string }; overdueActions: any[] };
 
 function RecordSection({ title, count, defaultOpen = true, children }: { title: string; count?: number; defaultOpen?: boolean; children: ComponentChildren }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -120,6 +123,10 @@ export function ProjectsPage({ id }: { id: string | null }) {
             </div>
           </div>
 
+          <RecordSection title="Gantt">
+            <ProjectGantt phases={detail.phases} milestones={detail.milestones} />
+          </RecordSection>
+
           <div class="account-layout projects-layout">
             <div class="account-col">
               <RecordSection title="About">
@@ -140,6 +147,25 @@ export function ProjectsPage({ id }: { id: string | null }) {
                   ))}
                 </div>
               </RecordSection>
+              <RecordSection title="Financials">
+                <div class="account-fields">
+                  {[
+                    ["Baseline budget", money(detail.project.baseline_cost_cents)],
+                    ["Actual cost", money(detail.financials?.actualCostCents)],
+                    ["Estimate to complete", money(detail.project.estimate_to_complete_cents)],
+                    ["Committed", money(detail.financials?.committedCostCents)],
+                  ].map(([label, value]) => (
+                    <div class="account-field" key={label}>
+                      <span class="account-field-label">{label}</span>
+                      <span class="account-field-value">{value}</span>
+                    </div>
+                  ))}
+                </div>
+                {detail.overdueActions?.length > 0 && <p class="project-overdue">{detail.overdueActions.length} overdue action{detail.overdueActions.length === 1 ? "" : "s"}</p>}
+              </RecordSection>
+            </div>
+
+            <div class="account-col">
               <RecordSection title="Phases" count={detail.phases.length}>
                 {detail.phases.length ? (
                   <table class="table"><thead><tr><th>Phase</th><th>Cost code</th><th>Owner</th></tr></thead>
@@ -147,9 +173,6 @@ export function ProjectsPage({ id }: { id: string | null }) {
                   </table>
                 ) : <p class="text-muted">No phases yet.</p>}
               </RecordSection>
-            </div>
-
-            <div class="account-col">
               <RecordSection title="Milestones" count={detail.milestones.length}>
                 {detail.milestones.length ? (
                   <table class="table"><thead><tr><th>Milestone</th><th>Due</th><th>Status</th></tr></thead>
@@ -157,6 +180,9 @@ export function ProjectsPage({ id }: { id: string | null }) {
                   </table>
                 ) : <p class="text-muted">No milestones yet.</p>}
               </RecordSection>
+            </div>
+
+            <div class="account-col">
               <RecordSection title="Deliverables" count={detail.deliverables.length}>
                 {detail.deliverables.length ? (
                   <table class="table"><thead><tr><th>Deliverable</th><th>Due</th><th>Status</th></tr></thead>

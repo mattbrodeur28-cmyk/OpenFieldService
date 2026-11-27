@@ -1062,8 +1062,11 @@ a { color: var(--text); text-underline-offset: 3px; text-decoration-color: var(-
 .sidebar-item svg { flex-shrink: 0; }
 .sidebar.collapsed { width: 56px; }
 .sidebar.collapsed .sidebar-brand { padding: 0 14px; }
-.sidebar.collapsed .sidebar-brand-icon, .sidebar.collapsed .sidebar-brand-name,
-.sidebar.collapsed .sidebar-section-title, .sidebar.collapsed .sidebar-item span, .sidebar.collapsed .sidebar-footer { display: none; }
+.sidebar.collapsed .sidebar-brand-name,
+.sidebar.collapsed .sidebar-section-title,
+.sidebar.collapsed .workspace-nav-label,
+.sidebar.collapsed .workspace-chevron,
+.sidebar.collapsed .sidebar-footer { display: none; }
 .sidebar.collapsed .sidebar-item { justify-content: center; }
 .table-scroll { overflow-x: auto; }
 .page > .table-scroll { margin-inline: calc(-1 * var(--gutter)); }
@@ -1826,3 +1829,9 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .record-section.is-wide { grid-column: 1 / -1; }
 @media (max-width: 1100px) { .account-layout { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 760px) { .account-main { grid-template-columns: minmax(0, 1fr); } }
+
+/* Three-column Account layout where every column is populated */
+.account-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.account-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@media (max-width: 1100px) { .account-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 760px) { .account-layout { grid-template-columns: minmax(0, 1fr); } }

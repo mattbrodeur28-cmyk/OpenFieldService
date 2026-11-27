@@ -255,3 +255,16 @@
 .costing-section-header h4 { font-size: 14px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; }
 .costing-section-count { font-size: 11px; font-weight: 400; color: var(--text-muted); background: var(--surface-sunken); border-radius: 999px; padding: 1px 8px; }
 .costing-title { font-size: 13px; font-weight: 600; }
+
+/* Clean section header + per-section add button */
+.costing-section-header { display: flex; align-items: center; justify-content: space-between; }
+.costing-add { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 16px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.costing-add:hover { background: var(--row-hover); }
+.costing-add:disabled { opacity: .5; cursor: not-allowed; }
+.costing-pl { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px; border-top: 1px solid var(--border); }
+.costing-pl-summary { display: flex; gap: 24px; flex-wrap: wrap; }
+.costing-pl-summary div { display: flex; flex-direction: column; gap: 2px; }
+.costing-pl-summary span { font-size: 11px; color: var(--text-muted); }
+.costing-pl-summary strong { font-size: 15px; }
+
+.costing-tax-rate { display: block; font-size: 10px; color: var(--text-muted); }

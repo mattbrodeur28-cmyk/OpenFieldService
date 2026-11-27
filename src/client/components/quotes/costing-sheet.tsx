@@ -75,7 +75,7 @@ function CostingGrid({ title, section, rows, columns, preview, disabled, change,
     }
     return (
         <section class="costing-section" aria-label={section}>
-            <header class="costing-section-header"><h4>{title} <span class="costing-section-count">{rows.length}</span></h4></header>
+            <header class="costing-section-header"><h4>{title} <span class="costing-section-count">{rows.length}</span></h4><button type="button" class="costing-add" aria-label={`Add ${title} row`} disabled={disabled || rows.length >= 100} onClick={() => add(addKinds[0])}>+</button></header>
             <div class="costing-grid-scroll" ref={root} onKeyDown={key} onPaste={paste} onCopy={copy}>
                 <table class="costing-grid" role="grid" aria-label={`${section} costing`} aria-rowcount={rows.length + 1} aria-colcount={columns.length + 2}>
                     <thead><tr><th scope="col">#</th>{columns.map((col) => <th key={col.key} scope="col">{col.label}</th>)}<th scope="col">Details</th></tr></thead>
@@ -90,7 +90,7 @@ function CostingGrid({ title, section, rows, columns, preview, disabled, change,
                                         return (
                                             <td key={col.key} class={`${col.numeric || col.computed ? 'is-number ' : ''}${inRange ? 'is-selected' : ''}`} aria-selected={inRange} onMouseDown={(event) => { if (event.shiftKey) { event.preventDefault(); focus(ri, ci, true); } else { setAnchor([ri, ci]); setActive([ri, ci]); } }}>
                                                 {col.computed
-                                                    ? <output tabIndex={0} data-cell={`${ri}:${ci}`} aria-label={`Row ${ri + 1} ${col.label}`} onFocus={() => setActive([ri, ci])}>{priced ? quoteMoney(col.key === 'tax' ? priced.taxCents : priced.totalCents) : 'Recalculate'}</output>
+                                                    ? <output tabIndex={0} data-cell={`${ri}:${ci}`} aria-label={`Row ${ri + 1} ${col.label}`} title={col.key === 'tax' && priced ? `Tax rate ${((priced.taxRule?.rateBasisPoints ?? 0) / 100).toFixed(2)}%` : undefined} onFocus={() => setActive([ri, ci])}>{priced ? quoteMoney(col.key === 'tax' ? priced.taxCents : priced.totalCents) : 'Recalculate'}{col.key === 'tax' && priced ? <small class="costing-tax-rate">{((priced.taxRule?.rateBasisPoints ?? 0) / 100).toFixed(2)}%</small> : null}</output>
                                                     : col.key === 'ot' || col.key === 'dt'
                                                         ? <input type="checkbox" data-cell={`${ri}:${ci}`} aria-label={`Row ${ri + 1} ${col.label}`} checked={line.laborRate === col.key} disabled={disabled} onFocus={() => setActive([ri, ci])} onChange={(e) => change(line, col.key, e.currentTarget.checked ? 'TRUE' : 'FALSE')} />
                                                         : <input data-cell={`${ri}:${ci}`} aria-label={`Row ${ri + 1} ${col.label}`} type="text" inputMode={col.numeric ? 'decimal' : 'text'} value={cellValue(line, col.key)} disabled={disabled} maxLength={col.key === 'description' ? 500 : 40} onFocus={() => setActive([ri, ci])} onInput={(e) => change(line, col.key, e.currentTarget.value)} />}
@@ -105,18 +105,20 @@ function CostingGrid({ title, section, rows, columns, preview, disabled, change,
                 </table>
                 {!rows.length && <p class="costing-empty">{emptyText}</p>}
             </div>
-            <footer class="costing-footer"><div class="quote-actions">{addKinds.map((kind) => <Button key={kind} disabled={disabled || rows.length >= 100} onClick={() => add(kind)}>+ {estimateLabels[kind]}</Button>)}</div></footer>
         </section>
     );
 }
 
 /** Editable cells backed by the same native quote lines, all sections on one page. */
-export function CostingSheet({ lines, preview, disabled, replace, details }: {
+export function CostingSheet({ lines, preview, disabled, replace, details, onSave, saving = false, canSave = true }: {
     lines: DraftLine[];
     preview: EstimateResult | null;
     disabled: boolean;
     replace(lines: DraftLine[]): void;
     details(id: string): void;
+    onSave?(): void;
+    saving?: boolean;
+    canSave?: boolean;
 }) {
     const [error, setError] = useState('');
     const undo = useRef<DraftLine[][]>([]), redo = useRef<DraftLine[][]>([]), expected = useRef(JSON.stringify(lines)), coalesce = useRef<string | null>(null);
@@ -154,6 +156,9 @@ export function CostingSheet({ lines, preview, disabled, replace, details }: {
         catch (e) { setError((e as Error).message); }
     }
     function add(kind: EstimateKind) { if (lines.length < 100) commit([...lines, fresh(kind)]); }
+    const totalCost = preview?.lines.reduce((n, l) => n + (l.costCents ?? 0), 0) ?? 0;
+    const totalBillable = preview?.lines.reduce((n, l) => n + (l.totalCents ?? 0), 0) ?? 0;
+    const profit = totalBillable - totalCost;
 
     return (
         <section class="costing-workbook" aria-label="Job costing spreadsheet" data-history={historyTick}>
@@ -161,11 +166,20 @@ export function CostingSheet({ lines, preview, disabled, replace, details }: {
                 <div class="costing-title">Job costing · {lines.length} row{lines.length === 1 ? '' : 's'}</div>
                 <div class="quote-actions"><Button disabled={disabled || !undo.current.length} onClick={() => history(true)}>Undo</Button><Button disabled={disabled || !redo.current.length} onClick={() => history(false)}>Redo</Button></div>
             </header>
-            <p class="costing-help">Edit cells directly · Enter / ↑ / ↓ move rows · ← / → move cells · Shift-click selects a range · Paste tab-separated cells from Excel or Sheets.</p>
+            <p class="costing-help">Edit cells directly · Enter / ↑ / ↓ move rows · ← / → move cells · Shift-click selects a range · Paste tab-separated cells from Excel or Sheets. Tax uses the billing profile tax rate (Settings → Billing profile).</p>
             {error && <Notice tone="danger">{error}</Notice>}
             <CostingGrid title="Materials" section="materials" rows={lines.filter((l) => l.kind === 'material')} columns={materialColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['material']} add={add} emptyText="No material rows. Add a material below to start." />
             <CostingGrid title="Labor" section="labor" rows={lines.filter((l) => laborKinds.includes(l.kind))} columns={laborColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['technician', 'apprentice', 'after_hours']} add={add} emptyText="No labor rows. Add a labor role below to start." />
             <CostingGrid title="Other job costs" section="other" rows={lines.filter((l) => l.kind !== 'material' && !laborKinds.includes(l.kind))} columns={otherColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['service', 'permit', 'license', 'distance', 'fuel', 'subcontractor']} add={add} emptyText="No other cost rows. Add a category below to start." />
+            <footer class="costing-pl">
+                <div class="costing-pl-summary">
+                    <div><span>Total cost</span><strong>{quoteMoney(totalCost)}</strong></div>
+                    <div><span>Total billable</span><strong>{quoteMoney(totalBillable)}</strong></div>
+                    <div><span>Profit</span><strong class={profit < 0 ? "project-margin-neg" : "project-margin-pos"}>{quoteMoney(profit)}</strong></div>
+                    <div><span>Margin</span><strong class={profit < 0 ? "project-margin-neg" : "project-margin-pos"}>{totalBillable ? `${Math.round((profit / totalBillable) * 1000) / 10}%` : "—"}</strong></div>
+                </div>
+                {onSave && <div class="quote-actions"><Button variant="primary" disabled={disabled || saving || !canSave} onClick={onSave}>{saving ? "Saving…" : "Save draft"}</Button></div>}
+            </footer>
         </section>
     );
 }

@@ -95,6 +95,14 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
       .catch(() => { if (live) setOppContact(null); });
     return () => { live = false; };
   }, [saved?.opportunityId]);
+  useEffect(() => {
+    if (profile || !opportunity) return;
+    let live = true;
+    accountRequest<{ profiles: BillingProfile[] }>(`/api/sales/billing-profiles?segment=${opportunity.segment}`)
+      .then((r) => { const p = (r.profiles ?? []).find((x) => x.config.active && !x.requiresReview); if (live && p) { setProfile(p); setLatestProfile(p); } })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [opportunity, profile]);
   const [document, setDocument] = useState<QuoteDocument>({
     title: "",
     scope: "",
@@ -557,7 +565,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               </QuoteSection>
             </div>
             <div class="quote-col">
-              <QuoteSection title="Opportunity and billing">
+              <QuoteSection title="Opportunity">
                 
                 {saved ? (
                   <div class="quote-linked-opportunity">
@@ -604,57 +612,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                     }}
                   />
                 )}
-                {opportunity && (
-                  <SearchPicker<BillingProfile>
-                    key={opportunity.segment}
-                    label="Billing profile"
-                    endpoint={
-                      "/api/sales/billing-profiles?segment=" +
-                      opportunity.segment
-                    }
-                    selected={
-                      profile
-                        ? {
-                            id: profile.id,
-                            label: `${profile.config.name} · ${profile.config.state} · v${profile.version}`,
-                          }
-                        : null
-                    }
-                    disabled={disabled}
-                    blocked={(row) => row.requiresReview || !row.config.active}
-                    format={(row) =>
-                      `${row.config.name} · ${row.config.state} · v${row.version}${row.requiresReview ? " · Needs review" : !row.config.active ? " · Inactive" : ""}`
-                    }
-                    change={(row) => {
-                      changed();
-                      setProfile(row);
-                      setLatestProfile(row);
-                    }}
-                  />
-                )}
-                {profileChanged && (
-                  <Notice tone="warning">
-                    Billing rules changed from v{profile!.version} to v
-                    {latestProfile!.version}. Earlier saved prices are retained.{" "}
-                    <Button
-                      disabled={disabled}
-                      onClick={() => {
-                        changed();
-                        setProfile(latestProfile);
-                      }}
-                    >
-                      Use current billing rules
-                    </Button>
-                  </Notice>
-                )}
-                {profile && (
-                  <p class="workspace-help">
-                    {profile.config.jurisdiction} · {profile.config.segment} ·
-                    Effective {profile.config.effectiveFrom} to{" "}
-                    {profile.config.effectiveTo || "no end date"}
-                  </p>
-                )}
-                <Button
+                                <Button
                   disabled={disabled || !opportunity}
                   onClick={() => void refreshSources()}
                 >

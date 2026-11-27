@@ -281,3 +281,13 @@
 /* Narrow remove-row column so the data columns can use more width */
 .costing-grid .costing-remove-cell { width: 40px; min-width: 40px; max-width: 40px; text-align: center; padding-inline: 4px; }
 .costing-grid .costing-remove-cell .btn { width: 26px; min-width: 26px; padding: 2px; }
+
+/* Customer-style 3-column quote layout: Opportunity rail | scope + costing | price summary */
+.quote-layout { grid-template-columns: minmax(280px, 320px) minmax(0, 1fr) 300px; }
+.quote-side, .quote-main { min-width: 0; display: grid; gap: 18px; align-content: start; }
+@media (max-width: 1500px) { .quote-layout { grid-template-columns: minmax(280px, 320px) minmax(0, 1fr); } .quote-summary { grid-column: 1 / -1; } }
+@media (max-width: 900px) { .quote-layout { grid-template-columns: minmax(0, 1fr); } .quote-summary { grid-column: auto; } }
+
+/* Quote form fields live in the new side/main columns */
+.quote-side .ui-field, .quote-main .ui-field { margin: 12px 0; min-width: 0; }
+.quote-side label.ui-field, .quote-main label.ui-field { display: grid; gap: 6px; font-size: 13px; }

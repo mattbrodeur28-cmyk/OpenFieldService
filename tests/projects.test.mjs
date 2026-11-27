@@ -113,3 +113,23 @@ test("projects reject stale versions, wrong-customer jobs and duplicate links", 
   f.projects.linkJob(owner, saved.project.id, link);
   assert.throws(() => f.projects.linkJob(owner, saved.project.id, { ...link, id: randomUUID(), requestKey: randomUUID() }), /already linked/);
 });
+
+test("project job costing saves sections and computes P&L", (t) => {
+  const f = setup(t);
+  const saved = f.projects.save(owner, { id: randomUUID(), requestKey: randomUUID(), expectedVersion: 0, customerId: f.customer, title: "P", reason, reviewAttested: true });
+  const pid = saved.project.id;
+  const s1 = f.projects.saveCostSection(owner, pid, { id: randomUUID(), requestKey: randomUUID(), name: "PM Hours", position: 1, quantityMilli: 10000, costRateCents: 5000, billRateCents: 12000, reason, reviewAttested: true });
+  assert.equal(s1.costSection.costCents, 50000);
+  assert.equal(s1.costSection.billCents, 120000);
+  assert.equal(s1.costSection.marginCents, 70000);
+  const s2 = f.projects.saveCostSection(owner, pid, { id: randomUUID(), requestKey: randomUUID(), name: "Material", position: 2, quantityMilli: 1000, costRateCents: 10000, billRateCents: 15000, reason, reviewAttested: true });
+  const d = f.projects.detail(owner, pid);
+  assert.equal(d.costSections.length, 2);
+  assert.equal(d.profitLoss.totalCostCents, 60000);
+  assert.equal(d.profitLoss.totalBillableCents, 135000);
+  assert.equal(d.profitLoss.profitCents, 75000);
+  assert.equal(d.profitLoss.marginPercent, Math.round((75000 / 135000) * 1000) / 10);
+  f.projects.deleteCostSection(owner, pid, s2.costSection.id);
+  assert.equal(f.projects.detail(owner, pid).costSections.length, 1);
+  assert.throws(() => f.projects.saveCostSection(viewer, pid, { id: randomUUID(), requestKey: randomUUID(), name: "X", reason, reviewAttested: true }), /cannot change projects/);
+});

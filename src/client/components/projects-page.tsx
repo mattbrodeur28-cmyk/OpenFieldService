@@ -10,6 +10,7 @@ import { Select } from "./ui/select";
 import { Notice, Table, Badge, EmptyState } from "./ui/surfaces";
 import { Dialog, DialogTitle } from "./ui/dialog";
 import { ProjectGantt } from "./projects/project-gantt";
+import { ProjectFinancials } from "./projects/project-financials";
 import { Plus, CheckCircle2, FolderKanban, ChevronDown, Edit3 } from "lucide-preact";
 
 const money = (cents?: number | null) => cents == null ? "—" : "$" + (cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -20,7 +21,7 @@ const uuid = () => crypto.randomUUID();
 const reason = "Reviewed project structure";
 
 type Project = { id: string; customer_id: string; title: string; description: string; status: string; project_manager: string; planned_start: string; planned_end: string; actual_start: string; actual_end: string; baseline_cost_cents: number | null; baseline_start: string; baseline_end: string; estimate_to_complete_cents: number | null; baselined_at: string | null; source_kind: string | null; source_id: string | null; version: number; archived: number };
-type Detail = { project: Project; phases: any[]; milestones: any[]; jobs: any[]; sites: any[]; deliverables: any[]; financials: { actualCostCents: number; committedCostCents: number | null; currency: string }; overdueActions: any[]; source: { kind: string; id?: string; quoteId?: string; opportunityId?: string; title?: string; value?: number; probability?: number; closeDate?: string; pipeline?: string; stage?: string; stageKind?: string } | null };
+type Detail = { project: Project; phases: any[]; milestones: any[]; jobs: any[]; sites: any[]; deliverables: any[]; financials: { actualCostCents: number; committedCostCents: number | null; currency: string }; overdueActions: any[]; source: { kind: string; id?: string; quoteId?: string; opportunityId?: string; title?: string; value?: number; probability?: number; closeDate?: string; pipeline?: string; stage?: string; stageKind?: string } | null; costSections: any[]; profitLoss: { totalCostCents: number; totalBillableCents: number; profitCents: number; marginPercent: number | null } };
 
 function RecordSection({ title, count, defaultOpen = true, children }: { title: string; count?: number; defaultOpen?: boolean; children: ComponentChildren }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -219,6 +220,8 @@ export function ProjectsPage({ id }: { id: string | null }) {
                   ))}
                 </div>
                 {detail.overdueActions?.length > 0 && <p class="project-overdue">{detail.overdueActions.length} overdue action{detail.overdueActions.length === 1 ? "" : "s"}</p>}
+                <div class="project-financials-divider" />
+                <ProjectFinancials projectId={detail.project.id} sections={detail.costSections} profitLoss={detail.profitLoss} canWrite={canWrite} onSaved={() => setRevision((r) => r + 1)} />
               </RecordSection>
             </div>
 

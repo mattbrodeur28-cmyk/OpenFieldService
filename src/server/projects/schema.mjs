@@ -102,3 +102,18 @@ CREATE TABLE _project_phase_dependencies(
 );
 CREATE INDEX _project_phase_dependencies_project ON _project_phase_dependencies(project_id,phase_id);
 `;
+
+// v4: job-costing sections (PM Hours, Tech Hours, Graphics, Sales, Material, ...) for P&L.
+export const projectSchemaV4 = `
+CREATE TABLE _project_cost_sections(
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES _projects(id) ON DELETE RESTRICT,
+  name TEXT NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  quantity_milli INTEGER NOT NULL DEFAULT 0 CHECK(quantity_milli>=0),
+  cost_rate_cents INTEGER NOT NULL DEFAULT 0 CHECK(cost_rate_cents>=0),
+  bill_rate_cents INTEGER NOT NULL DEFAULT 0 CHECK(bill_rate_cents>=0),
+  UNIQUE(project_id,name)
+);
+CREATE INDEX _project_cost_sections_project ON _project_cost_sections(project_id,position);
+`;

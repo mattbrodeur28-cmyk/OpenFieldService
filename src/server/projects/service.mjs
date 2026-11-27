@@ -1,13 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 import { migrate, transaction } from "../platform/sqlite.mjs";
-import { projectSchema, projectSchemaV2, projectSchemaV3 } from "./schema.mjs";
-import { parse, uuid, reader, writer, fail, projectInput, phaseInput, milestoneInput, linkJobInput, linkSiteInput, deliverableInput, fromProposalInput, baselineInput, issueInput, dependencyInput } from "./domain.mjs";
+import { projectSchema, projectSchemaV2, projectSchemaV3, projectSchemaV4 } from "./schema.mjs";
+import { parse, uuid, reader, writer, fail, projectInput, phaseInput, milestoneInput, linkJobInput, linkSiteInput, deliverableInput, fromProposalInput, baselineInput, issueInput, dependencyInput, costSectionInput } from "./domain.mjs";
 
 const hash = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
 export function createProjects({ storage, proposalSource = null }) {
     const db = storage.database;
-    migrate(db, "_project_migrations", [{ version: 1, sql: projectSchema }, { version: 2, sql: projectSchemaV2 }, { version: 3, sql: projectSchemaV3 }]);
+    migrate(db, "_project_migrations", [{ version: 1, sql: projectSchema }, { version: 2, sql: projectSchemaV2 }, { version: 3, sql: projectSchemaV3 }, { version: 4, sql: projectSchemaV4 }]);
     db.exec("CREATE TABLE IF NOT EXISTS _project_requests(request_key TEXT PRIMARY KEY,actor_id TEXT NOT NULL,request_hash TEXT NOT NULL,result_json TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
 
     const customer = (id) => { const row = db.prepare("SELECT id,name FROM customers WHERE id=?").get(id); if (!row) fail("Customer not found.", 404); return row; };
@@ -23,6 +23,17 @@ export function createProjects({ storage, proposalSource = null }) {
     const financials = (projectId) => {
         const row = db.prepare("SELECT COALESCE(SUM(i.total),0) AS actual FROM invoices i JOIN _project_jobs pj ON pj.job_id=i.job_id WHERE pj.project_id=?").get(projectId);
         return { actualCostCents: Math.round(row.actual * 100), committedCostCents: null, currency: "USD" };
+    };
+    const costSections = (projectId) => db.prepare("SELECT id,project_id AS projectId,name,position,quantity_milli AS quantityMilli,cost_rate_cents AS costRateCents,bill_rate_cents AS billRateCents FROM _project_cost_sections WHERE project_id=? ORDER BY position,name,id").all(projectId).map((r) => {
+        const costCents = Math.round((r.quantityMilli * r.costRateCents) / 1000);
+        const billCents = Math.round((r.quantityMilli * r.billRateCents) / 1000);
+        return { ...r, costCents, billCents, marginCents: billCents - costCents };
+    });
+    const profitLoss = (sections) => {
+        const totalCost = sections.reduce((n, s) => n + s.costCents, 0);
+        const totalBillable = sections.reduce((n, s) => n + s.billCents, 0);
+        const profit = totalBillable - totalCost;
+        return { totalCostCents: totalCost, totalBillableCents: totalBillable, profitCents: profit, marginPercent: totalBillable ? Math.round((profit / totalBillable) * 1000) / 10 : null, currency: "USD" };
     };
     const overdueActions = (projectId) => {
         const today = new Date().toISOString().slice(0, 10);
@@ -79,7 +90,10 @@ export function createProjects({ storage, proposalSource = null }) {
     function detail(user, id) {
         reader(user);
         parse(uuid, id);
-        return transaction(db, () => ({ project: get(id), phases: phases(id), milestones: milestones(id), jobs: jobs(id), sites: sites(id), deliverables: deliverables(id), issues: issues(id), dependencies: dependencies(id), financials: financials(id), overdueActions: overdueActions(id), source: source(get(id)) }));
+        return transaction(db, () => {
+            const sectionRows = costSections(id);
+            return { project: get(id), phases: phases(id), milestones: milestones(id), jobs: jobs(id), sites: sites(id), deliverables: deliverables(id), issues: issues(id), dependencies: dependencies(id), financials: financials(id), overdueActions: overdueActions(id), source: source(get(id)), costSections: sectionRows, profitLoss: profitLoss(sectionRows) };
+        });
     }
 
     function savePhase(user, projectId, raw) {
@@ -253,5 +267,31 @@ export function createProjects({ storage, proposalSource = null }) {
         });
     }
 
-    return { save, list, detail, savePhase, saveMilestone, linkJob, unlinkJob, linkSite, unlinkSite, saveDeliverable, fromProposal, setBaseline, saveIssue, saveDependency };
+    function saveCostSection(user, projectId, raw) {
+        writer(user);
+        const d = parse(costSectionInput, raw), fingerprint = hash({ action: "save_cost_section", projectId, ...d });
+        return transaction(db, () => {
+            const prior = replay(user, d.requestKey, fingerprint); if (prior) return prior;
+            get(projectId);
+            const old = db.prepare("SELECT project_id FROM _project_cost_sections WHERE id=?").get(d.id);
+            if (old && old.project_id !== projectId) fail("Cost section does not belong to this project.", 404);
+            db.prepare("INSERT INTO _project_cost_sections(id,project_id,name,position,quantity_milli,cost_rate_cents,bill_rate_cents) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,position=excluded.position,quantity_milli=excluded.quantity_milli,cost_rate_cents=excluded.cost_rate_cents,bill_rate_cents=excluded.bill_rate_cents").run(d.id, projectId, d.name, d.position, d.quantityMilli, d.costRateCents, d.billRateCents);
+            const result = { costSection: costSections(projectId).find((s) => s.id === d.id) };
+            acknowledge(d.requestKey, user, fingerprint, result);
+            return result;
+        });
+    }
+
+    function deleteCostSection(user, projectId, sectionId) {
+        writer(user);
+        return transaction(db, () => {
+            get(projectId);
+            const row = db.prepare("SELECT id FROM _project_cost_sections WHERE id=? AND project_id=?").get(sectionId, projectId);
+            if (!row) fail("Cost section not found.", 404);
+            db.prepare("DELETE FROM _project_cost_sections WHERE id=?").run(sectionId);
+            return { deleted: true };
+        });
+    }
+
+    return { save, list, detail, savePhase, saveMilestone, linkJob, unlinkJob, linkSite, unlinkSite, saveDeliverable, fromProposal, setBaseline, saveIssue, saveDependency, saveCostSection, deleteCostSection };
 }

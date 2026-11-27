@@ -30,5 +30,7 @@ export function createProjectModule({ storage, currentUser, proposalSource = nul
     app.post("/:id/baseline", async (c) => c.json(projects.setBaseline(actor(c), c.req.param("id"), await body(c))));
     app.post("/:id/issues", async (c) => c.json(projects.saveIssue(actor(c), c.req.param("id"), await body(c))));
     app.post("/:id/dependencies", async (c) => c.json(projects.saveDependency(actor(c), c.req.param("id"), await body(c))));
+    app.post("/:id/cost-sections", async (c) => c.json(projects.saveCostSection(actor(c), c.req.param("id"), await body(c))));
+    app.delete("/:id/cost-sections/:sectionId", (c) => c.json(projects.deleteCostSection(actor(c), c.req.param("id"), c.req.param("sectionId"))));
     return { app, projects };
 }

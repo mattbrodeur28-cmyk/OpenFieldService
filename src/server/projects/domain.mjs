@@ -100,3 +100,14 @@ export const dependencyInput = z.object({
     reason: z.string().trim().min(10).max(2000),
     reviewAttested: z.literal(true),
 }).strict();
+
+export const costSectionInput = z.object({
+    id: uuid, requestKey: uuid,
+    name: z.string().trim().min(1).max(80),
+    position: z.number().int().nonnegative().default(0),
+    quantityMilli: z.number().int().nonnegative().max(1000000000).default(0),
+    costRateCents: z.number().int().nonnegative().max(100000000).default(0),
+    billRateCents: z.number().int().nonnegative().max(100000000).default(0),
+    reason: z.string().trim().min(10).max(2000),
+    reviewAttested: z.literal(true),
+}).strict();

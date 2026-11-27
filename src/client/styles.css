@@ -1893,3 +1893,16 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 /* Compact action row inside a record-section card */
 .record-section-toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 .record-section-toolbar .btn { font-size: 12px; padding: 4px 10px; min-height: 26px; }
+
+/* Project job-costing worksheet + P&L */
+.project-financials-divider { height: 1px; background: var(--border); margin: 12px 0; }
+.project-costing-table td, .project-costing-table th { font-size: 12px; }
+.project-cost-input { width: 84px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--card-bg); color: var(--text); font: inherit; font-size: 12px; }
+.project-margin-pos { color: var(--success); font-weight: 600; }
+.project-margin-neg { color: var(--danger); font-weight: 600; }
+.project-pl { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); }
+.project-pl div { display: flex; flex-direction: column; gap: 2px; }
+.project-pl span { font-size: 11px; color: var(--text-muted); }
+.project-pl strong { font-size: 16px; }
+.project-financials-add { display: flex; gap: 8px; }
+.project-financials-add input { flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card-bg); color: var(--text); font: inherit; font-size: 13px; }

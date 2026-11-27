@@ -1,5 +1,6 @@
-import {CustomRecordFields} from "./custom-record-fields";
+import { CustomRecordFields } from "./custom-record-fields";
 import { useState } from "preact/hooks";
+import type { ComponentChildren } from "preact";
 import { useApp } from "../context";
 import { CustomerSales } from "./customer-sales";
 import { CustomerContacts } from "./customer-contacts";
@@ -8,12 +9,38 @@ import { CustomerOverview } from "./customer-overview";
 import { CustomerEquipment } from "./customer-equipment";
 import { CustomerActivity } from "./customer-activity";
 import { StatusBadge } from "./status-badge";
-import { ArrowLeft, Trash2, Edit3, Save, X } from "lucide-preact";
+import { ArrowLeft, Trash2, Edit3, Save, X, ChevronDown } from "lucide-preact";
+
+// Salesforce-style collapsible record section.
+function RecordSection({
+  title,
+  count,
+  defaultOpen = true,
+  component = false,
+  children,
+}: {
+  title: string;
+  count?: number;
+  defaultOpen?: boolean;
+  component?: boolean;
+  children: ComponentChildren;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section class={"record-section" + (open ? " is-open" : "")}>
+      <button type="button" class="record-section-heading" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <ChevronDown size={16} class={"record-section-chevron" + (open ? "" : " is-closed")} />
+        <span class="record-section-title">{title}</span>
+        {count != null && <span class="record-section-count">{count}</span>}
+      </button>
+      {open && <div class={"record-section-body" + (component ? " is-component" : "")}>{children}</div>}
+    </section>
+  );
+}
 
 export function CustomerDetail() {
   const { selectedCustomer: customer, selectedCustomerJobs: jobs, navigate, updateCustomer, deleteCustomer, setError } = useApp();
   const [editing, setEditing] = useState(false);
-  const [tab, setTab] = useState<"details" | "related" | "activity">("details");
   const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "", state: "", zip: "", notes: "" });
 
   if (!customer) return null;
@@ -31,8 +58,6 @@ export function CustomerDetail() {
     await updateCustomer(customer.id, form);
     setEditing(false);
   };
-
-  const tabs: [string, string][] = [["details", "Details"], ["related", "Related"], ["activity", "Activity"]];
 
   return (
     <div class="page">
@@ -64,16 +89,6 @@ export function CustomerDetail() {
           )}
         </div>
       </div>
-
-      {!editing && (
-        <div class="record-tabs" role="tablist">
-          {tabs.map(([key, label]) => (
-            <button key={key} role="tab" aria-selected={tab === key} class={"record-tab" + (tab === key ? " is-active" : "")} onClick={() => setTab(key as typeof tab)}>
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
 
       {editing ? (
         <div class="card detail-section">
@@ -113,71 +128,81 @@ export function CustomerDetail() {
           </div>
         </div>
       ) : (
-        <>
-          {tab === "details" && (
-            <div class="detail-main">
-              <div class="detail-meta-grid">
-                <div class="detail-meta-item">
-                  <span class="detail-meta-label">Phone</span>
-                  <span>{customer.phone || "—"}</span>
-                </div>
-                <div class="detail-meta-item">
-                  <span class="detail-meta-label">Email</span>
-                  <span>{customer.email || "—"}</span>
-                </div>
-                <div class="detail-meta-item">
-                  <span class="detail-meta-label">Address</span>
-                  <span>{[customer.address, customer.city, customer.state, customer.zip].filter(Boolean).join(", ") || "—"}</span>
-                </div>
+        <div class="customer-sections">
+          <RecordSection title="Details">
+            <div class="detail-meta-grid">
+              <div class="detail-meta-item">
+                <span class="detail-meta-label">Phone</span>
+                <span>{customer.phone || "—"}</span>
               </div>
-              {customer.notes && (
-                <div class="detail-section">
-                  <h3>Notes</h3>
-                  <p class="detail-notes">{customer.notes}</p>
-                </div>
-              )}
-              <CustomRecordFields key={"fields-" + customer.id} objectKey="crm.customer" recordId={customer.id} />
+              <div class="detail-meta-item">
+                <span class="detail-meta-label">Email</span>
+                <span>{customer.email || "—"}</span>
+              </div>
+              <div class="detail-meta-item">
+                <span class="detail-meta-label">Address</span>
+                <span>{[customer.address, customer.city, customer.state, customer.zip].filter(Boolean).join(", ") || "—"}</span>
+              </div>
             </div>
-          )}
-
-          {tab === "related" && (
-            <div class="detail-main">
-              <CustomerOverview key={"overview-" + customer.id} customerId={customer.id} />
-              <CustomerRelationships key={"relationships-" + customer.id} customerId={customer.id} />
-              <CustomerContacts key={"contacts-" + customer.id} customerId={customer.id} />
-              <CustomerSales key={"sales-" + customer.id} customerId={customer.id} />
-              <CustomerEquipment key={customer.id} customerId={customer.id} />
+            {customer.notes && (
               <div class="detail-section">
-                <h3>Service History ({jobs.length})</h3>
-                {jobs.length === 0 ? (
-                  <p class="text-muted">No jobs yet</p>
-                ) : (
-                  <div class="table-scroll">
-                    <table class="table">
-                      <thead>
-                        <tr><th>ID</th><th>Date</th><th>Service</th><th>Technician</th><th>Status</th><th>Price</th></tr>
-                      </thead>
-                      <tbody>
-                        {jobs.map((j) => (
-                          <tr key={j.id} class="table-row clickable" onClick={() => navigate(`/jobs/${j.id}`)}>
-                            <td><span class="identifier">{j.identifier}</span></td>
-                            <td>{j.scheduled_date}</td>
-                            <td>{j.service_type_name || "—"}</td>
-                            <td>{j.technician_name || "Unassigned"}</td>
-                            <td><StatusBadge status={j.status} /></td>
-                            <td class="text-right">${j.price.toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <h3>Notes</h3>
+                <p class="detail-notes">{customer.notes}</p>
               </div>
-            </div>
-          )}
+            )}
+            <CustomRecordFields key={"fields-" + customer.id} objectKey="crm.customer" recordId={customer.id} />
+          </RecordSection>
 
-          {tab === "activity" && <CustomerActivity customerId={customer.id} />}
-        </>
+          <RecordSection title="Account overview" component>
+            <CustomerOverview key={"overview-" + customer.id} customerId={customer.id} />
+          </RecordSection>
+
+          <RecordSection title="Contacts" component>
+            <CustomerContacts key={"contacts-" + customer.id} customerId={customer.id} />
+          </RecordSection>
+
+          <RecordSection title="Locations & equipment" component>
+            <CustomerEquipment key={customer.id} customerId={customer.id} />
+          </RecordSection>
+
+          <RecordSection title="Service history" count={jobs.length}>
+            {jobs.length === 0 ? (
+              <p class="text-muted">No jobs yet</p>
+            ) : (
+              <div class="table-scroll">
+                <table class="table">
+                  <thead>
+                    <tr><th>ID</th><th>Date</th><th>Service</th><th>Technician</th><th>Status</th><th>Price</th></tr>
+                  </thead>
+                  <tbody>
+                    {jobs.map((j) => (
+                      <tr key={j.id} class="table-row clickable" onClick={() => navigate(`/jobs/${j.id}`)}>
+                        <td><span class="identifier">{j.identifier}</span></td>
+                        <td>{j.scheduled_date}</td>
+                        <td>{j.service_type_name || "—"}</td>
+                        <td>{j.technician_name || "Unassigned"}</td>
+                        <td><StatusBadge status={j.status} /></td>
+                        <td class="text-right">${j.price.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </RecordSection>
+
+          <RecordSection title="Relationships" component defaultOpen={false}>
+            <CustomerRelationships key={"relationships-" + customer.id} customerId={customer.id} />
+          </RecordSection>
+
+          <RecordSection title="Sales & follow-ups" component defaultOpen={false}>
+            <CustomerSales key={"sales-" + customer.id} customerId={customer.id} />
+          </RecordSection>
+
+          <RecordSection title="Activity" defaultOpen={false}>
+            <CustomerActivity customerId={customer.id} />
+          </RecordSection>
+        </div>
       )}
     </div>
   );

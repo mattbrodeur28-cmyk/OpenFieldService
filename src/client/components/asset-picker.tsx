@@ -194,6 +194,9 @@ export function JobEquipment({ job }: { job: Job }) {
   const [value, setValue] = useState(job.asset_id);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [pickerRev, setPickerRev] = useState(0);
+  const [creating, setCreating] = useState(false);
+  const [newEq, setNewEq] = useState({ name: "", serial_number: "", manufacturer: "", model: "", notes: "" });
   useEffect(() => {
     setValue(job.asset_id);
   }, [job.asset_id]);
@@ -201,7 +204,50 @@ export function JobEquipment({ job }: { job: Job }) {
     setBusy(true);
     setError("");
     try {
-      await updateJob(job.id, { asset_id: value });
+      await updateJob(job.id, {
+        asset_id: value,
+        ...(job.schedule_version !== undefined ? { expected_version: job.schedule_version } : {}),
+      } as any);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const createAndLink = async (e: Event) => {
+    e.preventDefault();
+    if (!newEq.name.trim() || !newEq.serial_number.trim()) {
+      setError("Enter both equipment name and serial number.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const siteRes = await api<{ sites: Site[] }>("GET", `/api/customers/${job.customer_id}/sites`);
+      let siteId = siteRes.sites?.[0]?.id;
+      if (!siteId) {
+        const createdSite = await api<Site>("POST", `/api/customers/${job.customer_id}/sites`, {
+          name: "Primary Site",
+          address: job.address || "",
+        });
+        siteId = createdSite.id;
+      }
+      const createdAsset = await api<Asset>("POST", `/api/customers/${job.customer_id}/assets`, {
+        site_id: siteId,
+        name: newEq.name.trim(),
+        serial_number: newEq.serial_number.trim(),
+        manufacturer: newEq.manufacturer.trim(),
+        model: newEq.model.trim(),
+        notes: newEq.notes.trim(),
+      });
+      setValue(createdAsset.id);
+      setPickerRev((n) => n + 1);
+      setNewEq({ name: "", serial_number: "", manufacturer: "", model: "", notes: "" });
+      setCreating(false);
+      await updateJob(job.id, {
+        asset_id: createdAsset.id,
+        ...(job.schedule_version !== undefined ? { expected_version: job.schedule_version } : {}),
+      } as any);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -233,10 +279,77 @@ export function JobEquipment({ job }: { job: Job }) {
       class="detail-section equipment-section"
       aria-label="Job equipment"
     >
-      <h3>Equipment</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+        <h3 style={{ margin: 0 }}>Equipment</h3>
+        <button
+          type="button"
+          class="btn btn-sm"
+          disabled={busy}
+          onClick={() => setCreating((v) => !v)}
+        >
+          {creating ? "Cancel" : "+ New Equipment"}
+        </button>
+      </div>
+
+      {creating && (
+        <form
+          class="card"
+          style={{ padding: "12px", marginBottom: "12px", display: "flex", flexDirection: "column", gap: "8px", background: "var(--surface-sunken)" }}
+          onSubmit={createAndLink}
+        >
+          <strong style={{ fontSize: "13px" }}>Register &amp; Link New Equipment</strong>
+          <div class="sales-form-grid">
+            <TextField
+              label="Equipment name *"
+              required
+              placeholder="e.g., RTU-2, Main Furnace"
+              value={newEq.name}
+              disabled={busy}
+              onInput={(e) => setNewEq({ ...newEq, name: e.currentTarget.value })}
+            />
+            <TextField
+              label="Serial number *"
+              required
+              placeholder="e.g., SN-4920184"
+              value={newEq.serial_number}
+              disabled={busy}
+              onInput={(e) => setNewEq({ ...newEq, serial_number: e.currentTarget.value })}
+            />
+          </div>
+          <div class="sales-form-grid">
+            <TextField
+              label="Manufacturer"
+              placeholder="e.g., Carrier, Trane, Lennox"
+              value={newEq.manufacturer}
+              disabled={busy}
+              onInput={(e) => setNewEq({ ...newEq, manufacturer: e.currentTarget.value })}
+            />
+            <TextField
+              label="Model"
+              placeholder="e.g., 48TCED06A2A5"
+              value={newEq.model}
+              disabled={busy}
+              onInput={(e) => setNewEq({ ...newEq, model: e.currentTarget.value })}
+            />
+          </div>
+          <TextField
+            label="Location / Notes (optional)"
+            placeholder="e.g., Roof north side, Mechanical room B"
+            value={newEq.notes}
+            disabled={busy}
+            onInput={(e) => setNewEq({ ...newEq, notes: e.currentTarget.value })}
+          />
+          <div>
+            <button type="submit" class="btn btn-primary" disabled={busy || !newEq.name.trim() || !newEq.serial_number.trim()}>
+              {busy ? "Creating…" : "Create & Link Equipment"}
+            </button>
+          </div>
+        </form>
+      )}
+
       <fieldset disabled={busy}>
         <AssetPicker
-          key={job.customer_id}
+          key={`${job.customer_id}-${pickerRev}`}
           customerId={job.customer_id}
           value={value}
           onChange={setValue}

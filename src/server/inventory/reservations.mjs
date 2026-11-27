@@ -54,7 +54,7 @@ export function createInventoryExtensions({ storage }) {
 
     const requireWriter = (user) => {
         if (!user?.active || user.mustChangePassword) fail("Sign in to continue.", 401);
-        if (!["owner", "admin", "member"].includes(user.role)) fail("Inventory write access required.", 403);
+        if (!["owner", "admin", "member", "technician"].includes(user.role)) fail("Inventory write access required.", 403);
     };
     const requireAdmin = (user) => {
         if (!admin(user)) fail("Owner or administrator Inventory access required.", 403);

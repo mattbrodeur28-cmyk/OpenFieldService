@@ -21,6 +21,8 @@ const VIEW_ROUTES: Record<string, View> = {
   dashboard: "dashboard",
   schedule: "schedule",
   dispatcher: "dispatcher",
+  "my-day": "my-day",
+  mobile: "mobile",
   timesheets: "timesheets",
   sales: "sales",
   agreements: "agreements",

@@ -275,5 +275,57 @@ export function createPostWork({
     });
     return detail(user, id);
   }
-  return { detail, save, review };
+  function reopen(user, jobId, input = {}) {
+    if (!admin(user))
+      fail("Owner or administrator access is required to reopen a completed job.", 403);
+    if (typeof jobId !== "string" || !/^[0-9a-f-]{36}$/i.test(jobId))
+      fail("Invalid job ID.", 400);
+    const id = jobId;
+    const reasonText =
+      typeof input?.reason === "string" && input.reason.trim().length > 0
+        ? input.reason.trim().slice(0, 1000)
+        : "Reopened to edit ticket or fix billing.";
+    transaction(db, () => {
+      const job = db.prepare("SELECT * FROM jobs WHERE id=?").get(id);
+      if (!job) fail("Job not found.", 404);
+      const exec = db
+        .prepare("SELECT * FROM _service_execution WHERE job_id=?")
+        .get(id);
+      if (job.status !== "completed" && !exec?.service_completed && exec?.stage !== "complete")
+        fail("Only completed jobs can be reopened.", 409);
+      const nextStatus = exec && !exec.safety_id ? "confirmed" : "in_progress";
+      const ds = db
+        .prepare("SELECT managed FROM _dispatch_job_state WHERE job_id=?")
+        .get(id);
+      if (exec) {
+        const nextStage = exec.safety_id ? "post_work" : "safety";
+        db.prepare(
+          "UPDATE _service_execution SET service_completed=0,stage=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE job_id=?",
+        ).run(nextStage, id);
+      }
+      if (ds?.managed === 1) {
+        db.prepare(
+          "UPDATE _dispatch_job_state SET managed=0 WHERE job_id=?",
+        ).run(id);
+      }
+      db.prepare(
+        "UPDATE jobs SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+      ).run(nextStatus, id);
+      if (ds?.managed === 1) {
+        db.prepare(
+          "UPDATE _dispatch_job_state SET managed=1 WHERE job_id=?",
+        ).run(id);
+      }
+      audit(
+        user,
+        id,
+        "job_reopened",
+        { status: job.status, stage: exec?.stage || null, serviceCompleted: exec?.service_completed || 0 },
+        { status: nextStatus, stage: exec ? (exec.safety_id ? "post_work" : "safety") : null, serviceCompleted: 0 },
+        reasonText,
+      );
+    });
+    return detail(user, id);
+  }
+  return { detail, save, review, reopen };
 }

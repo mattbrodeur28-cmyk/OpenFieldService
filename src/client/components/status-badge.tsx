@@ -5,7 +5,8 @@ const STATUS_TONES: Record<JobStatus | InvoiceStatus, string> = {
   cancelled: "muted", draft: "muted", sent: "info", paid: "success", overdue: "danger",
 };
 const PRIORITY_TONES: Record<Priority, string> = { low: "muted", normal: "muted", high: "warning", urgent: "danger" };
-const label = (value: string) => value.charAt(0).toUpperCase() + value.slice(1).replaceAll("_", " ");
+const label = (value: string) =>
+  value === "confirmed" ? "Dispatched" : value.charAt(0).toUpperCase() + value.slice(1).replaceAll("_", " ");
 
 export function StatusBadge({ status }: { status: JobStatus | InvoiceStatus }) {
   return <span class={`status-badge badge-${STATUS_TONES[status] || "muted"}`}><span class="status-dot" />{label(status)}</span>;

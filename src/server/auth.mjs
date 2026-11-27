@@ -23,15 +23,26 @@ async function passwordMatches(password, stored) {
 }
 const publicUser = row => row ? ({ id: row.id, name: row.name, email: row.email, role: row.role, active: Boolean(row.active), hr: Boolean(row.is_hr), mustChangePassword: Boolean(row.must_change_password) }) : null;
 
-export function createAuth({ filename, env = process.env }) {
+export function createAuth({ filename, env = process.env, onTechnicianUser } = {}) {
   const db = new DatabaseSync(filename);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
-    CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,name TEXT NOT NULL,email TEXT NOT NULL UNIQUE COLLATE NOCASE,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('owner','admin','member','viewer')),active INTEGER NOT NULL DEFAULT 1,must_change_password INTEGER NOT NULL DEFAULT 0,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,name TEXT NOT NULL,email TEXT NOT NULL UNIQUE COLLATE NOCASE,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('owner','admin','member','technician','viewer')),active INTEGER NOT NULL DEFAULT 1,must_change_password INTEGER NOT NULL DEFAULT 0,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),expires_at INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS teams(id TEXT PRIMARY KEY,name TEXT NOT NULL UNIQUE,description TEXT NOT NULL DEFAULT '',archived INTEGER NOT NULL DEFAULT 0,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS team_members(team_id TEXT REFERENCES teams(id),user_id TEXT REFERENCES users(id),PRIMARY KEY(team_id,user_id));
     CREATE TABLE IF NOT EXISTS team_messages(id TEXT PRIMARY KEY,team_id TEXT REFERENCES teams(id),user_id TEXT REFERENCES users(id),content TEXT NOT NULL,created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
   if (!db.prepare('PRAGMA table_info(users)').all().some(column => column.name === 'is_hr')) db.exec('ALTER TABLE users ADD COLUMN is_hr INTEGER NOT NULL DEFAULT 0');
+  const usersSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get()?.sql || '';
+  if (usersSql && !usersSql.includes("'technician'")) {
+    db.exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;');
+    try {
+      db.exec(`CREATE TABLE users_v2(id TEXT PRIMARY KEY,name TEXT NOT NULL,email TEXT NOT NULL UNIQUE COLLATE NOCASE,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('owner','admin','member','technician','viewer')),active INTEGER NOT NULL DEFAULT 1,must_change_password INTEGER NOT NULL DEFAULT 0,created_at TEXT DEFAULT CURRENT_TIMESTAMP,is_hr INTEGER NOT NULL DEFAULT 0);
+        INSERT INTO users_v2(id,name,email,password_hash,role,active,must_change_password,created_at,is_hr) SELECT id,name,email,password_hash,role,active,must_change_password,created_at,COALESCE(is_hr,0) FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_v2 RENAME TO users;
+        COMMIT;`);
+    } catch (error) { db.exec('ROLLBACK;'); throw error; } finally { db.exec('PRAGMA foreign_keys=ON;'); }
+  }
   const app = new Hono();
   app.use('*', bodyLimit({ maxSize: 20000, onError: c => c.json({ error: 'Request too large.' }, 413) }));
   const attempts = new Map();
@@ -143,9 +154,9 @@ export function createAuth({ filename, env = process.env }) {
   app.post('/users', async c => {
     const actor = c.get('user'); if (!peopleAdmin(actor)) return c.json({ error: 'Administrator access required.' }, 403);
     const input = await body(c);
-    if (!input || !validName(input.name) || !validEmail(input.email) || !validPassword(input.password) || !['admin', 'member', 'viewer'].includes(input.role)) return c.json({ error: 'Enter a name, email, role and temporary password of 12–128 characters.' }, 400);
+    if (!input || !validName(input.name) || !validEmail(input.email) || !validPassword(input.password) || !['admin', 'member', 'technician', 'viewer'].includes(input.role)) return c.json({ error: 'Enter a name, email, role and temporary password of 12–128 characters.' }, 400);
     if (input.hr !== undefined && typeof input.hr !== 'boolean') return c.json({ error: 'Invalid HR access setting.' }, 400);
-    if (!admin(actor) && (input.hr || !['member', 'viewer'].includes(input.role))) return c.json({ error: 'Only administrators grant privileged access.' }, 403);
+    if (!admin(actor) && (input.hr || !['member', 'technician', 'viewer'].includes(input.role))) return c.json({ error: 'Only administrators grant privileged access.' }, 403);
     if (input.hr && input.role !== 'member') return c.json({ error: 'HR access applies to member accounts.' }, 400);
     if (input.role === 'admin' && actor.role !== 'owner') return c.json({ error: 'Only the owner can create administrators.' }, 403);
     if (db.prepare('SELECT id FROM users WHERE email=?').get(input.email.trim().toLowerCase())) return c.json({ error: 'A user with this email already exists.' }, 409);
@@ -155,20 +166,29 @@ export function createAuth({ filename, env = process.env }) {
     if (db.prepare('SELECT id FROM users WHERE email=?').get(input.email.trim().toLowerCase())) return c.json({ error: 'A user with this email already exists.' }, 409);
     db.prepare('INSERT INTO users(id,name,email,password_hash,role,must_change_password) VALUES(?,?,?,?,?,1)').run(id, input.name.trim(), input.email.trim().toLowerCase(), encoded, input.role);
     if (input.hr) db.prepare('UPDATE users SET is_hr=1 WHERE id=?').run(id);
-    return c.json({ user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(id)) }, 201);
+    const created = publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(id));
+    if (created?.role === 'technician') {
+      try { onTechnicianUser?.(created); } catch {}
+    }
+    return c.json({ user: created }, 201);
   });
   app.put('/users/:id', async c => {
     const actor = c.get('user'); if (!peopleAdmin(actor)) return c.json({ error: 'Administrator access required.' }, 403);
     const target = db.prepare('SELECT * FROM users WHERE id=?').get(c.req.param('id')); const input = await body(c);
     if (!target) return c.json({ error: 'User not found.' }, 404);
     if (target.role === 'owner' || target.id === actor.id || (target.role === 'admin' && actor.role !== 'owner') || (target.is_hr && !admin(actor))) return c.json({ error: 'This account is protected. Use your account settings for password changes.' }, 403);
-    if (!input || !validName(input.name) || !['admin', 'member', 'viewer'].includes(input.role) || typeof input.active !== 'boolean') return c.json({ error: 'Invalid user update.' }, 400);
+    if (!input || !validName(input.name) || !['admin', 'member', 'technician', 'viewer'].includes(input.role) || typeof input.active !== 'boolean') return c.json({ error: 'Invalid user update.' }, 400);
     if (input.hr !== undefined && typeof input.hr !== 'boolean') return c.json({ error: 'Invalid HR access setting.' }, 400);
-    if (!admin(actor) && (input.hr || !['member', 'viewer'].includes(input.role))) return c.json({ error: 'Only administrators grant privileged access.' }, 403);
+    if (!admin(actor) && (input.hr || !['member', 'technician', 'viewer'].includes(input.role))) return c.json({ error: 'Only administrators grant privileged access.' }, 403);
     if (input.hr && input.role !== 'member') return c.json({ error: 'HR access applies to member accounts.' }, 400);
     if (input.role === 'admin' && actor.role !== 'owner') return c.json({ error: 'Only the owner can grant administrator access.' }, 403);
     db.prepare('UPDATE users SET name=?,role=?,active=?,is_hr=? WHERE id=?').run(input.name.trim(), input.role, Number(input.active), Number(input.role === 'member' && (input.hr ?? Boolean(target.is_hr))), target.id);
-    db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id); return c.json({ ok: true });
+    db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id);
+    if (input.role === 'technician' && input.active) {
+      const updated = publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(target.id));
+      try { onTechnicianUser?.(updated); } catch {}
+    }
+    return c.json({ ok: true });
   });
   app.post('/users/:id/reset-password', async c => {
     const actor = c.get('user'); if (!peopleAdmin(actor)) return c.json({ error: 'Administrator access required.' }, 403);
@@ -235,5 +255,5 @@ export function createAuth({ filename, env = process.env }) {
     const message=db.prepare('SELECT m.team_id FROM team_messages m JOIN teams t ON t.id=m.team_id WHERE m.id=? AND t.archived=0').get(messageId);
     if(!message||(!admin(user)&&!db.prepare('SELECT 1 FROM team_members WHERE team_id=? AND user_id=?').get(message.team_id,user.id)))return null;
     return {teamId:message.team_id};
-  }, activeWriters: () => db.prepare("SELECT id,name FROM users WHERE active=1 AND role IN ('owner','admin','member') ORDER BY name LIMIT 501").all(), currentUser: c => testMode ? c.get('user') : userFor(c), close: () => db.close() };
+  }, activeWriters: () => db.prepare("SELECT id,name FROM users WHERE active=1 AND role IN ('owner','admin','member','technician') ORDER BY name LIMIT 501").all(), technicianUsers: () => db.prepare("SELECT * FROM users WHERE active=1 AND role='technician' ORDER BY name LIMIT 501").all().map(publicUser), currentUser: c => testMode ? c.get('user') : userFor(c), close: () => db.close() };
 }

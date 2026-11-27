@@ -1,6 +1,9 @@
 import { JobStock } from "./job-stock";
 import { BillingPreparation } from "./billing-preparation";
 import { useState } from "preact/hooks";
+import { api } from "../../api";
+import { useApp } from "../../context";
+import type { Asset, Site } from "../../types";
 import type {
   ExecutionDetail,
   PostWorkReport,
@@ -18,14 +21,104 @@ import { TextField } from "../ui/input";
 import { Select } from "../ui/select";
 import { Checkbox, Notice, Textarea, Badge } from "../ui/surfaces";
 type Run = (suffix: string, body: unknown, method?: string) => Promise<boolean>;
+
+function QuickLinkEquipment({
+  jobId,
+  disabled,
+  onLinked,
+}: {
+  jobId: string;
+  disabled: boolean;
+  onLinked?: () => Promise<void>;
+}) {
+  const { updateJob } = useApp();
+  const [name, setName] = useState("");
+  const [serial, setSerial] = useState("");
+  const [mfg, setMfg] = useState("");
+  const [model, setModel] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function submit(e: Event) {
+    e.preventDefault();
+    if (!name.trim() || !serial.trim()) {
+      setErr("Enter both equipment name and serial number.");
+      return;
+    }
+    setBusy(true);
+    setErr("");
+    try {
+      const freshJob = await api<{ job: { customer_id: string; address?: string; schedule_version?: number } }>("GET", `/api/jobs/${jobId}`);
+      const customerId = freshJob?.job?.customer_id;
+      if (!customerId) throw new Error("Could not resolve customer for this job.");
+      const siteRes = await api<{ sites: Site[] }>("GET", `/api/customers/${customerId}/sites`);
+      let siteId = siteRes.sites?.[0]?.id;
+      if (!siteId) {
+        const s = await api<Site>("POST", `/api/customers/${customerId}/sites`, {
+          name: "Primary Site",
+          address: freshJob?.job?.address || "",
+        });
+        siteId = s.id;
+      }
+      const asset = await api<Asset>("POST", `/api/customers/${customerId}/assets`, {
+        site_id: siteId,
+        name: name.trim(),
+        serial_number: serial.trim(),
+        manufacturer: mfg.trim(),
+        model: model.trim(),
+      });
+      await updateJob(jobId, {
+        asset_id: asset.id,
+        ...(freshJob?.job?.schedule_version !== undefined
+          ? { expected_version: freshJob.job.schedule_version }
+          : {}),
+      } as any);
+      await onLinked?.();
+    } catch (e2) {
+      setErr((e2 as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form
+      class="card"
+      style={{ padding: "12px", marginBottom: "12px", display: "flex", flexDirection: "column", gap: "8px", background: "var(--surface-sunken)" }}
+      onSubmit={submit}
+    >
+      <strong style={{ fontSize: "13px" }}>Link or Register Equipment to Continue Step 2</strong>
+      <p class="workspace-help" style={{ margin: 0 }}>
+        Add the unit you are servicing below (or link an existing unit in the Equipment / Unit tab) to unlock the post-work report.
+      </p>
+      {err && <Notice tone="danger">{err}</Notice>}
+      <div class="sales-form-grid">
+        <TextField label="Equipment name *" required placeholder="e.g., RTU-2" value={name} disabled={busy || disabled} onInput={(e) => setName(e.currentTarget.value)} />
+        <TextField label="Serial number *" required placeholder="e.g., SN-12345" value={serial} disabled={busy || disabled} onInput={(e) => setSerial(e.currentTarget.value)} />
+      </div>
+      <div class="sales-form-grid">
+        <TextField label="Manufacturer" placeholder="Carrier, Trane…" value={mfg} disabled={busy || disabled} onInput={(e) => setMfg(e.currentTarget.value)} />
+        <TextField label="Model" placeholder="Model #" value={model} disabled={busy || disabled} onInput={(e) => setModel(e.currentTarget.value)} />
+      </div>
+      <div>
+        <Button type="submit" variant="primary" disabled={busy || disabled || !name.trim() || !serial.trim()}>
+          {busy ? "Linking…" : "Register & Link Equipment"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export function PostWorkPanel({
   data,
   disabled,
   run,
+  onReload,
 }: {
   data: ExecutionDetail;
   disabled: boolean;
   run: Run;
+  onReload?: () => Promise<void>;
 }) {
   const [stockRevision, setStockRevision] = useState(0);
   const current = data.reports?.find(
@@ -35,11 +128,11 @@ export function PostWorkPanel({
     <section class="sales-details">
       <h4>Step 2 · Post-work report and actual time</h4>
       {data.workflow?.stage === "post_work" && !data.job.equipment && (
-        <Notice tone="warning">
-          Equipment is required for Step 2. Ask an administrator to request
-          safety reassessment, link this customer’s equipment in the Equipment
-          section, and submit PJSA again before filling out the report.
-        </Notice>
+        <QuickLinkEquipment
+          jobId={data.job.id}
+          disabled={disabled}
+          onLinked={onReload}
+        />
       )}
       {data.job.equipment && (
         <p>
@@ -212,10 +305,13 @@ function ReportForm({
 }) {
   const saved = data.reportDraft?.report;
   const timeZone = saved?.timeZone || data.companyTimeZone;
-  const [workPerformed, setWork] = useState(saved?.workPerformed || ""),
+  const [customerIssue, setCustomerIssue] = useState(""),
+    [workPerformed, setWork] = useState(saved?.workPerformed || ""),
     [findings, setFindings] = useState(saved?.findings || ""),
     [deficiencies, setDeficiencies] = useState(saved?.deficiencies || ""),
+    [needsQuote, setNeedsQuote] = useState<"no" | "yes">(saved?.followUp ? "yes" : "no"),
     [followUp, setFollowUp] = useState(saved?.followUp || ""),
+    [equipmentWorking, setEquipmentWorking] = useState<"yes" | "partial" | "no">("yes"),
     [visitStart, setVisitStart] = useState(
       fromIso(saved?.visitStartAt || "", timeZone),
     ),
@@ -253,13 +349,36 @@ function ReportForm({
   async function save(submit: boolean) {
     setFailure("");
     let report: PostWorkReport;
+    const composedFindings = [
+      customerIssue.trim() ? `Customer Reported Issue: ${customerIssue.trim()}` : "",
+      findings.trim() ? `Issue Found: ${findings.trim()}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+    const workingLine =
+      equipmentWorking === "yes"
+        ? "Equipment working when leaving: Yes (Operational)"
+        : equipmentWorking === "partial"
+          ? "Equipment working when leaving: Partially working"
+          : "Equipment working when leaving: No (Down / Needs repair)";
+    const composedDeficiencies = [workingLine, deficiencies.trim()].filter(Boolean).join("\n");
+    const composedFollowUp =
+      needsQuote === "yes"
+        ? `Quote needed: Yes${followUp.trim() ? " — " + followUp.trim() : ""}`
+        : followUp.trim() || "Quote needed: No";
+    const effectiveReason =
+      reason.trim().length >= 10
+        ? reason.trim()
+        : data.canManage
+          ? "Submitted post-work report on behalf of assigned technician."
+          : "";
     try {
       report = {
         timeZone,
         workPerformed,
-        findings,
-        deficiencies,
-        followUp,
+        findings: composedFindings,
+        deficiencies: composedDeficiencies,
+        followUp: composedFollowUp,
         visitStartAt: resolveLocal(
           visitStart.value,
           visitStart.choice,
@@ -280,7 +399,7 @@ function ReportForm({
       submit ? "report-submit" : "report-draft",
       {
         expectedVersion: data.workflow!.version,
-        delegationReason: reason,
+        delegationReason: effectiveReason,
         lateEntryReason: lateReason,
         report,
       },
@@ -315,10 +434,35 @@ function ReportForm({
       }}
     >
       {failure && <Notice tone="danger">{failure}</Notice>}
-      {text("Work performed", workPerformed, setWork, 12000, true)}
-      {text("Findings and equipment readings", findings, setFindings, 8000)}
-      {text("Deficiencies", deficiencies, setDeficiencies, 8000)}
-      {text("Follow-up work needed", followUp, setFollowUp, 8000)}
+      {text("Issue customer had", customerIssue, setCustomerIssue, 4000)}
+      {text("Issue found", findings, setFindings, 8000)}
+      {text("Actions the tech performed *", workPerformed, setWork, 12000, true)}
+      <div class="sales-form-grid">
+        <Select
+          label="Is there anything that needs to be quoted?"
+          value={needsQuote}
+          disabled={disabled}
+          options={[
+            { value: "no", label: "No — nothing to quote" },
+            { value: "yes", label: "Yes — quote needed" },
+          ]}
+          onValueChange={(v) => setNeedsQuote(v as "no" | "yes")}
+        />
+        <Select
+          label="Is the equipment working when leaving?"
+          value={equipmentWorking}
+          disabled={disabled}
+          options={[
+            { value: "yes", label: "Yes — Working / Operational" },
+            { value: "partial", label: "Partially working" },
+            { value: "no", label: "No — Down / Needs repair" },
+          ]}
+          onValueChange={(v) => setEquipmentWorking(v as "yes" | "partial" | "no")}
+        />
+      </div>
+      {needsQuote === "yes" &&
+        text("What needs to be quoted? (Follow-up details)", followUp, setFollowUp, 8000)}
+      {text("Additional deficiencies / notes (optional)", deficiencies, setDeficiencies, 8000)}
       {timeZone !== data.companyTimeZone && (
         <Notice tone="warning">
           This saved draft uses the previous company timezone ({timeZone}).

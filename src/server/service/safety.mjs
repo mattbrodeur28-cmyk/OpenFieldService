@@ -78,6 +78,20 @@ export function createSafetyWorkflow({ storage, identity, people = () => [] }) {
     { version: 1, sql: executionSchema },
     { version: 2, sql: reportSchema },
     { version: 3, sql: equipmentSchema },
+    {
+      version: 4,
+      sql: `DROP TRIGGER IF EXISTS _service_execution_assignment;
+CREATE TRIGGER _service_execution_assignment BEFORE UPDATE OF technician_id,customer_id,asset_id,scheduled_date,address ON jobs
+WHEN EXISTS(SELECT 1 FROM _service_execution WHERE job_id=NEW.id AND safety_id IS NOT NULL)
+AND (
+  NEW.technician_id IS NOT OLD.technician_id
+  OR NEW.customer_id<>OLD.customer_id
+  OR (NEW.asset_id IS NOT OLD.asset_id AND NOT (OLD.asset_id IS NULL AND NEW.asset_id IS NOT NULL))
+  OR NEW.scheduled_date<>OLD.scheduled_date
+  OR NEW.address<>OLD.address
+)
+BEGIN SELECT RAISE(ABORT,'SERVICE_SAFETY_REASSESS'); END;`,
+    },
   ]);
   const job = (id) => {
     const row = db

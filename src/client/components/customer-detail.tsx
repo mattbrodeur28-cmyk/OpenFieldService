@@ -42,7 +42,6 @@ function RecordSection({
 export function CustomerDetail() {
   const { selectedCustomer: customer, selectedCustomerJobs: jobs, navigate, updateCustomer, deleteCustomer, setError } = useApp();
   const [editing, setEditing] = useState(false);
-  const [converting, setConverting] = useState(false);
   const [form, setForm] = useState({ name: "", customer_type: "residential" as "residential" | "commercial", email: "", phone: "", address: "", city: "", state: "", zip: "", notes: "" });
 
   if (!customer) return null;
@@ -63,19 +62,6 @@ export function CustomerDetail() {
   const saveEdit = async () => {
     await updateCustomer(customer.id, form);
     setEditing(false);
-  };
-
-  const toggleCustomerType = async () => {
-    setConverting(true);
-    try {
-      await updateCustomer(customer.id, {
-        customer_type: isCommercial ? "residential" : "commercial",
-      });
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setConverting(false);
-    }
   };
 
   const fields: [string, string][] = [
@@ -142,9 +128,6 @@ export function CustomerDetail() {
             </>
           ) : (
             <>
-              <button class="btn" disabled={converting} onClick={toggleCustomerType}>
-                <Building2 size={14} /> {converting ? "Converting..." : isCommercial ? "Convert to Residential" : "Convert to Commercial"}
-              </button>
               <button class="btn" onClick={startEdit}><Edit3 size={14} /> Edit</button>
               <button class="btn btn-danger" onClick={() => deleteCustomer(customer.id).catch((err) => setError(err.message))}><Trash2 size={14} /> Delete</button>
             </>

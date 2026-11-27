@@ -3,7 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { useContext, useEffect, useState } from 'preact/hooks';
 import { clearSavedFieldData } from './offline';
 
-export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
+export type UserRole = 'owner' | 'admin' | 'member' | 'technician' | 'viewer';
 export interface AccountUser { id: string; name: string; email: string; role: UserRole; active: boolean; hr?: boolean; mustChangePassword: boolean }
 export interface Team { id: string; name: string; description: string; member_count: number }
 export class AccountRequestError extends Error {

@@ -119,7 +119,7 @@ type Drag = {
 };
 const statusLabel: Record<string, string> = {
   scheduled: "Scheduled",
-  confirmed: "Confirmed",
+  confirmed: "Dispatched",
   in_progress: "In progress",
   completed: "Completed",
   cancelled: "Cancelled",
@@ -228,9 +228,27 @@ function AssignmentForm({
       </header>
       <p class="workspace-help">
         {job.customer_name}
+        {job.customer_phone ? " · " + job.customer_phone : ""}
         {job.equipment_name ? " · " + job.equipment_name : ""}
+        {job.address ? " · " + job.address : ""}
       </p>
-      <p class="workspace-help">Changes save to the work order.</p>
+      <div class="card" style={{ padding: "10px 12px", marginBottom: "12px", background: "var(--surface-sunken)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+          <strong style={{ fontSize: "12px" }}>Call Description / Job Notes</strong>
+          <Badge tone={job.priority === "urgent" ? "danger" : job.priority === "high" ? "warning" : "neutral"}>
+            {job.service_type_name || "Service"} · {job.priority}
+          </Badge>
+        </div>
+        <p style={{ margin: 0, fontSize: "13px", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>
+          {job.notes?.trim() || "No call description or notes recorded."}
+        </p>
+        {job.completion_notes?.trim() && (
+          <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid var(--border)" }}>
+            <strong style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "2px" }}>Technician Completion Notes</strong>
+            <p style={{ margin: 0, fontSize: "12px", whiteSpace: "pre-wrap" }}>{job.completion_notes}</p>
+          </div>
+        )}
+      </div>
       <form
         class="dispatch-form"
         onSubmit={(e) => {
@@ -515,8 +533,22 @@ export function Dispatcher() {
     [drag, setDrag] = useState<Drag | null>(null),
     [now, setNow] = useState(new Date()),
     [businessState, setBusinessState] = useState("CT"),
-    [showAllHours, setShowAllHours] = useState(false);
-  const viewRangeRef = useRef({ startMin: 420, endMin: 1080 });
+    [showAllHours, setShowAllHours] = useState(false),
+    [boardWidth, setBoardWidth] = useState(0);
+  const viewRangeRef = useRef({ startMin: 420, endMin: 1080, colWidth: 88 });
+  useEffect(() => {
+    const el = scroll.current;
+    if (!el) return;
+    const measure = () => setBoardWidth(el.clientWidth);
+    measure();
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [!!board]);
   useEffect(() => {
     let active = true;
     accountRequest<{ rows?: { active?: boolean; config?: { state?: string; jurisdiction?: string } }[] }>(
@@ -721,10 +753,11 @@ export function Dispatcher() {
     e.currentTarget.setPointerCapture(e.pointerId);
     capture.current = e.currentTarget;
     const track = e.currentTarget.closest<HTMLElement>("[data-resource-track]");
+    const cw = viewRangeRef.current.colWidth;
     const grabOffset =
       mode === "move" && track
         ? viewRangeRef.current.startMin +
-          ((e.clientX - track.getBoundingClientRect().left) / hourWidth) * 60 -
+          ((e.clientX - track.getBoundingClientRect().left) / cw) * 60 -
           minuteOf(job.scheduled_time)
         : 0;
     const value: Drag = {
@@ -758,6 +791,7 @@ export function Dispatcher() {
       if (e.clientX > rect.right - 35) scroll.current.scrollLeft += 18;
       else if (e.clientX < rect.left + 235) scroll.current.scrollLeft -= 18;
     }
+    const cw = viewRangeRef.current.colWidth;
     const value = {
       ...original,
       moved: true,
@@ -771,7 +805,7 @@ export function Dispatcher() {
               viewRangeRef.current.endMin - original.duration,
               snapMinute(
                 viewRangeRef.current.startMin +
-                  ((e.clientX - track.getBoundingClientRect().left) / hourWidth) *
+                  ((e.clientX - track.getBoundingClientRect().left) / cw) *
                     60 -
                   original.grabOffset,
                 snap,
@@ -787,7 +821,7 @@ export function Dispatcher() {
                 15,
                 Math.round(
                   (original.job.duration +
-                    ((e.clientX - original.originX) / hourWidth) * 60) /
+                    ((e.clientX - original.originX) / cw) * 60) /
                     snap,
                 ) * snap,
               ),
@@ -957,7 +991,11 @@ export function Dispatcher() {
   const viewStartMin = viewStartHour * 60,
     viewEndMin = viewEndHour * 60,
     viewHours = Math.max(1, viewEndHour - viewStartHour);
-  viewRangeRef.current = { startMin: viewStartMin, endMin: viewEndMin };
+  const colWidth = Math.max(
+    hourWidth,
+    boardWidth > 220 ? Math.floor((boardWidth - 200) / viewHours) : hourWidth,
+  );
+  viewRangeRef.current = { startMin: viewStartMin, endMin: viewEndMin, colWidth };
   const mapJobs = (() => {
     const byId = new Map<string, DispatchJob>();
     for (const j of [...visibleJobs, ...board.pipeline]) {
@@ -1192,19 +1230,19 @@ export function Dispatcher() {
             >
               <div
                 class="dispatch-hours"
-                style={{ width: 200 + hourWidth * viewHours }}
+                style={{ width: 200 + colWidth * viewHours, minWidth: "100%" }}
               >
                 <div class="dispatch-resource-heading">
                   Technician / workload
                 </div>
                 <div
                   class="dispatch-hour-track"
-                  style={{ width: hourWidth * viewHours }}
+                  style={{ width: colWidth * viewHours }}
                 >
                   {Array.from({ length: viewHours }, (_, idx) => {
                     const hour = viewStartHour + idx;
                     return (
-                      <div key={hour} style={{ width: hourWidth }}>
+                      <div key={hour} style={{ width: colWidth }}>
                         {clockOf(hour * 60)}
                       </div>
                     );
@@ -1227,7 +1265,7 @@ export function Dispatcher() {
                   <div
                     class="dispatch-resource-row"
                     key={resource.id}
-                    style={{ width: 200 + hourWidth * viewHours, height: Math.max(58, layout.lanes * 44 + 14) }}
+                    style={{ width: 200 + colWidth * viewHours, minWidth: "100%", height: Math.max(58, layout.lanes * 44 + 14) }}
                   >
                     <div class="dispatch-resource-label st-tech-label">
                       <span class="st-tech-avatar" style={{ background: resource.color || "#3b82f6" }}>
@@ -1261,15 +1299,15 @@ export function Dispatcher() {
                           : "")
                       }
                       style={{
-                        width: hourWidth * viewHours,
-                        "--hour-width": hourWidth + "px",
+                        width: colWidth * viewHours,
+                        "--hour-width": colWidth + "px",
                       }}
                     >
                       {board.operatingHours.enabled &&
                         (!board.operatingHours.open ? (
                           <div
                             class="dispatch-service-closed"
-                            style={{ left: 0, width: hourWidth * viewHours }}
+                            style={{ left: 0, width: colWidth * viewHours }}
                             aria-label="Outside company service hours"
                           />
                         ) : (
@@ -1281,7 +1319,7 @@ export function Dispatcher() {
                                   left: 0,
                                   width:
                                     ((Math.min(board.operatingHours.start, viewEndMin) - viewStartMin) / 60) *
-                                    hourWidth,
+                                    colWidth,
                                 }}
                                 aria-label="Before company service hours"
                               />
@@ -1292,10 +1330,10 @@ export function Dispatcher() {
                                 style={{
                                   left:
                                     ((Math.max(board.operatingHours.end, viewStartMin) - viewStartMin) / 60) *
-                                    hourWidth,
+                                    colWidth,
                                   width:
                                     ((viewEndMin - Math.max(board.operatingHours.end, viewStartMin)) / 60) *
-                                    hourWidth,
+                                    colWidth,
                                 }}
                                 aria-label="After company service hours"
                               />
@@ -1317,7 +1355,7 @@ export function Dispatcher() {
                                   left: 0,
                                   width:
                                     ((Math.min(resource.availability.start, viewEndMin) - viewStartMin) / 60) *
-                                    hourWidth,
+                                    colWidth,
                                 }}
                               />
                             )}
@@ -1327,10 +1365,10 @@ export function Dispatcher() {
                                 style={{
                                   left:
                                     ((Math.max(resource.availability.end, viewStartMin) - viewStartMin) / 60) *
-                                    hourWidth,
+                                    colWidth,
                                   width:
                                     ((viewEndMin - Math.max(resource.availability.end, viewStartMin)) / 60) *
-                                    hourWidth,
+                                    colWidth,
                                 }}
                               />
                             )}
@@ -1339,7 +1377,7 @@ export function Dispatcher() {
                       {isToday && currentMinute >= viewStartMin && currentMinute <= viewEndMin && (
                         <div
                           class="dispatch-now"
-                          style={{ left: ((currentMinute - viewStartMin) / 60) * hourWidth }}
+                          style={{ left: ((currentMinute - viewStartMin) / 60) * colWidth }}
                           aria-label="Current time"
                         />
                       )}
@@ -1350,7 +1388,7 @@ export function Dispatcher() {
                           class={`dispatch-appointment ${drag?.moved && drag.job.id === job.id ? "is-dragging" : ""} status-${job.status} ${overlaps.has(job.id) ? "has-overlap" : ""}`}
                           style={{
                             left:
-                              ((minuteOf(job.scheduled_time) - viewStartMin) / 60) * hourWidth,
+                              ((minuteOf(job.scheduled_time) - viewStartMin) / 60) * colWidth,
                             width: Math.max(
                               30,
                               ((drag?.job.id === job.id &&
@@ -1358,7 +1396,7 @@ export function Dispatcher() {
                                 ? drag.duration
                                 : job.duration) /
                                 60) *
-                                hourWidth -
+                                colWidth -
                                 3,
                             ),
                             top: 8 + lane * 42,
@@ -1452,8 +1490,8 @@ export function Dispatcher() {
                           <div
                             class="dispatch-drop-preview"
                             style={{
-                              left: ((drag.minute - viewStartMin) / 60) * hourWidth,
-                              width: (drag.duration / 60) * hourWidth,
+                              left: ((drag.minute - viewStartMin) / 60) * colWidth,
+                              width: (drag.duration / 60) * colWidth,
                             }}
                           >
                             <strong>{drag.job.identifier}</strong>

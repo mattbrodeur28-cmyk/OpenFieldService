@@ -50,5 +50,14 @@ export function mountExecution(app, { storage, identity, check, people }) {
     const data = await body(c);
     return c.json(reports.review(check(c), c.req.param("id"), data));
   });
+  app.post("/jobs/:id/reopen", async (c) => {
+    let data = {};
+    try {
+      data = await c.req.json();
+    } catch {
+      data = {};
+    }
+    return c.json(reports.reopen(check(c), c.req.param("id"), data));
+  });
   return { ...service, reports };
 }

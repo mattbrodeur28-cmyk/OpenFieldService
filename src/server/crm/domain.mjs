@@ -16,7 +16,7 @@ export function requireWriter(user) {
   if (
     !user?.active ||
     user.mustChangePassword ||
-    !["owner", "admin", "member"].includes(user.role)
+    !["owner", "admin", "member", "technician"].includes(user.role)
   )
     throw new CrmError("Your account cannot change CRM records.", 403);
 }

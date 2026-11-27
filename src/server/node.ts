@@ -34,9 +34,19 @@ if (!existsSync(resolve(root, "dist/index.html"))) throw new Error("Frontend mis
 const storage = openStorage(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite"));
 const integrations = createIntegrations({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
 const workspace = createWorkspace({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite"), storage, root, integrationRead: integrations.read });
-const auth = createAuth({ filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite") });
+let syncTechUser: (u: { id: string; name: string; email: string; role: string; active: boolean; mustChangePassword: boolean }) => void = () => {};
+const auth = createAuth({
+  filename: resolve(dirname(process.env.DATABASE_PATH ?? resolve(root, "data/openfieldservice.sqlite")), "workspace.sqlite"),
+  onTechnicianUser: (u) => syncTechUser(u),
+});
 const dispatcher = createDispatcher({ storage, currentUser: auth.currentUser });
 const service = createService({storage,currentUser:auth.currentUser,people:auth.activeWriters});
+syncTechUser = (u) => {
+  try {
+    (service as any).service?.technician?.({ ...u, mustChangePassword: false });
+  } catch {}
+};
+for (const u of auth.technicianUsers()) syncTechUser(u);
 const maintenanceJobs = createMaintenanceJobs({storage});
 const agreements=createAgreementModule({storage,currentUser:auth.currentUser,issuer:()=>sales.issuer(),timeZone:()=>dispatcher.timeZone,maintenanceJobs});
 const hr=createHr({storage,currentUser:auth.currentUser});

@@ -10,6 +10,8 @@ import type { View } from "../types";
 
 const navItems: { view: View; path: string; label: string; icon: typeof LayoutDashboard }[] = [
   { view: "dashboard", path: "/", label: "Dashboard", icon: LayoutDashboard },
+  { view: "my-day", path: "/my-day", label: "My Day", icon: CalendarClock },
+  { view: "mobile", path: "/mobile", label: "Mobile Field", icon: Wrench },
   { view: "dispatcher", path: "/dispatcher", label: "Dispatcher", icon: CalendarClock },
   { view: "jobs", path: "/jobs", label: "Jobs", icon: Briefcase },
   { view: "customers", path: "/customers", label: "Customers", icon: Users },
@@ -21,10 +23,23 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "controls", path: "/controls", label: "Controls", icon: Wrench },
 ];
 
+const TECH_ALLOWED_VIEWS = new Set<View>([
+  "dashboard",
+  "my-day",
+  "mobile",
+  "jobs",
+  "customers",
+  "inventory",
+  "rms",
+  "controls",
+  "timesheets",
+]);
+
 export function Sidebar({ currentView, currentId, collapsed = false }: { currentView: View; currentId?: string | null; collapsed?: boolean }) {
   const { navigate, stats } = useApp();
   const { user, teams } = useAccount();
   const canManage = isAdministrator(user);
+  const isTech = user.role === "technician";
   const [profileSection, setProfileSection] = useState<ProfileSection | null>(null);
   useEffect(() => { const mapped: Partial<Record<View, ProfileSection>> = { settings: 'settings', integrations: 'integrations', environment: 'environment', users: 'administration' }; if (mapped[currentView]) setProfileSection(mapped[currentView]!); }, [currentView]);
   function closeProfile() { setProfileSection(null); if (['settings', 'integrations', 'environment', 'users'].includes(currentView)) navigate('/'); }
@@ -100,10 +115,18 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
           <ChevronDown size={14} class={`workspace-chevron ${appsExpanded ? "" : "closed"}`} aria-hidden="true" />
         </button>
         <div id="field-service-pages" class="workspace-app-pages" hidden={!collapsed && !appsExpanded}>
-          {navItems.slice(1).filter(item=>item.view!=="purchasing"||canManage).map(navItem)}
+          {navItems
+            .slice(1)
+            .filter((item) => {
+              if (item.view === "purchasing" && !canManage) return false;
+              if (isTech && !TECH_ALLOWED_VIEWS.has(item.view)) return false;
+              return true;
+            })
+            .map(navItem)}
+          {isTech && navItem({ view: "timesheets", path: "/timesheets", label: "Timesheets", icon: CalendarClock })}
         </div>
-        {moduleGroup(businessModules.sales, TrendingUp)}
-        {user.role !== "viewer" && moduleGroup(businessModules.fleet, Truck)}
+        {!isTech && moduleGroup(businessModules.sales, TrendingUp)}
+        {!isTech && user.role !== "viewer" && moduleGroup(businessModules.fleet, Truck)}
         {canManage && moduleGroup(businessModules.finance, Wallet)}
         {canManage && navItem({ view: "owner", path: "/owner", label: "Owner hub", icon: LayoutDashboard })}
         {navItem({ view: "knowledge", path: "/knowledge", label: "Knowledge", icon: BookOpen })}

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { migrate, transaction } from "../platform/sqlite.mjs";
 const sql = `CREATE TABLE _service_technician_users(technician_id TEXT PRIMARY KEY REFERENCES technicians(id) ON DELETE RESTRICT,user_id TEXT UNIQUE,version INTEGER NOT NULL DEFAULT 1,updated_by TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);CREATE TABLE _service_identity_audit(id INTEGER PRIMARY KEY AUTOINCREMENT,technician_id TEXT NOT NULL,actor_id TEXT NOT NULL,before_json TEXT NOT NULL,after_json TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);`;
@@ -17,7 +18,7 @@ const writer = (user) =>
   Boolean(
     user?.active &&
       !user.mustChangePassword &&
-      ["owner", "admin", "member"].includes(user.role),
+      ["owner", "admin", "member", "technician"].includes(user.role),
   );
 const input = z
   .object({
@@ -98,11 +99,49 @@ export function createServiceIdentity({ storage, people }) {
   }
   function technician(user) {
     if (!writer(user)) return null;
-    return (
+    const existing =
       db
         .prepare(projection + " WHERE link.user_id=? AND t.active=1")
-        .get(user.id) || null
-    );
+        .get(user.id) || null;
+    if (existing || user.role !== "technician") return existing;
+    // Auto-link or create a Technician profile for accounts with role === 'technician'
+    return transaction(db, () => {
+      const again =
+        db
+          .prepare(projection + " WHERE link.user_id=? AND t.active=1")
+          .get(user.id) || null;
+      if (again) return again;
+      let match =
+        (user.email
+          ? db
+              .prepare(
+                "SELECT t.id FROM technicians t LEFT JOIN _service_technician_users l ON l.technician_id=t.id WHERE t.active=1 AND l.user_id IS NULL AND lower(t.email)=lower(?) LIMIT 1",
+              )
+              .get(user.email)
+          : null) ||
+        (user.name
+          ? db
+              .prepare(
+                "SELECT t.id FROM technicians t LEFT JOIN _service_technician_users l ON l.technician_id=t.id WHERE t.active=1 AND l.user_id IS NULL AND lower(t.name)=lower(?) LIMIT 1",
+              )
+              .get(user.name)
+          : null);
+      let techId = match?.id;
+      if (!techId) {
+        techId = randomUUID();
+        db.prepare(
+          "INSERT INTO technicians(id,name,email,active) VALUES(?,?,?,1)",
+        ).run(techId, user.name || "Technician", user.email || "");
+      }
+      db.prepare(
+        "INSERT INTO _service_technician_users(technician_id,user_id,updated_by) VALUES(?,?,?) ON CONFLICT(technician_id) DO UPDATE SET user_id=excluded.user_id,version=version+1,updated_by=excluded.updated_by,updated_at=CURRENT_TIMESTAMP",
+      ).run(techId, user.id, user.id);
+      return (
+        db
+          .prepare(projection + " WHERE link.user_id=? AND t.active=1")
+          .get(user.id) || null
+      );
+    });
   }
   // Future PJSA/report/time services must call this inside their write transaction.
   // This guard does not retrofit the legacy company-wide job APIs into scoped APIs.

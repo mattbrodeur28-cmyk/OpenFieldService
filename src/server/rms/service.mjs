@@ -21,7 +21,7 @@ function requireReader(user) {
 }
 function requireWriter(user) {
     requireReader(user);
-    if (!["owner", "admin", "member"].includes(user.role)) fail("Your account cannot modify refrigerant records.", 403);
+    if (!["owner", "admin", "member", "technician"].includes(user.role)) fail("Your account cannot modify refrigerant records.", 403);
 }
 function requireAdmin(user) {
     requireReader(user);

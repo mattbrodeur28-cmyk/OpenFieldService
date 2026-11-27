@@ -3,6 +3,8 @@ import {ProjectsPage} from "./components/projects-page";
 import {OwnerHub} from "./components/owner-hub";
 import {RmsPage} from "./components/rms-page";
 import {ControlsPage} from "./components/controls-page";
+import {TechMyDay} from "./components/tech-my-day";
+import {TechMobileView} from "./components/tech-mobile-view";
 import { BusinessSection } from "./components/business-section";
 import {PurchasingPage} from "./components/purchasing-page";
 import {FleetPage} from "./components/fleet-page";
@@ -12,6 +14,7 @@ import { SalesPage } from "./components/sales-page";
 import { Dispatcher } from "./components/dispatcher";
 
 import { useEffect, useMemo, useState } from "preact/hooks";
+import { useAccount } from "./auth";
 import { AppContext } from "./context";
 import { useAppState } from "./hooks/use-app";
 import { useRouter } from "./hooks/use-router";
@@ -52,6 +55,8 @@ export function App() {
   }, [isAgent]);
 
   const connectivity = useConnectivity();
+  const { user } = useAccount();
+  const isTech = user.role === "technician";
   const { view, id, subId, navigate } = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.matchMedia("(max-width: 767px)").matches);
   const workspaceNavigate = (to: string) => {
@@ -75,11 +80,17 @@ export function App() {
   }, [view, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderMain = () => {
+    if (isTech && ["dispatcher", "schedule", "calendar", "fleet", "finance", "purchasing", "sales", "owner", "projects", "agreements", "technicians", "builder"].includes(view)) {
+      return <TechMyDay />;
+    }
+    if (isTech && view === "dashboard") return <TechMyDay />;
     if (view === "agreements") return <AgreementsPage id={id}/>;
     if (view === "projects") return <ProjectsPage id={id}/>;
     if (view === "owner") return <OwnerHub />;
     if (view === "rms") return <RmsPage />;
     if (view === "controls") return <ControlsPage />;
+    if (view === "my-day") return <TechMyDay />;
+    if (view === "mobile") return <TechMobileView />;
     if (view === "sales") return <SalesPage opportunityId={id} quoteId={subId} />;
     if (view === "inventory") return <InventoryPage locationId={id}/>;
     if (view === "fleet") return <FleetPage section={id}/>;

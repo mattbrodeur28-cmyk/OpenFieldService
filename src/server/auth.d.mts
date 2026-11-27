@@ -2,6 +2,7 @@ import type { Hono, MiddlewareHandler, Context } from "hono";
 export function createAuth(options: {
   filename: string;
   env?: NodeJS.ProcessEnv;
+  onTechnicianUser?: (user: { id: string; name: string; email: string; role: string; active: boolean; mustChangePassword: boolean }) => void;
 }): {
   app: Hono;
   guard: MiddlewareHandler;
@@ -11,6 +12,7 @@ export function createAuth(options: {
     messageId: string,
   ): { teamId: string } | null;
   activeWriters(): { id: string; name: string }[];
+  technicianUsers(): { id: string; name: string; email: string; role: string; active: boolean; mustChangePassword: boolean }[];
   close(): void;
 };
 

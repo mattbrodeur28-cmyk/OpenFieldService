@@ -9,7 +9,7 @@ import type { JobStatus } from "../types";
 const STATUSES: { value: string; label: string }[] = [
   { value: "", label: "All" },
   { value: "scheduled", label: "Scheduled" },
-  { value: "confirmed", label: "Confirmed" },
+  { value: "confirmed", label: "Dispatched" },
   { value: "in_progress", label: "In Progress" },
   { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },

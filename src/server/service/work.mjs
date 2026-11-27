@@ -10,7 +10,7 @@ export function setWorkCategory(db, user, jobId, category) {
   if (
     !user?.active ||
     user.mustChangePassword ||
-    !["owner", "admin", "member"].includes(user.role)
+    !["owner", "admin", "member", "technician"].includes(user.role)
   )
     throw new Error("WORK_CATEGORY_FORBIDDEN");
   if (!workCategories.includes(category))

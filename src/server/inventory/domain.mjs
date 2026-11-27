@@ -11,7 +11,7 @@ export const writer = (u) =>
   Boolean(
     u?.active &&
       !u.mustChangePassword &&
-      ["owner", "admin", "member"].includes(u.role),
+      ["owner", "admin", "member", "technician"].includes(u.role),
   );
 export const version = z.number().int().min(0).safe();
 export const quantity = z.number().int().min(1).max(1000000000);

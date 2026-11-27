@@ -105,39 +105,42 @@ export function JobExecution({
       {!data && !error && <p role="status">Loading job workflow…</p>}
       {data && (
         <>
-          <div class="execution-steps" aria-label="Job execution steps">
-            <Badge
-              tone={
-                !data.workflow || data.workflow.stage === "safety"
-                  ? "info"
-                  : "success"
-              }
-            >
-              <ShieldCheck size={14} />1 Safety / PJSA
-            </Badge>
-            <Badge
-              tone={
-                data.workflow?.stage === "post_work"
-                  ? "info"
-                  : data.workflow?.stage === "review" ||
-                      data.workflow?.stage === "complete"
-                    ? "success"
-                    : "neutral"
-              }
-            >
-              <ClipboardList size={14} />2 Post-work report
-            </Badge>
-            <Badge
-              tone={
-                data.workflow?.stage === "complete"
-                  ? "success"
-                  : data.workflow?.stage === "review"
-                    ? "info"
-                    : "neutral"
-              }
-            >
-              <Receipt size={14} />3 Completion / Billing
-            </Badge>
+          <div class="job-stepper" aria-label="Job execution steps">
+            {[
+              {
+                num: 1,
+                label: "Safety / PJSA",
+                icon: <ShieldCheck size={14} />,
+                state: !data.workflow || data.workflow.stage === "safety" ? "active" : "done",
+              },
+              {
+                num: 2,
+                label: "Post-work report",
+                icon: <ClipboardList size={14} />,
+                state:
+                  data.workflow?.stage === "post_work"
+                    ? "active"
+                    : data.workflow?.stage === "review" || data.workflow?.stage === "complete"
+                      ? "done"
+                      : "pending",
+              },
+              {
+                num: 3,
+                label: "Completion / Billing",
+                icon: <Receipt size={14} />,
+                state:
+                  data.workflow?.stage === "complete"
+                    ? "done"
+                    : data.workflow?.stage === "review"
+                      ? "active"
+                      : "pending",
+              },
+            ].map((s) => (
+              <div key={s.num} class={"job-step is-" + s.state}>
+                <span class="job-step-num">{s.state === "done" ? "✓" : s.num}</span>
+                <span class="job-step-label">{s.icon} {s.label}</span>
+              </div>
+            ))}
           </div>
           {!data.workflow ? (
             data.canManage ? (
@@ -217,6 +220,7 @@ export function JobExecution({
                   data={data}
                   disabled={busy || readOnly || user.role === "viewer"}
                   run={mutate}
+                  onReload={reload}
                 />
               )}
               {data.canManage && data.workflow.stage !== "complete" && (
@@ -361,7 +365,13 @@ function SafetyForm({
       class="sales-form"
       onSubmit={(e) => {
         e.preventDefault();
-        void save(answers, reason, true);
+        const submitReason =
+        reason.trim().length >= 10
+          ? reason.trim()
+          : data.canManage
+            ? "Submitted on behalf of assigned technician via PJSA workflow."
+            : "";
+      void save(answers, submitReason, true);
       }}
     >
       <h4>Step 1 · Safety PJSA</h4>
@@ -393,20 +403,20 @@ function SafetyForm({
           </label>
         ),
       )}
-      {data.canManage && (
-        <TextField
-          label="Submitting on behalf of the technician: reason"
-          hint="Required when you are not the mapped assigned technician. At least 10 characters; retained with the submission."
-          value={reason}
-          maxLength={1000}
-          disabled={disabled}
-          onInput={(e) => setReason(e.currentTarget.value)}
-        />
-      )}
       <div class="sales-sheet-header">
         <Button
           disabled={disabled}
-          onClick={() => void save(answers, reason, false)}
+          onClick={() =>
+            void save(
+              answers,
+              reason.trim().length >= 10
+                ? reason.trim()
+                : data.canManage
+                  ? "Saved PJSA draft on behalf of assigned technician."
+                  : "",
+              false,
+            )
+          }
         >
           Save PJSA draft
         </Button>

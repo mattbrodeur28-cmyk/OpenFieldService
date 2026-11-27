@@ -34,7 +34,7 @@ function UserRow({ item, refresh }: { item: AccountUser; refresh(): Promise<void
     {!protectedUser && <details><summary>Manage account</summary>{error && <div class="workspace-error" role="alert">{error}</div>}
       <form class="account-inline-form" onSubmit={e => { e.preventDefault(); setBusy(true); setError(''); void accountRequest('/api/auth/users/' + item.id, 'PUT', { name, role, active, hr: role === 'member' && hr }).then(refresh).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>
         <label class="form-group">Name<input value={name} onInput={e => setName(e.currentTarget.value)} required maxLength={100} /></label>
-        <label class="form-group">Role<select value={role} onChange={e => setRole(e.currentTarget.value as UserRole)}>{user.role === 'owner' && <option value="admin">Admin</option>}<option value="member">Member</option><option value="viewer">Viewer</option></select></label>
+        <label class="form-group">Role<select value={role} onChange={e => setRole(e.currentTarget.value as UserRole)}>{user.role === 'owner' && <option value="admin">Admin</option>}<option value="member">Member</option><option value="technician">Technician</option><option value="viewer">Viewer</option></select></label>
         {isAdministrator(user) && role === 'member' && <label class="workspace-consent"><input type="checkbox" checked={hr} onChange={e => setHr(e.currentTarget.checked)} /> People administration</label>}
         <label class="workspace-consent"><input type="checkbox" checked={active} onChange={e => setActive(e.currentTarget.checked)} /> Active</label><button class="btn" disabled={busy}>Save account</button>
       </form>
@@ -77,7 +77,7 @@ export function AccountPages({ view, id, title: heading }: { view: View; id: str
       <div>{users.map(item => <UserRow key={item.id} item={item} refresh={loadUsers} />)}</div>
       <h2 class="account-section-heading">Create a user</h2><form onSubmit={e => { e.preventDefault(); void action(async () => { await accountRequest('/api/auth/users', 'POST', { name, email, password, role }); setName(''); setEmail(''); setPassword(''); await loadUsers(); setSuccess('Account created. Share the temporary password privately; the user must replace it at first sign-in.'); }); }}>
         <label class="form-group">Name<input value={name} onInput={e => setName(e.currentTarget.value)} maxLength={100} required /></label><label class="form-group">Email<input type="email" value={email} onInput={e => setEmail(e.currentTarget.value)} required /></label>
-        <label class="form-group">Role<select value={role} onChange={e => setRole(e.currentTarget.value)}>{user.role === 'owner' && <option value="admin">Admin</option>}<option value="member">Member</option><option value="viewer">Viewer</option></select></label>
+        <label class="form-group">Role<select value={role} onChange={e => setRole(e.currentTarget.value)}>{user.role === 'owner' && <option value="admin">Admin</option>}<option value="member">Member</option><option value="technician">Technician</option><option value="viewer">Viewer</option></select></label>
         <label class="form-group">Temporary password<input type="password" value={password} onInput={e => setPassword(e.currentTarget.value)} minLength={12} maxLength={128} autoComplete="new-password" required /></label><button class="btn btn-primary" disabled={busy}>Create user</button>
       </form>
     </section> : <p>Administrator access is required to manage users.</p>)}

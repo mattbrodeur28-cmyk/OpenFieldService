@@ -115,23 +115,31 @@ export function CustomerDetail() {
         </div>
       ) : (
         <div class="account-layout">
-          <RecordSection title="About">
-            <div class="account-fields">
-              {fields.map(([label, value]) => (
-                <div class="account-field" key={label}>
-                  <span class="account-field-label">{label}</span>
-                  <span class="account-field-value">{value || "—"}</span>
-                  <button class="btn-icon account-field-edit" aria-label={`Edit ${label}`} onClick={startEdit}><Pencil size={12} /></button>
-                </div>
-              ))}
-            </div>
-            <CustomRecordFields key={"fields-" + customer.id} objectKey="crm.customer" recordId={customer.id} />
-          </RecordSection>
+          <div class="account-col">
+            <RecordSection title="About">
+              <div class="account-fields">
+                {fields.map(([label, value]) => (
+                  <div class="account-field" key={label}>
+                    <span class="account-field-label">{label}</span>
+                    <span class="account-field-value">{value || "—"}</span>
+                    <button class="btn-icon account-field-edit" aria-label={`Edit ${label}`} onClick={startEdit}><Pencil size={12} /></button>
+                  </div>
+                ))}
+              </div>
+              <CustomRecordFields key={"fields-" + customer.id} objectKey="crm.customer" recordId={customer.id} />
+            </RecordSection>
+          </div>
 
-          <div class="account-side">
+          <div class="account-col">
+            <RecordSection title="Activity">
+              <CustomerActivity customerId={customer.id} />
+            </RecordSection>
             <RecordSection title="Account overview" component>
               <CustomerOverview key={"overview-" + customer.id} customerId={customer.id} />
             </RecordSection>
+          </div>
+
+          <div class="account-col">
             <RecordSection title="Contacts" component>
               <CustomerContacts key={"contacts-" + customer.id} customerId={customer.id} />
             </RecordSection>
@@ -166,9 +174,6 @@ export function CustomerDetail() {
             </RecordSection>
             <RecordSection title="Relationships" component defaultOpen={false}>
               <CustomerRelationships key={"relationships-" + customer.id} customerId={customer.id} />
-            </RecordSection>
-            <RecordSection title="Activity" defaultOpen={false}>
-              <CustomerActivity customerId={customer.id} />
             </RecordSection>
           </div>
         </div>

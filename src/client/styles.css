@@ -1813,3 +1813,9 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .account-field-edit { opacity: 0; transition: opacity 120ms ease; }
 .account-field:hover .account-field-edit, .account-field-edit:focus-visible { opacity: 1; }
 @media (max-width: 900px) { .account-layout { grid-template-columns: 1fr; } }
+
+/* Balanced three-column Account layout (About / Activity / Related) */
+.account-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.15fr); }
+.account-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@media (max-width: 1200px) { .account-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 760px) { .account-layout { grid-template-columns: minmax(0, 1fr); } }

@@ -39,12 +39,14 @@ test("UUID migration preserves every row, relation, timestamp and retained snaps
     for (const table of tables) {
       assert.equal(after[table].length, before[table].length, table);
       after[table].forEach((row, i) => {
-        for (const [key, value] of Object.entries(row)) {
-          if (key === "id" || key.endsWith("_id")) { if (value !== null) assert.match(value, uuid, `${table}.${key}`); }
-          else assert.equal(value, before[table][i][key], `${table}.${key}`);
+        // Compare the original columns: additive columns are validated separately.
+        for (const [key, value] of Object.entries(before[table][i])) {
+          if (key === "id" || key.endsWith("_id")) { if (value !== null) assert.match(row[key], uuid, `${table}.${key}`); }
+          else assert.equal(row[key], value, `${table}.${key}`);
         }
       });
     }
+    assert.equal(after.customers[0].customer_type, "residential", "legacy customers receive the current schema default");
     assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
     const job = after.jobs[0];
     assert.equal(job.customer_id, after.customers[0].id);
@@ -59,6 +61,21 @@ test("UUID migration preserves every row, relation, timestamp and retained snaps
     assert.equal(plan(db), null);
     db.exec("INSERT INTO job_notes(job_id,content) SELECT id,'After migration' FROM jobs");
     assert.equal(db.prepare("SELECT COUNT(*) AS n FROM asset_history").get().n, after.asset_history.length + 1);
+  } finally { db.close(); }
+});
+
+test("UUID migration preserves an existing commercial customer classification", () => {
+  const db = legacy();
+  try {
+    db.exec("ALTER TABLE customers ADD COLUMN customer_type TEXT NOT NULL DEFAULT 'residential' CHECK(customer_type IN ('residential','commercial'))");
+    db.exec("UPDATE customers SET customer_type='commercial' WHERE id=1");
+    db.exec("BEGIN"); db.exec(plan(db)); db.exec("COMMIT");
+    const customer = db.prepare("SELECT id,name,customer_type FROM customers").get();
+    assert.match(customer.id, uuid);
+    assert.equal(customer.name, "Existing customer");
+    assert.equal(customer.customer_type, "commercial");
+    assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
+    assert.equal(plan(db), null);
   } finally { db.close(); }
 });
 

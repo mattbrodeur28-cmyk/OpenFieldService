@@ -39,3 +39,22 @@ the matching stopped-service state/config backup when recovery requires it.
 
 Finder metadata is removed from source control. Local editor settings, package
 stores and private preview password helpers are excluded from this publication.
+
+
+## UUID migration test correction
+
+The subsequent Residential/Commercial schema addition introduced
+`customers.customer_type DEFAULT 'residential'`. The integer fixture predates that
+column. The old preservation assertion iterated destination columns and compared
+this legitimate default with an absent source property, failing on the LXC and
+locally. The correction compares every original column and separately asserts the
+new default, plus a regression case proving an existing commercial classification
+survives conversion and repeat planning remains a no-op. No application migration,
+schema or runtime code changes are needed for this correction.
+
+Full local suite: 309/309 pass, zero failed/skipped/cancelled/TODO; production build
+and TypeScript pass on Node 26.7.0. Existing chunk-size warning remains. Rerun on the
+Debian Node 24 test server before restarting; the prior fail-fast updater leaves
+the service stopped when tests fail. The logged `Workspace request failed: Error`
+comes from the workspace negative-path test and is distinct from the failed UUID
+assertion. LXC/browser/provider qualification is not inferred from local checks.

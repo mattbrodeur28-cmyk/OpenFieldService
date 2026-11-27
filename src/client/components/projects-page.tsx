@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import type { ComponentChildren } from "preact";
 import { api } from "../api";
 import { useAccount } from "../auth";
 import { useApp } from "../context";
@@ -8,7 +9,7 @@ import { TextField } from "./ui/input";
 import { Select } from "./ui/select";
 import { Notice, Table, Badge, EmptyState } from "./ui/surfaces";
 import { Dialog, DialogTitle } from "./ui/dialog";
-import { Plus, CalendarDays, Wrench, CheckCircle2 } from "lucide-preact";
+import { Plus, CheckCircle2, FolderKanban, ChevronDown } from "lucide-preact";
 
 const STATUSES = ["draft", "active", "on_hold", "completed", "closed"] as const;
 const STATUS_LABEL: Record<string, string> = { draft: "Draft", active: "Active", on_hold: "On hold", completed: "Completed", closed: "Closed" };
@@ -17,6 +18,20 @@ const reason = "Reviewed project structure";
 
 type Project = { id: string; customer_id: string; title: string; description: string; status: string; project_manager: string; planned_start: string; planned_end: string; actual_start: string; actual_end: string; source_kind: string | null; source_id: string | null; version: number; archived: number };
 type Detail = { project: Project; phases: any[]; milestones: any[]; jobs: any[]; sites: any[]; deliverables: any[] };
+
+function RecordSection({ title, count, defaultOpen = true, children }: { title: string; count?: number; defaultOpen?: boolean; children: ComponentChildren }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section class={"record-section" + (open ? " is-open" : "")}>
+      <button type="button" class="record-section-heading" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <ChevronDown size={16} class={"record-section-chevron" + (open ? "" : " is-closed")} />
+        <span class="record-section-title">{title}</span>
+        {count != null && <span class="record-section-count">{count}</span>}
+      </button>
+      {open && <div class="record-section-body">{children}</div>}
+    </section>
+  );
+}
 
 export function ProjectsPage({ id }: { id: string | null }) {
   const { navigate, customers } = useApp();
@@ -28,7 +43,6 @@ export function ProjectsPage({ id }: { id: string | null }) {
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
-  const [tab, setTab] = useState<"details" | "phases" | "milestones" | "jobs" | "sites" | "deliverables">("details");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ customerId: "", title: "", status: "active", projectManager: "", plannedStart: "", plannedEnd: "" });
 
@@ -53,6 +67,8 @@ export function ProjectsPage({ id }: { id: string | null }) {
     navigate(`/projects/${projectId}`);
   }
 
+  const customerName = (customerId: string) => customers.find((c) => c.id === customerId)?.name || customerId;
+
   return (
     <div class="page projects-page">
       {!id && (
@@ -71,7 +87,7 @@ export function ProjectsPage({ id }: { id: string | null }) {
                 <tbody>{list.rows.map((p) => (
                   <tr key={p.id} class="table-row clickable" onClick={() => navigate(`/projects/${p.id}`)}>
                     <th scope="row"><Button variant="ghost" onClick={() => navigate(`/projects/${p.id}`)}>{p.title}</Button></th>
-                    <td class="text-muted">{p.customer_id}</td>
+                    <td class="text-muted">{customerName(p.customer_id)}</td>
                     <td><Badge tone={p.status === "active" ? "success" : p.status === "completed" ? "info" : "neutral"}>{STATUS_LABEL[p.status] || p.status}</Badge></td>
                     <td class="text-muted">{p.project_manager || "—"}</td>
                     <td class="text-muted">{p.planned_start || "—"} → {p.planned_end || "—"}</td>
@@ -87,31 +103,85 @@ export function ProjectsPage({ id }: { id: string | null }) {
 
       {id && detail && (
         <>
-          <div class="record-header">
+          <div class="record-header account-record-header">
             <div class="record-header-main">
               <button class="btn btn-back" onClick={() => navigate("/projects")}>Back</button>
+              <span class="account-icon" aria-hidden="true"><FolderKanban size={20} /></span>
               <div>
+                <span class="account-eyebrow">Project</span>
                 <h1 class="record-header-title">{detail.project.title}</h1>
                 <div class="record-header-subtitle">
                   <Badge tone={detail.project.status === "active" ? "success" : "neutral"}>{STATUS_LABEL[detail.project.status] || detail.project.status}</Badge>
+                  <span>{customerName(detail.project.customer_id)}</span>
                   <span>{detail.project.project_manager || "No project manager"}</span>
-                  <span>{detail.project.planned_start || "No start"} → {detail.project.planned_end || "No end"}</span>
                   {detail.project.source_kind === "quote" && <span>From accepted proposal</span>}
                 </div>
               </div>
             </div>
           </div>
-          <div class="record-tabs" role="tablist">
-            {([["details", "Details"], ["phases", `Phases (${detail.phases.length})`], ["milestones", `Milestones (${detail.milestones.length})`], ["jobs", `Jobs (${detail.jobs.length})`], ["sites", `Sites (${detail.sites.length})`], ["deliverables", `Deliverables (${detail.deliverables.length})`]] as const).map(([key, label]) => (
-              <button key={key} role="tab" aria-selected={tab === key} class={"record-tab" + (tab === key ? " is-active" : "")} onClick={() => setTab(key)}>{label}</button>
-            ))}
+
+          <div class="account-layout">
+            <div class="account-col">
+              <RecordSection title="About">
+                <div class="account-fields">
+                  {[
+                    ["Status", STATUS_LABEL[detail.project.status] || detail.project.status],
+                    ["Customer", customerName(detail.project.customer_id)],
+                    ["Project manager", detail.project.project_manager],
+                    ["Planned", `${detail.project.planned_start || "—"} → ${detail.project.planned_end || "—"}`],
+                    ["Actual", `${detail.project.actual_start || "—"} → ${detail.project.actual_end || "—"}`],
+                    ["Description", detail.project.description],
+                  ].map(([label, value]) => (
+                    <div class="account-field" key={label}>
+                      <span class="account-field-label">{label}</span>
+                      <span class="account-field-value">{value || "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              </RecordSection>
+              <RecordSection title="Phases" count={detail.phases.length}>
+                {detail.phases.length ? (
+                  <table class="table"><thead><tr><th>Phase</th><th>Cost code</th><th>Owner</th></tr></thead>
+                    <tbody>{detail.phases.map((p) => <tr key={p.id}><th scope="row">{p.name}</th><td>{p.costCode || "—"}</td><td class="text-muted">{p.owner || "—"}</td></tr>)}</tbody>
+                  </table>
+                ) : <p class="text-muted">No phases yet.</p>}
+              </RecordSection>
+            </div>
+
+            <div class="account-col">
+              <RecordSection title="Milestones" count={detail.milestones.length}>
+                {detail.milestones.length ? (
+                  <table class="table"><thead><tr><th>Milestone</th><th>Due</th><th>Status</th></tr></thead>
+                    <tbody>{detail.milestones.map((m) => <tr key={m.id}><th scope="row">{m.name}</th><td class="text-muted">{m.dueDate || "—"}</td><td><Badge tone={m.completed ? "success" : "neutral"}>{m.completed ? "Complete" : "Open"}</Badge></td></tr>)}</tbody>
+                  </table>
+                ) : <p class="text-muted">No milestones yet.</p>}
+              </RecordSection>
+              <RecordSection title="Deliverables" count={detail.deliverables.length}>
+                {detail.deliverables.length ? (
+                  <table class="table"><thead><tr><th>Deliverable</th><th>Due</th><th>Status</th></tr></thead>
+                    <tbody>{detail.deliverables.map((d) => <tr key={d.id}><th scope="row">{d.name}</th><td class="text-muted">{d.dueDate || "—"}</td><td><Badge tone={d.completed ? "success" : "neutral"}>{d.completed ? "Complete" : "Open"}</Badge></td></tr>)}</tbody>
+                  </table>
+                ) : <p class="text-muted">No deliverables yet.</p>}
+              </RecordSection>
+            </div>
+
+            <div class="account-col">
+              <RecordSection title="Jobs" count={detail.jobs.length}>
+                {detail.jobs.length ? (
+                  <table class="table"><thead><tr><th>Job</th><th>Status</th><th>Scheduled</th></tr></thead>
+                    <tbody>{detail.jobs.map((j) => <tr key={j.id}><th scope="row"><Button variant="ghost" onClick={() => navigate(`/jobs/${j.jobId}`)}>{j.identifier}</Button></th><td>{j.status}</td><td class="text-muted">{j.scheduledDate || "—"}</td></tr>)}</tbody>
+                  </table>
+                ) : <p class="text-muted">No linked jobs yet.</p>}
+              </RecordSection>
+              <RecordSection title="Sites" count={detail.sites.length}>
+                {detail.sites.length ? (
+                  <table class="table"><thead><tr><th>Site</th><th>Address</th></tr></thead>
+                    <tbody>{detail.sites.map((s) => <tr key={s.id}><th scope="row">{s.name}</th><td class="text-muted">{s.address || "—"}</td></tr>)}</tbody>
+                  </table>
+                ) : <p class="text-muted">No linked sites yet.</p>}
+              </RecordSection>
+            </div>
           </div>
-          {tab === "details" && <><section class="detail-section"><h3>Description</h3><p class="agreement-text">{detail.project.description || "Not recorded"}</p></section><div class="detail-meta-grid"><div class="detail-meta-item"><CalendarDays size={14} /><span class="detail-meta-label">Planned</span><span>{detail.project.planned_start || "—"} → {detail.project.planned_end || "—"}</span></div><div class="detail-meta-item"><Wrench size={14} /><span class="detail-meta-label">Actual</span><span>{detail.project.actual_start || "—"} → {detail.project.actual_end || "—"}</span></div></div></>}
-          {tab === "phases" && <Table label="Phases"><thead><tr><th>Phase</th><th>Cost code</th><th>Owner</th><th>Planned</th></tr></thead><tbody>{detail.phases.map((p) => <tr key={p.id}><th scope="row">{p.name}</th><td>{p.costCode || "—"}</td><td class="text-muted">{p.owner || "—"}</td><td class="text-muted">{p.plannedStart || "—"} → {p.plannedEnd || "—"}</td></tr>)}</tbody></Table>}
-          {tab === "milestones" && <Table label="Milestones"><thead><tr><th>Milestone</th><th>Due</th><th>Status</th></tr></thead><tbody>{detail.milestones.map((m) => <tr key={m.id}><th scope="row">{m.name}</th><td class="text-muted">{m.dueDate || "—"}</td><td><Badge tone={m.completed ? "success" : "neutral"}>{m.completed ? "Complete" : "Open"}</Badge></td></tr>)}</tbody></Table>}
-          {tab === "jobs" && <Table label="Linked jobs"><thead><tr><th>Job</th><th>Status</th><th>Scheduled</th></tr></thead><tbody>{detail.jobs.map((j) => <tr key={j.id}><th scope="row"><Button variant="ghost" onClick={() => navigate(`/jobs/${j.jobId}`)}>{j.identifier}</Button></th><td>{j.status}</td><td class="text-muted">{j.scheduledDate || "—"}</td></tr>)}</tbody></Table>}
-          {tab === "sites" && <Table label="Project sites"><thead><tr><th>Site</th><th>Address</th></tr></thead><tbody>{detail.sites.map((s) => <tr key={s.id}><th scope="row">{s.name}</th><td class="text-muted">{s.address || "—"}</td></tr>)}</tbody></Table>}
-          {tab === "deliverables" && <Table label="Deliverables"><thead><tr><th>Deliverable</th><th>Due</th><th>Status</th></tr></thead><tbody>{detail.deliverables.map((d) => <tr key={d.id}><th scope="row">{d.name}</th><td class="text-muted">{d.dueDate || "—"}</td><td><Badge tone={d.completed ? "success" : "neutral"}>{d.completed ? "Complete" : "Open"}</Badge></td></tr>)}</tbody></Table>}
         </>
       )}
       {id && !detail && !error && <p role="status">Loading project…</p>}
@@ -128,6 +198,7 @@ export function ProjectsPage({ id }: { id: string | null }) {
               <TextField label="Planned start (YYYY-MM-DD)" value={form.plannedStart} onInput={(e) => setForm({ ...form, plannedStart: (e.target as HTMLInputElement).value })} />
               <TextField label="Planned end (YYYY-MM-DD)" value={form.plannedEnd} onInput={(e) => setForm({ ...form, plannedEnd: (e.target as HTMLInputElement).value })} />
             </div>
+            {error && <p class="workspace-error" role="alert">{error}</p>}
             <div class="dialog-actions">
               <Button onClick={() => setCreating(false)}>Cancel</Button>
               <Button variant="primary" type="submit" disabled={!canWrite}><CheckCircle2 size={14} /> Create project</Button>

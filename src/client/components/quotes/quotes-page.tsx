@@ -34,14 +34,14 @@ function QuoteCatalog() {
   }, [page, revision]);
   return (
     <div class="page quotes-page">
-      <header class="quote-header">
+      <header class="page-header">
         <div>
           <h1>Quotes</h1>
           <p class="workspace-help">
             Internal estimates and retained pricing revisions
           </p>
         </div>
-        <div class="quote-actions">
+        <div class="page-header-right">
           <Button onClick={() => setRevision(revision + 1)}>Refresh</Button>
           <Button onClick={() => navigate("/sales/quotes/templates")}>Templates</Button>
           <Button

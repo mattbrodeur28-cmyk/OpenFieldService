@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { accountRequest, AccountRequestError, useAccount, isAdministrator } from "../../auth";
 import { useApp } from "../../context";
 import { useConnectivity } from "../../hooks/use-connectivity";
+import { FileText } from "lucide-preact";
 import { useCompanyTimeZone } from "../../hooks/use-company-timezone";
 import { dayInZone, shiftDate } from "../../dispatch-layout.mjs";
 import { formatTimestamp } from "../../time-format";
@@ -424,25 +425,21 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
   const savedEvidence = preview?.persisted;
   return (
     <div class="page quote-workbench">
-      <header class="quote-header">
-        <div>
-          <Button
-            variant="ghost"
-            disabled={busy || uncertain}
-            onClick={() => navigate("/sales/quotes")}
-          >
-            ← Quotes
-          </Button>
-          <h1>{saved?.identifier ?? "New quote"}</h1>
-          <p class="workspace-help">
-            {saved?.status && saved.status!=="draft" ? saved.status : "Internal draft"} ·{" "}
-            {saved
-              ? `Revision ${saved.revision} of ${saved.version}`
-              : "Not saved"}
-            {dirty ? " · Unsaved changes" : ""}
-          </p>
+      <div class="record-header account-record-header">
+        <div class="record-header-main">
+          <button class="btn btn-back" disabled={busy || uncertain} onClick={() => navigate("/sales/quotes")}>Back</button>
+          <span class="account-icon" aria-hidden="true"><FileText size={20} /></span>
+          <div>
+            <span class="account-eyebrow">Quote</span>
+            <h1 class="record-header-title">{saved?.identifier ?? "New quote"}</h1>
+            <div class="record-header-subtitle">
+              <span>{saved?.status && saved.status !== "draft" ? saved.status : "Internal draft"}</span>
+              <span>{saved ? `Revision ${saved.revision} of ${saved.version}` : "Not saved"}</span>
+              {dirty && <span>Unsaved changes</span>}
+            </div>
+          </div>
         </div>
-        <div class="quote-actions">
+        <div class="page-header-right">
           {saved && (
             <Button disabled={busy||resourceBusy||loading||readOnly||uncertain||dirty} onClick={() => void load()}>
               Refresh
@@ -450,29 +447,16 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           )}
           {saved && isAdministrator(user) && <Button disabled={busy||resourceBusy||loading||dirty||uncertain||readOnly||saved.estimate.pricingComplete===false} onClick={()=>setPublishingTemplate(true)}>Save as template</Button>}
           {saved && <Button disabled={busy || resourceBusy || loading || dirty || uncertain || readOnly || saved.estimate.pricingComplete===false} onClick={() => setDocumentOpen(true)}>Draft document review</Button>}
-          <Button
-            disabled={disabled || !opportunity || !profile}
-            onClick={() => void calculate()}
-          >
-            Calculate prices
-          </Button>
+          <Button disabled={disabled || !opportunity || !profile} onClick={() => void calculate()}>Calculate prices</Button>
           <Button
             variant="primary"
-            disabled={
-              busy ||
-              resourceBusy ||
-              loading ||
-              readOnly ||
-              historical ||
-              lockedQuote ||
-              ((!preview || preview.persisted) && !uncertain)
-            }
+            disabled={busy || resourceBusy || loading || readOnly || historical || lockedQuote || ((!preview || preview.persisted) && !uncertain)}
             onClick={() => void save()}
           >
             {uncertain ? "Retry exact save" : busy ? "Working…" : "Save draft"}
           </Button>
         </div>
-      </header>
+      </div>
       {publishingTemplate && saved && <TemplateCommandDialog source={{quoteId:saved.id,revision:saved.revision}} close={()=>setPublishingTemplate(false)} saved={item=>{setPublishingTemplate(false);setTemplateRefresh(value=>value+1);setNotice(`Saved template ${item.config.name} v${item.version}.`);}}/>}
       {documentOpen && saved && <QuoteDocumentPreview id={saved.id} revision={saved.revision} close={() => setDocumentOpen(false)}/>}
       <p class="workspace-help">

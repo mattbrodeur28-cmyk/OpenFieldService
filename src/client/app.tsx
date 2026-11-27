@@ -20,6 +20,7 @@ import { JobDetail } from "./components/job-detail";
 import { CustomerList } from "./components/customer-list";
 import { CustomerDetail } from "./components/customer-detail";
 import { TechnicianList } from "./components/technician-list";
+import { TechnicianDetail } from "./components/technician-detail";
 import { ServiceTypeList } from "./components/service-type-list";
 import { MaterialList } from "./components/material-list";
 import { InvoiceList } from "./components/invoice-list";
@@ -77,6 +78,7 @@ export function App() {
     if (view === "inventory") return <InventoryPage locationId={id}/>;
     if (view === "fleet") return <FleetPage section={id}/>;
     if (["finance", "purchasing", "invoices"].includes(view)) return <BusinessSection view={view} id={id} invoiceDetail={view === "invoices" && !!id && !!appState.selectedInvoice}/>;
+    if (view === "technicians" && id) return <TechnicianDetail key={id} id={id} />;
     if (view === "timesheets") return <Timesheets />;
     if (view === "dispatcher") return <Dispatcher />;
     if (view === "team" && id) return <TeamChannel key={id} id={id} />;

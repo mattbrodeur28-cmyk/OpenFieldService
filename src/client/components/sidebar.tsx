@@ -15,7 +15,6 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "customers", path: "/customers", label: "Customers", icon: Users },
   { view: "projects", path: "/projects", label: "Projects", icon: FolderKanban },
   { view: "agreements", path: "/agreements", label: "Agreements", icon: Briefcase },
-  { view: "timesheets", path: "/timesheets", label: "Timesheets", icon: CalendarClock },
   { view: "technicians", path: "/technicians", label: "Technicians", icon: Wrench },
   { view: "inventory", path: "/inventory", label: "Inventory", icon: Package },
 ];

@@ -56,7 +56,9 @@ test("standalone server preserves equipment workflows, restart data and live bac
   await api("POST", `/api/jobs/${jobs[0].id}/notes`, { content: "Controls checkout" }, 201);
   const invoice = await api("POST", `/api/jobs/${jobs[0].id}/invoice`, undefined, 201);
   assert.ok(invoice.invoice_id);
-  await api("POST", "/api/technicians", {name:"Retired creation path"}, 409);
+  const directTech = await api("POST", "/api/technicians", {name:"Direct technician creation",email:"",phone:"",color:"#16a34a"}, 201);
+  assert.ok(directTech.id);
+  await api("DELETE", `/api/technicians/${directTech.id}`, undefined, 200);
   const staffId=randomUUID();
   const createdStaff=await api("POST","/api/hr/staff",{id:staffId,requestKey:randomUUID(),expectedVersion:0,name:"Dispatcher tech",email:"",phone:"",title:"Service technician",employmentStatus:"active",startDate:"",supervisorId:null,technician:true,color:"#16a34a",reason:"Reviewed technician hire for dispatch",acknowledgeOpenWork:false});
   assert.equal(createdStaff.staff.technician_id,staffId);

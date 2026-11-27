@@ -102,9 +102,9 @@ interface Options {
 }
 const monday = (date: string) => shiftDate(date, -((new Date(date + "T00:00:00Z").getUTCDay() + 6) % 7));
 const hours = (minutes: number) => (minutes / 60).toFixed(2);
-export function Timesheets() {
+export function Timesheets({ initialTechnician = "" }: { initialTechnician?: string } = {}) {
     const { navigate } = useApp(), { readOnly } = useConnectivity();
-    const [options, setOptions] = useState<Options | null>(null), [technician, setTechnician] = useState(""), [technicianSearch, setTechnicianSearch] = useState(""), [week, setWeek] = useState(""), [data, setData] = useState<Data | null>(null), [day, setDay] = useState("all"), [error, setError] = useState(""), [busy, setBusy] = useState(false), [reload, setReload] = useState(0), [reason, setReason] = useState(""), [notes, setNotes] = useState(""), [confirmed, setConfirmed] = useState(false);
+    const [options, setOptions] = useState<Options | null>(null), [technician, setTechnician] = useState(initialTechnician), [technicianSearch, setTechnicianSearch] = useState(""), [week, setWeek] = useState(""), [data, setData] = useState<Data | null>(null), [day, setDay] = useState("all"), [error, setError] = useState(""), [busy, setBusy] = useState(false), [reload, setReload] = useState(0), [reason, setReason] = useState(""), [notes, setNotes] = useState(""), [confirmed, setConfirmed] = useState(false);
     useEffect(() => {
         let live = true;
         void accountRequest<Options>("/api/service/timesheets/options")

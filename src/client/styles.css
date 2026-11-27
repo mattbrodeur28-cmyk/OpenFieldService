@@ -1835,3 +1835,13 @@ button.stat-card:hover { background: var(--surface-sunken); box-shadow: var(--sh
 .account-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 @media (max-width: 1100px) { .account-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 @media (max-width: 760px) { .account-layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* Segmented view toggle */
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--card-bg); }
+.segmented-item { padding: 6px 14px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+.segmented-item.is-active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+
+/* Technician record layout */
+.tech-layout { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); }
+.tech-timesheet-body .page { padding: 0; margin: 0; }
+@media (max-width: 1100px) { .tech-layout { grid-template-columns: minmax(0, 1fr); } }

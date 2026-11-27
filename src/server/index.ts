@@ -868,6 +868,25 @@ const updateTechnician = createRoute({
 app.openapi(updateTechnician, async (c) => {
   const { id } = c.req.valid("param");
   const data = c.req.valid("json");
+  // A native technician may have a linked staff profile that owns name/email/phone/active.
+  // Route those fields through the staff row (its trigger syncs the technician) and keep
+  // colour on the technician row.
+  const staff = await get<{ id: string }>("SELECT id FROM _hr_staff WHERE technician_id = ?", [id]);
+  if (staff) {
+    const sets: string[] = [];
+    const vals: unknown[] = [];
+    if (data.name !== undefined) { sets.push("name = ?"); vals.push(data.name); }
+    if (data.email !== undefined) { sets.push("email = ?"); vals.push(data.email); }
+    if (data.phone !== undefined) { sets.push("phone = ?"); vals.push(data.phone); }
+    if (data.active !== undefined) { sets.push("employment_status = ?"); vals.push(data.active ? "active" : "inactive"); }
+    if (sets.length > 0) {
+      await run(`UPDATE _hr_staff SET ${sets.join(", ")}, version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [...vals, staff.id]);
+    }
+    if (data.color !== undefined) {
+      await run("UPDATE technicians SET color = ? WHERE id = ?", [data.color, id]);
+    }
+    return c.json({ ok: true }, 200);
+  }
   const fields: string[] = [];
   const vals: unknown[] = [];
   for (const [k, v] of Object.entries(data)) {
@@ -893,7 +912,13 @@ const deleteTechnician = createRoute({
 
 app.openapi(deleteTechnician, async (c) => {
   const { id } = c.req.valid("param");
-  await run("DELETE FROM technicians WHERE id = ?", [id]);
+  // Soft-delete: retain the technician for job/timecard history and deactivate field availability.
+  const staff = await get<{ id: string }>("SELECT id FROM _hr_staff WHERE technician_id = ?", [id]);
+  if (staff) {
+    await run("UPDATE _hr_staff SET employment_status = 'inactive', version = version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [staff.id]);
+  } else {
+    await run("UPDATE technicians SET active = 0 WHERE id = ?", [id]);
+  }
   return c.json({ ok: true }, 200);
 });
 

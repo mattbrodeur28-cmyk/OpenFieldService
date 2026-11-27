@@ -308,3 +308,7 @@
 .quote-workbench .quote-layout { grid-template-columns: minmax(260px, 300px) minmax(260px, 300px) minmax(0, 1fr); }
 @media (max-width: 1300px) { .quote-workbench .quote-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 @media (max-width: 820px) { .quote-workbench .quote-layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* Quote: 3-column details/opportunity/summary header, then full-width job costing */
+.quote-workbench .quote-layout { grid-template-columns: minmax(260px, 300px) minmax(260px, 300px) minmax(0, 1fr); }
+.quote-workbench .quote-layout > .quote-summary { grid-column: auto; }

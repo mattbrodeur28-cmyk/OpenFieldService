@@ -643,12 +643,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                 </div>
               </QuoteSection>
             </div>
-            <div class="quote-main">
-              <QuoteSection title="Job costing">
-                <CostingSheet lines={lines} preview={preview} disabled={disabled} replace={next=>{changed();setLines(next);}} details={setLineDetails} onSave={() => void save()} saving={busy} canSave={!disabled}/>
-                {lineDetails&&lines.some(l=>l.id===lineDetails)&&<Dialog class="bid-review-dialog" close={()=>setLineDetails(null)}><DialogTitle>Costing row details</DialogTitle>{lines.filter(l=>l.id===lineDetails).map(line=><QuoteLineEditor key={line.id} line={line} index={lines.findIndex(l=>l.id===line.id)} opportunityId={opportunity?.id??""} material={line.materialId?materials[line.materialId]:undefined} disabled={disabled} onRefreshing={active=>setRefreshingLines(current=>active?[...new Set([...current,line.id])]:current.filter(id=>id!==line.id))} rememberMaterial={row=>{changed();setMaterials(current=>({...current,[row.id]:row}));}} patch={patch=>patchLine(line.id,patch)} remove={()=>{changed();setLines(current=>current.filter(l=>l.id!==line.id));setLineDetails(null);}}/>)}<Button disabled={resourceBusy} onClick={()=>setLineDetails(null)}>Done</Button></Dialog>}
-              </QuoteSection>
-              <aside class="quote-summary" aria-label="Quote pricing summary">
+            <aside class="quote-summary" aria-label="Quote pricing summary">
               <Card>
                 <h2>
                   {savedEvidence ? "Saved revision prices" : "Price review"}
@@ -714,71 +709,16 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                   </p>
                 )}
               </Card>
-              {detail && (
-                <Card>
-                  <h2>Revision history</h2>
-                  <p class="workspace-help">
-                    Each save retains its pricing and terms.
-                  </p>
-                  {detail.history.map((row) => (
-                    <Button
-                      key={row.version}
-                      disabled={
-                        busy ||
-                        resourceBusy ||
-                        loading ||
-                        dirty ||
-                        uncertain ||
-                        row.version === saved?.revision
-                      }
-                      onClick={() => void load(row.version, detail.historyPage)}
-                    >
-                      Revision {row.version} ·{" "}
-                      {company.timeZone
-                        ? formatTimestamp(row.savedAt, company.timeZone)
-                        : row.savedAt}
-                    </Button>
-                  ))}
-                  <div class="quote-picker-pages">
-                    <Button
-                      disabled={
-                        busy ||
-                        resourceBusy ||
-                        loading ||
-                        dirty ||
-                        uncertain ||
-                        detail.historyPage === 1
-                      }
-                      onClick={() =>
-                        void load(saved?.revision, detail.historyPage - 1)
-                      }
-                    >
-                      Newer
-                    </Button>
-                    <Button
-                      disabled={
-                        busy ||
-                        resourceBusy ||
-                        loading ||
-                        dirty ||
-                        uncertain ||
-                        !detail.hasMoreHistory
-                      }
-                      onClick={() =>
-                        void load(saved?.revision, detail.historyPage + 1)
-                      }
-                    >
-                      Older
-                    </Button>
-                  </div>
-                </Card>
-              )}
+              
               {saved && <QuoteLifecyclePanel key={`lifecycle:${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} refreshKey={reviewRefresh} reloaded={()=>void load()}/>}
               {saved && <QuoteConversionPanel key={`conversion:${saved.id}:${saved.revision}`} refreshKey={`${saved.status}:${saved.updatedAt}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} reloaded={()=>void load()}/>}
               {saved && <BidReviewPanel key={`${saved.id}:${saved.revision}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} onChanged={()=>setReviewRefresh(value=>value+1)}/>}
             </aside>
-            </div>
           </div>
+          <QuoteSection title="Job costing">
+                <CostingSheet lines={lines} preview={preview} disabled={disabled} replace={next=>{changed();setLines(next);}} details={setLineDetails} onSave={() => void save()} saving={busy} canSave={!disabled}/>
+                {lineDetails&&lines.some(l=>l.id===lineDetails)&&<Dialog class="bid-review-dialog" close={()=>setLineDetails(null)}><DialogTitle>Costing row details</DialogTitle>{lines.filter(l=>l.id===lineDetails).map(line=><QuoteLineEditor key={line.id} line={line} index={lines.findIndex(l=>l.id===line.id)} opportunityId={opportunity?.id??""} material={line.materialId?materials[line.materialId]:undefined} disabled={disabled} onRefreshing={active=>setRefreshingLines(current=>active?[...new Set([...current,line.id])]:current.filter(id=>id!==line.id))} rememberMaterial={row=>{changed();setMaterials(current=>({...current,[row.id]:row}));}} patch={patch=>patchLine(line.id,patch)} remove={()=>{changed();setLines(current=>current.filter(l=>l.id!==line.id));setLineDetails(null);}}/>)}<Button disabled={resourceBusy} onClick={()=>setLineDetails(null)}>Done</Button></Dialog>}
+              </QuoteSection>
         </>
       )}
     </div>

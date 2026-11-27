@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { accountRequest, AccountRequestError, useAccount, isAdministrator } from "../../auth";
 import { useApp } from "../../context";
 import { useConnectivity } from "../../hooks/use-connectivity";
-import { FileText } from "lucide-preact";
+import { FileText, ChevronDown } from "lucide-preact";
 import { useCompanyTimeZone } from "../../hooks/use-company-timezone";
 import { dayInZone, shiftDate } from "../../dispatch-layout.mjs";
 import { formatTimestamp } from "../../time-format";
@@ -60,6 +60,19 @@ function freshLine(): DraftLine {
     travelGroup: "",
     includesFuel: false,
   };
+}
+
+function QuoteSection({ title, class: className = "", defaultOpen = true, children }: { title: string; class?: string; defaultOpen?: boolean; children: preact.ComponentChildren }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section class={"record-section " + className + (open ? " is-open" : "")}>
+      <button type="button" class="record-section-heading" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <ChevronDown size={16} class={"record-section-chevron" + (open ? "" : " is-closed")} />
+        <span class="record-section-title">{title}</span>
+      </button>
+      {open && <div class="record-section-body">{children}</div>}
+    </section>
+  );
 }
 
 export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
@@ -489,15 +502,15 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               </Button>
             </Notice>
           )}
-          {!historical && !lockedQuote && <Card class="quote-template-apply">
-            <h2>Start from a template</h2>
+          {!historical && !lockedQuote && <QuoteSection title="Start from a template" class="quote-template-apply">
+            
             {opportunity ? <SearchPicker<TemplateSummary> key={`${opportunity.segment}:${templateRefresh}`} label="Reusable quote template" endpoint={`/api/sales/quote-templates?segment=${opportunity.segment}`} selected={template?{id:template.id,label:`${template.name??"Template"} · v${template.version}`}:null} disabled={disabled} format={row=>`${row.name} · v${row.version}`} change={row=>void applyTemplate(row)}/> : <p class="workspace-help">Choose an opportunity to see templates for its work segment.</p>}
             {template&&<Button disabled={disabled} onClick={()=>{changed();setTemplate(null);}}>Detach template reference</Button>}
-          </Card>}
+          </QuoteSection>}
           <div class="quote-layout">
             <section class="quote-form" aria-label="Quote estimate editor">
-              <Card>
-                <h2>Opportunity and billing</h2>
+              <QuoteSection title="Opportunity and billing">
+                
                 {saved ? (
                   <div class="quote-linked-opportunity">
                     <strong>{opportunity?.title ?? saved.opportunityId}</strong>
@@ -622,9 +635,9 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                     }
                   />
                 </div>
-              </Card>
-              <Card>
-                <h2>Scope and terms</h2>
+              </QuoteSection>
+              <QuoteSection title="Scope and terms">
+                
                 <TextField
                   label="Quote title"
                   value={document.title}
@@ -658,12 +671,11 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                     }
                   />
                 </label>
-              </Card>
-              <section aria-label="Estimate lines">
-                <h2>Job costing</h2>
+              </QuoteSection>
+              <QuoteSection title="Job costing">
                 <CostingSheet lines={lines} preview={preview} disabled={disabled} replace={next=>{changed();setLines(next);}} details={setLineDetails} onSave={() => void save()} saving={busy} canSave={!disabled}/>
                 {lineDetails&&lines.some(l=>l.id===lineDetails)&&<Dialog class="bid-review-dialog" close={()=>setLineDetails(null)}><DialogTitle>Costing row details</DialogTitle>{lines.filter(l=>l.id===lineDetails).map(line=><QuoteLineEditor key={line.id} line={line} index={lines.findIndex(l=>l.id===line.id)} opportunityId={opportunity?.id??""} material={line.materialId?materials[line.materialId]:undefined} disabled={disabled} onRefreshing={active=>setRefreshingLines(current=>active?[...new Set([...current,line.id])]:current.filter(id=>id!==line.id))} rememberMaterial={row=>{changed();setMaterials(current=>({...current,[row.id]:row}));}} patch={patch=>patchLine(line.id,patch)} remove={()=>{changed();setLines(current=>current.filter(l=>l.id!==line.id));setLineDetails(null);}}/>)}<Button disabled={resourceBusy} onClick={()=>setLineDetails(null)}>Done</Button></Dialog>}
-              </section>
+              </QuoteSection>
             </section>
             <aside class="quote-summary" aria-label="Quote pricing summary">
               <Card>

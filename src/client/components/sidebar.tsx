@@ -34,7 +34,7 @@ const TECH_ALLOWED_VIEWS = new Set<View>([
 ]);
 
 export function Sidebar({ currentView, currentId, collapsed = false }: { currentView: View; currentId?: string | null; collapsed?: boolean }) {
-  const { navigate, stats } = useApp();
+  const { navigate } = useApp();
   const { user, teams } = useAccount();
   const canManage = isAdministrator(user);
   const isTech = user.role === "technician";
@@ -50,18 +50,15 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
     timesheets: "blue", sales: "cyan", dispatcher: "blue", schedule: "pink", jobs: "purple", customers: "blue", technicians: "pink",
     invoices: "purple", materials: "cyan", projects: "cyan",
   };
-  const navItem = (item: typeof navItems[number]) => {
-    const count = item.view === "jobs" ? stats.jobs : item.view === "customers" ? stats.customers
-      : item.view === "invoices" ? stats.invoices_outstanding : 0;
-    return <button key={item.view} title={item.label} aria-label={item.label}
+  const navItem = (item: typeof navItems[number]) => (
+    <button key={item.view} title={item.label} aria-label={item.label}
       aria-current={active(item.view) ? "page" : undefined}
       class={`sidebar-item ${active(item.view) ? "active" : ""}`}
       onClick={() => navigate(item.path)}>
       <span class={`workspace-nav-icon ${colors[item.view] ? `icon-${colors[item.view]}` : ""}`} aria-hidden="true"><item.icon size={12} /></span>
       <span class="workspace-nav-label">{item.label}</span>
-      {count > 0 && <span class="sidebar-badge">{count}</span>}
-    </button>;
-  };
+    </button>
+  );
 
   const moduleGroup = (module: BusinessModule, Icon: typeof LayoutDashboard) => {
     const expanded = !collapsed && expandedModules[module.view];

@@ -171,14 +171,43 @@ export function createSales({
     c.header("Cache-Control", "private, no-store");
     c.header("X-Content-Type-Options", "nosniff");
     const quoteId = c.req.param("id");
-    const { document } = quotes.document(actorUser, quoteId, c.req.query());
     const detailRow = quotes.detail(actorUser, quoteId, c.req.query());
-    const opp = detailRow?.quote?.opportunityId
-      ? storage.database.prepare("SELECT customer_id, contact_name, contact_email, contact_phone FROM _sales_opportunities WHERE id=?").get(detailRow.quote.opportunityId)
+    const q = detailRow.quote;
+    const opp = q?.opportunityId
+      ? storage.database.prepare("SELECT * FROM _sales_opportunities WHERE id=?").get(q.opportunityId)
       : null;
     const cust = opp?.customer_id
-      ? storage.database.prepare("SELECT phone, email FROM customers WHERE id=?").get(opp.customer_id)
+      ? storage.database.prepare("SELECT name, phone, email, address, city, state, zip FROM customers WHERE id=?").get(opp.customer_id)
       : null;
+    const site = opp?.site_id && opp?.customer_id
+      ? storage.database.prepare("SELECT name, address FROM sites WHERE id=? AND customer_id=?").get(opp.site_id, opp.customer_id)
+      : null;
+    const equipment = opp?.asset_id && opp?.customer_id
+      ? storage.database.prepare("SELECT name, manufacturer, model, serial_number FROM assets WHERE id=? AND customer_id=?").get(opp.asset_id, opp.customer_id)
+      : null;
+    const est = q.estimate;
+    const proposalDoc = {
+      identifier: q.identifier,
+      revision: q.revision,
+      title: q.document.title,
+      scope: q.document.scope,
+      exclusions: q.document.exclusions,
+      validUntil: q.document.validUntil,
+      pricingDate: est.pricingDate,
+      customer: {
+        kind: cust ? "customer" : "prospect",
+        name: cust?.name ?? opp?.prospect_name ?? "",
+        address: cust?.address ?? "",
+        city: cust?.city ?? "",
+        state: cust?.state ?? "",
+        zip: cust?.zip ?? "",
+      },
+      site: site ? { name: site.name, address: site.address } : null,
+      equipment: equipment ? { name: equipment.name, manufacturer: equipment.manufacturer, model: equipment.model, serialNumber: equipment.serial_number } : null,
+      netCents: est.netCents ?? est.knownTotals?.netCents ?? 0,
+      taxCents: est.taxCents ?? est.knownTotals?.taxCents ?? 0,
+      totalCents: est.totalCents ?? est.knownTotals?.totalCents ?? 0,
+    };
     const contact = {
       name: opp?.contact_name || "",
       phone: opp?.contact_phone || cust?.phone || "",
@@ -186,7 +215,7 @@ export function createSales({
     };
     const issuer = quotes.lifecycle.issuer.publicFields();
     const autoPrint = c.req.query("print") === "1";
-    return c.html(renderCustomerProposalHtml(document, { issuer, contact, autoPrint }));
+    return c.html(renderCustomerProposalHtml(proposalDoc, { issuer, contact, autoPrint }));
   });
   app.get("/quotes/:id", (c) =>
     c.json(quotes.detail(check(c), c.req.param("id"), c.req.query())),
@@ -205,6 +234,9 @@ export function createSales({
     const data = await body(c);
     return c.json(billingProfiles.save(check(c), data));
   });
+  app.post("/billing-profiles/presets", (c) =>
+    c.json(billingProfiles.installPresets(check(c)), 201),
+  );
   app.post("/estimates/preview", async (c) => {
     const data = await body(c);
     return c.json(billingProfiles.preview(check(c), data));

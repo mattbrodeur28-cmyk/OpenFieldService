@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { migrate, transaction } from "../platform/sqlite.mjs";
 import { SalesError, isSalesAdmin, requireOwner, parse } from "./domain.mjs";
 import {
@@ -16,6 +16,65 @@ CREATE TRIGGER _sales_billing_profile_revisions_delete BEFORE DELETE ON _sales_b
 CREATE TRIGGER _sales_billing_profile_requests_update BEFORE UPDATE ON _sales_billing_profile_requests BEGIN SELECT RAISE(ABORT,'BILLING_PROFILE_IMMUTABLE'); END;
 CREATE TRIGGER _sales_billing_profile_requests_delete BEFORE DELETE ON _sales_billing_profile_requests BEGIN SELECT RAISE(ABORT,'BILLING_PROFILE_IMMUTABLE'); END;
 `;
+export const PRESET_BILLING_PROFILES = [
+  {
+    name: "CT Residential (6.35%)",
+    state: "CT",
+    jurisdiction: "Connecticut Statewide",
+    segment: "residential",
+    effectiveFrom: "2026-01-01",
+    effectiveTo: null,
+    active: true,
+    reviewNote: "Connecticut statewide 6.35% HVAC residential preset (editable).",
+    rules: [
+      { kind: "labor", treatment: "exclusive", rateBasisPoints: 635, note: "CT 6.35% repair/service labor" },
+      { kind: "material", treatment: "exclusive", rateBasisPoints: 635, note: "CT 6.35% parts/materials" },
+    ],
+  },
+  {
+    name: "CT Commercial (6.35%)",
+    state: "CT",
+    jurisdiction: "Connecticut Statewide",
+    segment: "commercial",
+    effectiveFrom: "2026-01-01",
+    effectiveTo: null,
+    active: true,
+    reviewNote: "Connecticut statewide 6.35% HVAC commercial preset (editable).",
+    rules: [
+      { kind: "labor", treatment: "exclusive", rateBasisPoints: 635, note: "CT 6.35% commercial labor" },
+      { kind: "material", treatment: "exclusive", rateBasisPoints: 635, note: "CT 6.35% commercial materials" },
+    ],
+  },
+  {
+    name: "MA Residential (6.25%)",
+    state: "MA",
+    jurisdiction: "Massachusetts Statewide",
+    segment: "residential",
+    effectiveFrom: "2026-01-01",
+    effectiveTo: null,
+    active: true,
+    reviewNote: "Massachusetts statewide 6.25% HVAC residential preset (labor exempt, materials 6.25%; editable).",
+    rules: [
+      { kind: "labor", treatment: "exempt", rateBasisPoints: 0, note: "MA separately stated labor exempt" },
+      { kind: "material", treatment: "exclusive", rateBasisPoints: 625, note: "MA 6.25% parts/materials" },
+    ],
+  },
+  {
+    name: "MA Commercial (6.25%)",
+    state: "MA",
+    jurisdiction: "Massachusetts Statewide",
+    segment: "commercial",
+    effectiveFrom: "2026-01-01",
+    effectiveTo: null,
+    active: true,
+    reviewNote: "Massachusetts statewide 6.25% HVAC commercial preset (labor exempt, materials 6.25%; editable).",
+    rules: [
+      { kind: "labor", treatment: "exempt", rateBasisPoints: 0, note: "MA separately stated labor exempt" },
+      { kind: "material", treatment: "exclusive", rateBasisPoints: 625, note: "MA 6.25% commercial materials" },
+    ],
+  },
+];
+
 export function createBillingProfiles({
   storage,
   sales,
@@ -188,5 +247,41 @@ export function createBillingProfiles({
       throw new SalesError("Choose a valid billing profile.");
     return { profile: profile(id) };
   }
-  return { list, get, save, preview, previewInTransaction };
+  function seedDefaultPresets(actorId = "system", { force = false } = {}) {
+    return transaction(db, () => {
+      const existing = db.prepare("SELECT config_json FROM _sales_billing_profiles").all();
+      if (!force && existing.length > 0) return { created: 0 };
+      const existingKeys = new Set(
+        existing.map((r) => {
+          try {
+            const c = JSON.parse(r.config_json);
+            return `${c.state}:${c.segment}`;
+          } catch {
+            return "";
+          }
+        }),
+      );
+      let created = 0;
+      for (const preset of PRESET_BILLING_PROFILES) {
+        const key = `${preset.state}:${preset.segment}`;
+        if (existingKeys.has(key)) continue;
+        const id = randomUUID();
+        const cfg = { schemaVersion: 4, ...preset };
+        const json = JSON.stringify(cfg);
+        db.prepare(
+          "INSERT INTO _sales_billing_profiles(id,version,config_json) VALUES(?,1,?)",
+        ).run(id, json);
+        db.prepare(
+          "INSERT INTO _sales_billing_profile_revisions(profile_id,version,actor_id,config_json) VALUES(?,1,?,?)",
+        ).run(id, actorId, json);
+        created += 1;
+      }
+      return { created };
+    });
+  }
+  function installPresets(user) {
+    admin(user);
+    return seedDefaultPresets(user.id, { force: true });
+  }
+  return { list, get, save, preview, previewInTransaction, seedDefaultPresets, installPresets };
 }

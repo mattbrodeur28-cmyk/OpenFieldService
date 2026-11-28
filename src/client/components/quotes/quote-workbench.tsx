@@ -123,15 +123,17 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
       .catch(() => {});
     return () => { live = false; };
   }, [quoteId]);
-  // If no opportunity yet but a customer is selected, load an active billing profile for that customer's segment
+  // If no opportunity yet but a customer is selected, load an active billing profile matching state + segment
   useEffect(() => {
     if (profile || opportunity || !selectedCustomerId) return;
     const cust = customers.find((c) => c.id === selectedCustomerId);
     const seg = (cust as any)?.customer_type === "commercial" ? "commercial" : "residential";
+    const custState = String((cust as any)?.state || "").trim().toUpperCase();
     let live = true;
     accountRequest<{ profiles: BillingProfile[] }>(`/api/sales/billing-profiles?segment=${seg}`)
       .then((r) => {
-        const p = (r.profiles ?? []).find((x) => x.config.active && !x.requiresReview);
+        const active = (r.profiles ?? []).filter((x) => x.config.active && !x.requiresReview);
+        const p = (custState && active.find((x) => x.config.state === custState)) || active[0];
         if (live && p) { setProfile(p); setLatestProfile(p); }
       })
       .catch(() => {});
@@ -627,7 +629,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           {saved && <Button disabled={busy || resourceBusy || loading || dirty || uncertain || readOnly || saved.estimate.pricingComplete===false} onClick={() => setDocumentOpen(true)}>Draft document review</Button>}
           {saved && (
             <Button
-              disabled={busy || resourceBusy || loading || dirty || uncertain || saved.estimate.pricingComplete === false}
+              disabled={busy || loading}
               onClick={() => window.open(`/api/sales/quotes/${saved.id}/customer-proposal.html?revision=${saved.revision}&print=1`, "_blank", "noopener,noreferrer")}
             >
               Customer PDF

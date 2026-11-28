@@ -118,9 +118,34 @@ export function BillingProfileSettings() {
       {notice && <Notice tone="success">{notice}</Notice>}
       {!edit ? (
         <>
-          <Button disabled={busy || readOnly} onClick={() => begin("new")}>
-            Add billing profile
-          </Button>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px" }}>
+            <Button disabled={busy || readOnly} onClick={() => begin("new")}>
+              Add billing profile
+            </Button>
+            <Button
+              disabled={busy || readOnly}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                setNotice("");
+                try {
+                  const res = await accountRequest<{ created: number }>("/api/sales/billing-profiles/presets", "POST");
+                  setNotice(
+                    res.created > 0
+                      ? `Added ${res.created} CT & MA tax preset${res.created === 1 ? "" : "s"} (Residential & Commercial).`
+                      : "CT & MA Residential and Commercial presets are already installed.",
+                  );
+                  await load();
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Add CT &amp; MA presets
+            </Button>
+          </div>
           {rows?.profiles.map((row) => (
             <article class="sales-activity" key={row.id}>
               <strong>{row.config.name}</strong>

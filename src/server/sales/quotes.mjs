@@ -286,6 +286,16 @@ export function createQuotes({ storage, sales, pricing, materialSnapshots, clock
         );
       });
       if (template) db.prepare("INSERT INTO _sales_quote_revision_templates(quote_id,quote_version,template_id,template_version) VALUES(?,?,?,?)").run(data.id,next,template.id,template.version);
+      // Keep the linked Sales pipeline opportunity's expected_value in sync with the saved quote total
+      const syncedValue = Math.min(
+        Math.max(0, Math.round(Number(snapshot.totalCents ?? snapshot.knownTotals?.totalCents ?? 0))),
+        1_000_000_000,
+      );
+      if (syncedValue > 0) {
+        db.prepare(
+          "UPDATE _sales_opportunities SET expected_value=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        ).run(syncedValue, data.estimate.opportunityId);
+      }
       const result = { quote: shape(head(data.id)) };
       db.prepare(
         "INSERT INTO _sales_quote_requests(request_key,actor_id,request_hash,result_json) VALUES(?,?,?,?)",

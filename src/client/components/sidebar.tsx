@@ -20,7 +20,6 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "technicians", path: "/technicians", label: "Technicians", icon: Wrench },
   { view: "inventory", path: "/inventory", label: "Inventory", icon: Package },
   { view: "rms", path: "/rms", label: "Refrigerant (RMS)", icon: Wrench },
-  { view: "controls", path: "/controls", label: "Controls", icon: Wrench },
 ];
 
 const TECH_ALLOWED_VIEWS = new Set<View>([
@@ -31,7 +30,6 @@ const TECH_ALLOWED_VIEWS = new Set<View>([
   "customers",
   "inventory",
   "rms",
-  "controls",
   "timesheets",
 ]);
 

@@ -2,7 +2,6 @@ import {AgreementsPage} from "./components/agreements-page";
 import {ProjectsPage} from "./components/projects-page";
 import {OwnerHub} from "./components/owner-hub";
 import {RmsPage} from "./components/rms-page";
-import {ControlsPage} from "./components/controls-page";
 import {TechMyDay} from "./components/tech-my-day";
 import {TechMobileView} from "./components/tech-mobile-view";
 import { BusinessSection } from "./components/business-section";
@@ -88,7 +87,7 @@ export function App() {
     if (view === "projects") return <ProjectsPage id={id}/>;
     if (view === "owner") return <OwnerHub />;
     if (view === "rms") return <RmsPage />;
-    if (view === "controls") return <ControlsPage />;
+    if (view === "controls") return isTech ? <TechMyDay /> : <Dashboard />;
     if (view === "my-day") return <TechMyDay />;
     if (view === "mobile") return <TechMobileView />;
     if (view === "sales") return <SalesPage opportunityId={id} quoteId={subId} />;

@@ -322,11 +322,39 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
   useEffect(() => {
     if (quoteId !== "new") void load();
   }, [quoteId]);
+  // Debounced background auto-calculation so Tax & Total update live as valid numbers are entered
+  useEffect(() => {
+    if (disabled || loading || !opportunity || !profile || !pricingDate) return;
+    const epoch = editEpoch.current;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      let input: EstimateInput;
+      try {
+        input = build(opportunity, profile);
+      } catch {
+        return; // Wait until user finishes typing a valid number
+      }
+      if (JSON.stringify(input) === JSON.stringify(previewInput.current)) return;
+      void accountRequest<EstimateResult>("/api/sales/estimates/preview", "POST", input)
+        .then((result) => {
+          if (cancelled || !alive.current || epoch !== editEpoch.current) return;
+          previewInput.current = input;
+          setPreview(result);
+          setMaterials(
+            Object.fromEntries(result.materialSnapshots.map((item) => [item.id, item])),
+          );
+        })
+        .catch(() => {});
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [lines, opportunity, profile, pricingDate, disabled, loading]);
   function changed() {
     editEpoch.current++;
     previewInput.current = null;
     setDirty(true);
-    setPreview(null);
     setNotice("");
   }
   function patchDocument(patch: Partial<QuoteDocument>) {
@@ -636,7 +664,6 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
               Customer PDF
             </Button>
           )}
-          <Button disabled={disabled || (!opportunity && !selectedCustomerId)} onClick={() => void calculate()}>Calculate prices</Button>
           <Button
             variant="primary"
             disabled={busy || resourceBusy || loading || readOnly || historical || lockedQuote || (!dirty && !uncertain && quoteId !== "new")}

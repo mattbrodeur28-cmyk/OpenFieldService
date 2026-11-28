@@ -4,6 +4,7 @@ import { renderCustomerQuoteHtml } from "./quote-document.mjs";
 import { createQuotes } from "./quotes.mjs";
 import { createBillingProfiles } from "./billing-profiles.mjs";
 import { createActivities } from "./activities.mjs";
+import { createCampaigns } from "./campaigns.mjs";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createSalesService } from "./service.mjs";
@@ -40,6 +41,7 @@ export function createSales({
     owners,
     resolveMessage,
   });
+  const campaigns = createCampaigns({ storage });
   storage.salesCustomerOverviewInTransaction=createSalesCustomerOverview({storage,clock});
   app.use(
     "*",
@@ -235,6 +237,13 @@ export function createSales({
   );
   app.get("/forecast", (c) => c.json(service.forecast(c.req.query())));
   app.get("/forecast/stage-durations", (c) => c.json(service.stageDurations(c.req.query())));
+  // SALES-019 & SALES-020: Ad campaigns, referral attribution and ROI analytics
+  app.get("/campaigns", (c) => c.json(campaigns.list(c.req.query())));
+  app.get("/campaigns/analytics", (c) => c.json(campaigns.analytics(c.req.query())));
+  app.get("/campaigns/:id", (c) => c.json(campaigns.detail(c.req.param("id"), c.req.query())));
+  app.post("/campaigns", async (c) => c.json(campaigns.save(check(c), null, await body(c)), 201));
+  app.put("/campaigns/:id", async (c) => c.json(campaigns.save(check(c), c.req.param("id"), await body(c))));
+  app.post("/attributions", async (c) => c.json(campaigns.attribute(check(c), await body(c)), 201));
   app.post("/opportunities/:id/notes", async (c) => {
     const data = await body(c);
     return c.json(
@@ -266,5 +275,5 @@ export function createSales({
       ),
     );
   });
-  return { app, service, billingProfiles, quotes,issuer:quotes.lifecycle.issuer.publicFields };
+  return { app, service, billingProfiles, quotes, campaigns, issuer:quotes.lifecycle.issuer.publicFields };
 }

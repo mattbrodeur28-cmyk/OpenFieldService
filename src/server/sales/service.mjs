@@ -180,6 +180,11 @@ export function createSalesService({ storage, owners = () => [], clock }) {
     if (!owners().some((owner) => owner.id === data.ownerId))
       throw new SalesError("Choose an active Sales owner.");
     if (
+      data.campaignId &&
+      !db.prepare("SELECT 1 FROM _sales_campaigns WHERE id=?").get(data.campaignId)
+    )
+      throw new SalesError("Campaign not found.");
+    if (
       data.customerId &&
       !db.prepare("SELECT 1 FROM customers WHERE id=?").get(data.customerId)
     )
@@ -248,6 +253,8 @@ export function createSalesService({ storage, owners = () => [], clock }) {
         "contact_phone",
         "segment",
         "source",
+        "campaign_id",
+        "referred_by_name",
         "expected_value",
         "probability",
         "expected_close_date",
@@ -269,6 +276,8 @@ export function createSalesService({ storage, owners = () => [], clock }) {
         data.contactPhone,
         data.segment,
         data.source,
+        data.campaignId ?? null,
+        data.referredByName ?? "",
         data.expectedValue,
         data.probability,
         data.expectedCloseDate,

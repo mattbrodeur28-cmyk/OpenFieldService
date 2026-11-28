@@ -1,12 +1,13 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
+import { accountRequest, isAdministrator, useAccount } from "../auth";
 import { useApp } from "../context";
 import { Button } from "./ui/button";
 import { TextField } from "./ui/input";
 import { Select } from "./ui/select";
 import { Badge, Notice, Table } from "./ui/surfaces";
 import { Dialog, DialogTitle } from "./ui/dialog";
-import { PhoneCall, Plus, ChevronDown, CheckCircle2, UserPlus } from "lucide-preact";
+import { PhoneCall, Plus, ChevronDown, CheckCircle2, UserPlus, BellRing, KeyRound } from "lucide-preact";
 
 const uuid = () => crypto.randomUUID();
 
@@ -18,9 +19,18 @@ export function DispatchCallIntake({
   onDispatched(): void;
 }) {
   const { customers, technicians, navigate } = useApp();
+  const { user } = useAccount();
+  const isAdmin = isAdministrator(user);
   const [extraCustomers, setExtraCustomers] = useState<{ id: string; name: string; customer_type?: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [modal, setModal] = useState(false);
+  const [mcpModal, setMcpModal] = useState(false);
+  const [mcpKeys, setMcpKeys] = useState<any[]>([]);
+  const [newKeyLabel, setNewKeyLabel] = useState("Website & Email AI Agent");
+  const [createdKey, setCreatedKey] = useState("");
+  const [aiAlerts, setAiAlerts] = useState<any[]>([]);
+  const [techByAlert, setTechByAlert] = useState<Record<string, string>>({});
+  const [campaigns, setCampaigns] = useState<{ id: string; name: string; channel: string }[]>([]);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
   const [newCust, setNewCust] = useState({ name: "", customer_type: "residential" as "residential" | "commercial", phone: "", email: "", address: "" });
   const [bookings, setBookings] = useState<any[]>([]);
@@ -34,6 +44,8 @@ export function DispatchCallIntake({
     urgency: "normal",
     preferredDate: new Date().toISOString().slice(0, 10),
     preferredWindow: "morning",
+    campaignId: "none",
+    referredByName: "",
   });
 
   const allCustomers = [
@@ -49,8 +61,63 @@ export function DispatchCallIntake({
         setBookings(res.bookings || []);
       })
       .catch(() => {});
+    void accountRequest<{ alerts: any[] }>("/api/mcp-admin/alerts?status=pending_confirmation")
+      .then((res) => {
+        if (!live) return;
+        setAiAlerts(res.alerts || []);
+      })
+      .catch(() => {});
+    void accountRequest<{ campaigns: { id: string; name: string; channel: string }[] }>("/api/sales/campaigns?status=active")
+      .then((res) => {
+        if (!live) return;
+        setCampaigns(res.campaigns || []);
+      })
+      .catch(() => {});
     return () => { live = false; };
   }, [rev]);
+
+  async function loadMcpKeys() {
+    try {
+      const res = await accountRequest<{ keys: any[] }>("/api/mcp-admin/keys");
+      setMcpKeys(res.keys || []);
+    } catch {}
+  }
+
+  async function createMcpKey() {
+    setError("");
+    try {
+      const res = await accountRequest<{ apiKey: string }>("/api/mcp-admin/keys", "POST", {
+        label: newKeyLabel || "Website & Email AI Agent",
+      });
+      setCreatedKey(res.apiKey);
+      await loadMcpKeys();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function confirmAiAlert(alert: any) {
+    setError("");
+    try {
+      await accountRequest(`/api/mcp-admin/alerts/${alert.id}/confirm`, "POST", {
+        technicianId: techByAlert[alert.id] || null,
+      });
+      setRev((r) => r + 1);
+      onDispatched();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function dismissAiAlert(alertId: string) {
+    setError("");
+    try {
+      await accountRequest(`/api/mcp-admin/alerts/${alertId}/dismiss`, "POST");
+      setRev((r) => r + 1);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
 
   const activeBookings = bookings.filter((b) => ["new", "escalated"].includes(b.status));
 
@@ -97,15 +164,24 @@ export function DispatchCallIntake({
         preferredWindow: form.preferredWindow,
       });
       if (created?.booking?.id) {
-        await api("POST", `/api/residential/bookings/${created.booking.id}/dispatch`, {
+        const dispatched = await api<{ jobId?: string }>("POST", `/api/residential/bookings/${created.booking.id}/dispatch`, {
           requestKey: uuid(),
           technicianId: null,
           scheduledDate: form.preferredDate,
           scheduledTime: form.preferredWindow === "afternoon" ? "13:00" : "09:00",
         });
+        if (dispatched?.jobId && (form.campaignId !== "none" || form.referredByName.trim())) {
+          await accountRequest("/api/sales/attributions", "POST", {
+            entityType: "job",
+            entityId: dispatched.jobId,
+            campaignId: form.campaignId === "none" ? null : form.campaignId,
+            referralChannel: form.channel,
+            referredByName: form.referredByName.trim(),
+          }).catch(() => {});
+        }
       }
       setModal(false);
-      setForm({ ...form, issue: "" });
+      setForm({ ...form, issue: "", campaignId: "none", referredByName: "" });
       setRev((r) => r + 1);
       onDispatched();
     } catch (err) {
@@ -145,15 +221,86 @@ export function DispatchCallIntake({
           <Badge tone={activeBookings.length > 0 ? "warning" : "neutral"}>
             {activeBookings.length} open
           </Badge>
+          {aiAlerts.length > 0 && (
+            <Badge tone="danger">
+              <BellRing size={11} /> {aiAlerts.length} AI pending confirm
+            </Badge>
+          )}
         </button>
-        <Button variant="primary" disabled={!canWrite} onClick={() => setModal(true)}>
-          <Plus size={14} /> Book service call
-        </Button>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {isAdmin && (
+            <Button variant="ghost" onClick={() => { setMcpModal(true); setCreatedKey(""); void loadMcpKeys(); }}>
+              <KeyRound size={14} /> AI / MCP
+            </Button>
+          )}
+          <Button variant="primary" disabled={!canWrite} onClick={() => setModal(true)}>
+            <Plus size={14} /> Book service call
+          </Button>
+        </div>
       </div>
 
-      {open && (
+      {(open || aiAlerts.length > 0) && (
         <div class="record-section-body">
           {error && <Notice tone="danger">{error}</Notice>}
+          {aiAlerts.length > 0 && (
+            <div style={{ marginBottom: "14px" }}>
+              <Notice tone="warning">
+                <strong>{aiAlerts.length} AI-booked service call{aiAlerts.length === 1 ? "" : "s"} awaiting Manager/Owner confirmation</strong>
+              </Notice>
+              <Table label="AI bookings pending confirmation">
+                <thead>
+                  <tr>
+                    <th>Job</th>
+                    <th>Customer</th>
+                    <th>Source</th>
+                    <th>Requested</th>
+                    <th>Issue</th>
+                    <th>Assign Tech</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {aiAlerts.map((a) => (
+                    <tr key={a.id}>
+                      <td>
+                        <button type="button" class="btn-link" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--primary)", fontWeight: 600 }} onClick={() => navigate(`/jobs/${a.job_id}`)}>
+                          {a.job_identifier}
+                        </button>
+                      </td>
+                      <td>
+                        <strong>{a.customer_name}</strong>
+                        <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{a.customer_phone || a.customer_email || ""}</div>
+                      </td>
+                      <td><Badge tone="info">{a.channel}</Badge></td>
+                      <td>{a.preferred_date} ({a.preferred_window})</td>
+                      <td>{a.issue}</td>
+                      <td>
+                        <Select
+                          label=""
+                          value={techByAlert[a.id] || ""}
+                          options={[
+                            { value: "", label: "Confirm unassigned" },
+                            ...technicians.map((t) => ({ value: t.id, label: t.name })),
+                          ]}
+                          onValueChange={(v) => setTechByAlert((m) => ({ ...m, [a.id]: v }))}
+                        />
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <Button variant="primary" disabled={!canWrite} onClick={() => void confirmAiAlert(a)}>
+                            Confirm
+                          </Button>
+                          <Button variant="ghost" disabled={!canWrite} onClick={() => void dismissAiAlert(a.id)}>
+                            Dismiss
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
           {activeBookings.length ? (
             <Table label="Open call bookings">
               <thead>
@@ -312,6 +459,23 @@ export function DispatchCallIntake({
               value={form.issue}
               onInput={(e) => setForm({ ...form, issue: (e.target as HTMLInputElement).value })}
             />
+            <div class="sales-form-grid">
+              <Select
+                label="Ad campaign (how they found us)"
+                value={form.campaignId}
+                options={[
+                  { value: "none", label: "None / organic" },
+                  ...campaigns.map((c) => ({ value: c.id, label: `${c.name} (${c.channel.replace(/_/g, " ")})` })),
+                ]}
+                onValueChange={(campaignId) => setForm({ ...form, campaignId })}
+              />
+              <TextField
+                label="Referred by (optional)"
+                value={form.referredByName}
+                placeholder="Customer or partner name"
+                onInput={(e) => setForm({ ...form, referredByName: (e.target as HTMLInputElement).value })}
+              />
+            </div>
             {error && <p class="workspace-error" role="alert">{error}</p>}
             <div class="dialog-actions">
               <Button onClick={() => { setModal(false); setCreatingCustomer(false); }}>Cancel</Button>
@@ -320,6 +484,45 @@ export function DispatchCallIntake({
               </Button>
             </div>
           </form>
+        </Dialog>
+      )}
+
+      {mcpModal && (
+        <Dialog class="project-form" close={() => setMcpModal(false)}>
+          <DialogTitle>Dispatch AI / MCP Server</DialogTitle>
+          <p class="workspace-help">
+            Connect your website chat AI or email responder to <code>{window.location.origin}/api/mcp</code> (JSON-RPC 2.0 Streamable HTTP) with <code>Authorization: Bearer &lt;API_KEY&gt;</code>. Bookings automatically enter the Work Pipeline and alert the Manager/Owner here and in Team Chat.
+          </p>
+          <div style={{ display: "flex", gap: "8px", alignItems: "flex-end", marginBottom: "10px" }}>
+            <div style={{ flex: 1 }}>
+              <TextField label="New key label" value={newKeyLabel} onInput={(e) => setNewKeyLabel(e.currentTarget.value)} />
+            </div>
+            <Button variant="primary" onClick={() => void createMcpKey()}>Generate key</Button>
+          </div>
+          {createdKey && (
+            <Notice tone="success">
+              <strong>Copy this MCP API key now (shown once):</strong>
+              <div style={{ marginTop: "4px", wordBreak: "break-all", fontFamily: "monospace", fontSize: "12px" }}>{createdKey}</div>
+            </Notice>
+          )}
+          {mcpKeys.length > 0 && (
+            <Table label="MCP API keys">
+              <thead><tr><th>Label</th><th>Prefix</th><th>Last used</th><th>Status</th></tr></thead>
+              <tbody>
+                {mcpKeys.map((k) => (
+                  <tr key={k.id}>
+                    <td>{k.label}</td>
+                    <td><code>{k.keyPrefix}</code></td>
+                    <td>{k.lastUsedAt || "Never"}</td>
+                    <td><Badge tone={k.revokedAt ? "neutral" : "success"}>{k.revokedAt ? "Revoked" : "Active"}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+          <div class="dialog-actions">
+            <Button onClick={() => setMcpModal(false)}>Close</Button>
+          </div>
         </Dialog>
       )}
     </section>

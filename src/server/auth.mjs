@@ -226,9 +226,16 @@ export function createAuth({ filename, env = process.env, onTechnicianUser } = {
     if (!peopleAdmin(c.get('user'))) return c.json({ error: 'People administration access required.' }, 403);
     const input = await body(c);
     if (!input || !validName(input.name) || typeof input.description !== 'string' || input.description.length > 1000) return c.json({ error: 'Enter a team name and description.' }, 400);
-    if (db.prepare('SELECT id FROM teams WHERE name=?').get(input.name.trim())) return c.json({ error: 'A team with this name already exists.' }, 409);
+    if (db.prepare('SELECT id FROM teams WHERE name=? AND archived=0').get(input.name.trim())) return c.json({ error: 'A team with this name already exists.' }, 409);
     const id = randomUUID(); db.prepare('INSERT INTO teams(id,name,description) VALUES(?,?,?)').run(id, input.name.trim(), input.description);
     db.prepare('INSERT INTO team_members(team_id,user_id) VALUES(?,?)').run(id, c.get('user').id); return c.json({ id }, 201);
+  });
+  app.delete('/teams/:id', c => {
+    if (!peopleAdmin(c.get('user'))) return c.json({ error: 'People administration access required.' }, 403);
+    const team = db.prepare('SELECT * FROM teams WHERE id=? AND archived=0').get(c.req.param('id'));
+    if (!team) return c.json({ error: 'Team not found.' }, 404);
+    db.prepare('UPDATE teams SET archived=1, name=? WHERE id=?').run(`${team.name} (deleted ${Date.now()})`, team.id);
+    return c.json({ ok: true });
   });
   app.put('/teams/:id/members', async c => {
     if (!peopleAdmin(c.get('user'))) return c.json({ error: 'People administration access required.' }, 403);
@@ -251,7 +258,24 @@ export function createAuth({ filename, env = process.env, onTechnicianUser } = {
     if (!input || typeof input.content !== 'string' || !input.content.trim() || input.content.length > 8000) return c.json({ error: 'Enter a message of up to 8,000 characters.' }, 400);
     const id = randomUUID(); db.prepare('INSERT INTO team_messages(id,team_id,user_id,content) VALUES(?,?,?,?)').run(id, team.id, c.get('user').id, input.content); return c.json({ id }, 201);
   });
-  return { app, guard, salesMessageReference: (user,messageId) => {
+  function postManagerAlert(content) {
+    if (typeof content !== 'string' || !content.trim()) return null;
+    const managers = db.prepare("SELECT id,name,email,role FROM users WHERE active=1 AND role IN ('owner','admin') ORDER BY CASE role WHEN 'owner' THEN 0 ELSE 1 END, created_at").all();
+    if (!managers.length) return null;
+    let team = db.prepare("SELECT id,name FROM teams WHERE archived=0 ORDER BY CASE WHEN lower(name) LIKE '%dispatch%' THEN 0 ELSE 1 END, created_at LIMIT 1").get();
+    if (!team) {
+      const teamId = randomUUID();
+      db.prepare("INSERT INTO teams(id,name,description) VALUES(?,?,?)").run(teamId, 'Dispatch Alerts', 'Automated AI booking alerts awaiting manager or owner confirmation.');
+      for (const m of managers) {
+        db.prepare('INSERT OR IGNORE INTO team_members(team_id,user_id) VALUES(?,?)').run(teamId, m.id);
+      }
+      team = { id: teamId, name: 'Dispatch Alerts' };
+    }
+    const messageId = randomUUID();
+    db.prepare('INSERT INTO team_messages(id,team_id,user_id,content) VALUES(?,?,?,?)').run(messageId, team.id, managers[0].id, content.slice(0, 8000));
+    return { teamId: team.id, teamName: team.name, messageId, notifiedManagers: managers.map(m => ({ id: m.id, name: m.name, role: m.role })) };
+  }
+  return { app, guard, postManagerAlert, salesMessageReference: (user,messageId) => {
     const message=db.prepare('SELECT m.team_id FROM team_messages m JOIN teams t ON t.id=m.team_id WHERE m.id=? AND t.archived=0').get(messageId);
     if(!message||(!admin(user)&&!db.prepare('SELECT 1 FROM team_members WHERE team_id=? AND user_id=?').get(message.team_id,user.id)))return null;
     return {teamId:message.team_id};

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { Hash, Users, Search, Send, ChevronDown } from "lucide-preact";
 import { accountRequest, useAccount, canManagePeople } from "../auth";
 import type { AccountUser } from "../auth";
+import { useApp } from "../context";
 type Message = {
   id: string;
   user_id: string;
@@ -19,6 +20,7 @@ function timestamp(value: string) {
 }
 export function TeamChannel({ id }: { id: string }) {
   const { user, refreshTeams } = useAccount();
+  const { navigate } = useApp();
   const manage = canManagePeople(user);
   const [team, setTeam] = useState<{
     name: string;
@@ -147,6 +149,25 @@ export function TeamChannel({ id }: { id: string }) {
               label: showMembers ? "Hide members" : "Show members",
               onSelect: () => setShowMembers(!showMembers),
             },
+            ...(manage
+              ? [
+                  {
+                    label: "Delete team chat",
+                    onSelect: () => {
+                      if (!window.confirm(`Delete team chat "${team?.name || "this team"}"?`)) return;
+                      setBusy(true);
+                      setError("");
+                      void accountRequest("/api/auth/teams/" + id, "DELETE")
+                        .then(async () => {
+                          await refreshTeams();
+                          navigate("/team");
+                        })
+                        .catch((e) => setError((e as Error).message))
+                        .finally(() => setBusy(false));
+                    },
+                  },
+                ]
+              : []),
           ]}
         />
       </header>

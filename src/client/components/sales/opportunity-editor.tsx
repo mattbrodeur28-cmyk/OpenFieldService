@@ -73,6 +73,9 @@ export function OpportunityEditor({
     [email, setEmail] = useState(row?.contact_email || ""),
     [phone, setPhone] = useState(row?.contact_phone || ""),
     [source, setSource] = useState(row?.source || ""),
+    [campaignId, setCampaignId] = useState(row?.campaign_id || "none"),
+    [referredBy, setReferredBy] = useState(row?.referred_by_name || ""),
+    [campaigns, setCampaigns] = useState<{ id: string; name: string; channel: string }[]>([]),
     [notes, setNotes] = useState(row?.notes || ""),
     [lookup, setLookup] = useState(options),
     [customerSearch, setCustomerSearch] = useState(""),
@@ -80,6 +83,13 @@ export function OpportunityEditor({
     [localError, setLocalError] = useState(""),
     [detail, setDetail] = useState<SalesDetail | null>(null),
     [note, setNote] = useState("");
+  useEffect(() => {
+    let alive = true;
+    void accountRequest<{ campaigns: { id: string; name: string; channel: string }[] }>("/api/sales/campaigns?status=active")
+      .then((res) => { if (alive) setCampaigns(res.campaigns || []); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
   useEffect(() => {
     let alive = true;
     void accountRequest<SalesOptions>(
@@ -193,6 +203,8 @@ export function OpportunityEditor({
             contactPhone: phone,
             segment,
             source,
+            campaignId: campaignId === "none" ? null : campaignId,
+            referredByName: referredBy,
             expectedValue,
             probability,
             expectedCloseDate: closeDate,
@@ -390,12 +402,34 @@ export function OpportunityEditor({
             disabled={readOnly}
             onInput={(e) => setPhone(e.currentTarget.value)}
           />
+          <Select
+            label="Ad campaign"
+            value={campaignId}
+            disabled={readOnly}
+            onValueChange={setCampaignId}
+            options={[
+              { value: "none", label: "No campaign / organic" },
+              ...campaigns.map((c) => ({ value: c.id, label: `${c.name} (${c.channel.replace(/_/g, " ")})` })),
+              ...(row?.campaign_id && !campaigns.some((c) => c.id === row.campaign_id)
+                ? [{ value: row.campaign_id, label: row.campaign_name || "Linked campaign" }]
+                : []),
+            ]}
+          />
           <TextField
-            label="Lead source"
+            label="Lead / referral source"
             value={source}
             maxLength={100}
             disabled={readOnly}
+            placeholder="e.g. Google Ads, Website, Referral"
             onInput={(e) => setSource(e.currentTarget.value)}
+          />
+          <TextField
+            label="Referred by (customer / partner)"
+            value={referredBy}
+            maxLength={200}
+            disabled={readOnly}
+            placeholder="Optional person or company who referred them"
+            onInput={(e) => setReferredBy(e.currentTarget.value)}
           />
           <label class="ui-field">
             Internal scope notes

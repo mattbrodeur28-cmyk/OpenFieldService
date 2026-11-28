@@ -25,6 +25,7 @@ import { salesMoney, salesMinor } from "../sales-types";
 import { dateLabel, stageAge } from "../sales-format";
 import { PipelineEditor } from "./sales/pipeline-editor";
 import { SalesOverview } from "./sales/sales-overview";
+import { CampaignsPage } from "./sales/campaigns-page";
 import { FollowUpInbox, ReminderSummary } from "./sales/activities";
 import { OpportunityEditor } from "./sales/opportunity-editor";
 import { MoveForm } from "./sales/move-form";
@@ -825,5 +826,6 @@ function SalesWorkspace({ opportunityId }: { opportunityId: string | null }) {
 export function SalesPage({opportunityId,quoteId}:{opportunityId:string|null;quoteId?:string|null}) {
   if(!opportunityId)return <ModuleOverview module={businessModules.sales}/>;
   if(opportunityId==='quotes')return <Suspense fallback={<div class="page"><p role="status">Loading Quotes…</p></div>}><QuotesPage quoteId={quoteId}/></Suspense>;
+  if(opportunityId==='campaigns')return <CampaignsPage />;
   return <SalesWorkspace opportunityId={opportunityId==='pipeline'?null:opportunityId}/>;
 }

@@ -19,7 +19,6 @@ release or change feature checkboxes.
 - [M4 — CRM and Sales](#m4--commercial-crm)
 - [M5 — Contracts](#m5--contracts-and-maintenance-agreements)
 - [M6 — QuickBooks](#m6--quickbooks-accounting)
-- [M7 — Controls and handover](#m7--controls-commissioning-and-handover)
 - [M8 — Owner reporting](#m8--empower-the-business-owner)
 - [M9 — Deployment and scale](#m9--deployment-and-scale)
 - [M10 — Later options](#m10--later-options)
@@ -103,7 +102,7 @@ is a dependency guide rather than a claim that entire modules are finished.
 | Track | Owning feature IDs | Focus / remaining acceptance work |
 | --- | --- | --- |
 | Modern UI | M1 UX/UI; ADR-0008 | Consistent SLDS layouts, business-screen adoption and accessibility |
-| CRM and Sales | M4 CRM-001–007; SALES-001–018 | Complete Customer 360/communications, quote options, procurement and access rules |
+| CRM and Sales | M4 CRM-001–007; SALES-001–020 | Complete Customer 360/communications, quote options, procurement, ad campaigns/referral attribution and access rules |
 | Platform | M2 ARCH-001–022 | Native boundaries, migrations, durable jobs, policy-safe metadata and shared-state qualification |
 | Contracts | M5 CONTRACT-001–008 | Qualify end-to-end maintenance, evidence, entitlements, renewal and billing handoffs |
 | Projects / Commercial / Construction | M11 PROJ, COM, CONST | Project/phase delivery, crews, change orders, commitments, progress billing and WIP |
@@ -153,7 +152,6 @@ See the [documentation index](docs/README.md) for owning APIs and release record
 | M4 | Commercial CRM, Sales pipeline and quote-to-job conversion | In progress: Sales opportunities, pipelines, Kanban, follow-ups and CRM accounts/contacts | M2; existing customers/sites |
 | M5 | Contracts, maintenance agreements and renewals | In progress: drafts, review, offers, authorization, maintenance plans, due-work generation and entitlement usage | M4 customer/contact model; M3 scheduling |
 | M6 | QuickBooks-backed accounting | Planned | M2 reliable integration jobs/audit; M4 mappings |
-| M7 | Controls records, commissioning and handover | Planned | M4; existing equipment foundation |
 | M8 | Business-owner reporting and operational controls | Planned | M3–M7 business events |
 | M9 | Containers, Kubernetes and scale qualification | Planned | M2 shared-state/database work |
 | M10 | Optional extensions and broader SaaS | Planned | Proven core workflows |
@@ -751,6 +749,25 @@ offers with recorded external responses. Accepted-quote/native Job conversion is
   customer signatures. Remaining variant/browser/PDF gates are recorded in
   [the release evidence](docs/releases/2026-11-15-quote-offers.md).
 
+- [ ] **SALES-019 — Ad campaigns and referral attribution:** bake campaign and
+  referral-source tracking directly into the Sales app (no separate marketing silo).
+  Create and manage ad campaigns with name, channel (Google Ads, Local Service Ads,
+  Meta/Facebook, Website/SEO, Direct Mail, Yard Sign, Referral, Other), tracking
+  number/promo code or UTM tag, active/paused/archived status, date range and
+  recorded ad spend/budget. Attach a structured campaign and referral source
+  (including optional referring customer/contact or partner note) on Sales
+  opportunities, new customer creation and inbound call intake so every lead records
+  how they were referred in, using native customer/opportunity/job links.
+
+- [ ] **SALES-020 — Campaign performance and ROI analytics:** native Sales reporting
+  view showing how each ad campaign and referral channel is performing over any
+  selected date range: leads/opportunities generated, booked jobs, quotes sent and
+  accepted, close/conversion rate, quoted pipeline value, won/invoiced revenue
+  (projected from native Sales opportunities, jobs and invoices — never double-counting
+  quotes as recognized revenue), cost per lead (CPL), cost per booked job and return
+  on ad spend (ROAS / ROI). Include drill-down from any campaign or referral source
+  to its attributed opportunities, customers and jobs.
+
 **Acceptance:** create a prospect/opportunity, move it on Kanban with pointer and
 keyboard, generate/revise/accept a quote, convert it once into a linked active job,
 assign that job in Dispatcher and read it back after reload. Concurrent conversion
@@ -855,43 +872,6 @@ production authorization are separate steps.
 **Acceptance:** authorize a real sandbox, map data, export an approved invoice,
 repeat without duplication, reconcile a payment and test reconnect/revocation,
 realm isolation and partial failures. Production needs separate company verification.
-
-## M7 — Controls, commissioning and handover
-
-**Status: Coded (source + automated tests; browser and LXC qualification remain open).**
-
-- [ ] **CTRL-001 — Hierarchy:** building → system → equipment → controller/components
-  with stable identifiers and move/replacement history.
-  Coded (source + automated tests): `_ctrl_systems`, `_ctrl_controllers`, `_ctrl_history`
-  and `/api/controls/systems` + `/controllers/:id/move`.
-- [ ] **CTRL-002 — Controller inventory:** manufacturer/model, protocol, addressing,
-  point/network references and software/firmware. Protect network information;
-  passwords belong in secret storage rather than service notes.
-  Coded (source + automated tests): BACnet/Modbus/LonWorks inventory rejecting plaintext
-  passwords in network/secret reference fields.
-- [ ] **CTRL-003 — Checkout:** versioned point-to-point/sequence tests, readings,
-  evidence, technician identity, review and sign-off.
-  Coded (source + automated tests): `/api/controls/checkouts` with admin-gated
-  approval/rejection sign-off.
-- [ ] **CTRL-004 — Drawings/backups:** versions, provenance, hashes, equipment links,
-  access control, retention and reliable restore/export.
-  Coded (source + automated tests): `/api/controls/artifacts` auto-versioning with
-  SHA-256 digests and retention policies.
-- [ ] **CTRL-005 — Deficiencies:** severity, evidence, ownership, corrective work,
-  retest and authorized closure.
-  Coded (source + automated tests): `/api/controls/deficiencies`, native corrective
-  Job creation (`/corrective-job`), and authorized retest closure (`/close`).
-- [ ] **CTRL-006 — Handover:** approved drawings/backups, checkout reports, open
-  deficiencies and service history in an export or properly scoped customer portal.
-  Coded (source + automated tests): `GET /api/controls/systems/:id/handover` and
-  `/controls` Handover Package JSON export.
-- [ ] **CTRL-007 — Maintenance linkage:** tasks use the right equipment/template
-  version and retain the exact version completed on a visit.
-  Coded (source + automated tests): `/api/controls/maintenance-links` preserving exact
-  template versions completed per controller/visit.
-
-**Acceptance:** complete a controller checkout, record a deficiency, attach a
-versioned backup, schedule corrective work and produce a traceable handover.
 
 ## M8 — Empower the business owner
 

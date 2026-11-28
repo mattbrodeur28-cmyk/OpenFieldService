@@ -11,6 +11,7 @@ import { createBusinessModule } from "./business/http.mjs";
 import { createResidentialModule } from "./residential/http.mjs";
 import { createRmsModule } from "./rms/http.mjs";
 import { createControlsModule } from "./controls/http.mjs";
+import { createDispatchMcp } from "./mcp/dispatch-mcp.mjs";
 import { quoteMaterialSnapshots } from "./inventory/quote-pricing.mjs";
 import { createSales } from "./sales/http.mjs";
 import { createDispatcher } from "./dispatch/service.mjs";
@@ -63,10 +64,13 @@ const business = createBusinessModule({ storage, currentUser: auth.currentUser }
 const residential = createResidentialModule({ storage, currentUser: auth.currentUser });
 const rms = createRmsModule({ storage, currentUser: auth.currentUser });
 const controls = createControlsModule({ storage, currentUser: auth.currentUser });
+const dispatchMcp = createDispatchMcp({ storage, currentUser: auth.currentUser, postManagerAlert: auth.postManagerAlert });
 const app = new Hono();
-// External customer portal uses its own customer-scoped bearer token, outside staff session guard.
+// External customer portal and MCP server use their own token/API-key auth, outside staff session guard.
 app.route("/api/portal", business.portalApp);
+app.route("/api/mcp", dispatchMcp.mcpApp);
 app.use("/api/*", auth.guard);
+app.route("/api/mcp-admin", dispatchMcp.adminApp);
 app.route("/api/auth", auth.app);
 app.route("/api/platform",platform.app);
 app.route("/api/projects",projects.app);

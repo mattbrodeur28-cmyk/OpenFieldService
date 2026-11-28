@@ -13,6 +13,7 @@ export function createAuth(options: {
   ): { teamId: string } | null;
   activeWriters(): { id: string; name: string }[];
   technicianUsers(): { id: string; name: string; email: string; role: string; active: boolean; mustChangePassword: boolean }[];
+  postManagerAlert(content: string): { teamId: string; teamName: string; messageId: string; notifiedManagers: { id: string; name: string; role: string }[] } | null;
   close(): void;
 };
 

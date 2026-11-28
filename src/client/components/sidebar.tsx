@@ -19,7 +19,7 @@ const navItems: { view: View; path: string; label: string; icon: typeof LayoutDa
   { view: "agreements", path: "/agreements", label: "Agreements", icon: Briefcase },
   { view: "technicians", path: "/technicians", label: "Technicians", icon: Wrench },
   { view: "inventory", path: "/inventory", label: "Inventory", icon: Package },
-  { view: "rms", path: "/rms", label: "Refrigerant (RMS)", icon: Wrench },
+  { view: "rms", path: "/rms", label: "RMS", icon: Wrench },
 ];
 
 const TECH_ALLOWED_VIEWS = new Set<View>([
@@ -126,7 +126,6 @@ export function Sidebar({ currentView, currentId, collapsed = false }: { current
         {!isTech && moduleGroup(businessModules.sales, TrendingUp)}
         {!isTech && user.role !== "viewer" && moduleGroup(businessModules.fleet, Truck)}
         {canManage && moduleGroup(businessModules.finance, Wallet)}
-        {canManage && navItem({ view: "owner", path: "/owner", label: "Owner hub", icon: LayoutDashboard })}
         {navItem({ view: "knowledge", path: "/knowledge", label: "Knowledge", icon: BookOpen })}
       </nav>
       <div class="workspace-sidebar-footer">

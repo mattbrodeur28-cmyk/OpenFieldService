@@ -2,7 +2,7 @@ import type { View } from './types';
 export interface ModulePage { key: string; label: string; path: string; description: string; planned?: boolean }
 export interface BusinessModule { view: View; label: string; pages: ModulePage[] }
 export const businessModules: Record<'finance' | 'fleet' | 'sales', BusinessModule> = {
-  finance: { view: 'finance', label: 'Ledger', pages: [
+  finance: { view: 'finance', label: 'Finances', pages: [
     { key: 'ledger', label: 'Ledger', path: '/finance/ledger', description: 'Money in and money out in one combined ledger.' },
     { key: 'invoices', label: 'Invoices', path: '/invoices', description: 'Job invoices and billing status.' },
     { key: 'receivables', label: 'Receivables', path: '/finance/receivables', description: 'Issued-invoice balances, aging, receipts, and collections notes.' },
@@ -17,5 +17,6 @@ export const businessModules: Record<'finance' | 'fleet' | 'sales', BusinessModu
   sales: { view: 'sales', label: 'Sales', pages: [
     { key: 'pipeline', label: 'Pipelines & stages', path: '/sales/pipeline', description: 'Kanban opportunities, stages, follow-ups, and job conversion.' },
     { key: 'quotes', label: 'Quotes', path: '/sales/quotes', description: 'Internal labor and material estimates with pricing and revision history.' },
+    { key: 'campaigns', label: 'Ad campaigns', path: '/sales/campaigns', description: 'Track ad spend, referral sources, booked jobs, and campaign ROI.' },
   ] },
 };

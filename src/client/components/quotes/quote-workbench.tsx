@@ -32,6 +32,7 @@ import type {
 import { lineInput, editLine, templateInput } from "../../quote-input.mjs";
 import { Button } from "../ui/button";
 import { TextField } from "../ui/input";
+import { Select } from "../ui/select";
 import {
   Textarea,
   Badge,
@@ -104,8 +105,22 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
   const [saved, setSaved] = useState<Quote | null>(null),
     [detail, setDetail] = useState<QuoteDetail | null>(null);
   const [opportunity, setOpportunity] = useState<QuoteOpportunity | null>(null),
+    [opportunityList, setOpportunityList] = useState<QuoteOpportunity[]>([]),
     [profile, setProfile] = useState<BillingProfile | null>(null),
     [latestProfile, setLatestProfile] = useState<BillingProfile | null>(null);
+  useEffect(() => {
+    if (quoteId !== "new") return;
+    let live = true;
+    accountRequest<{ opportunities?: QuoteOpportunity[] }>("/api/sales/quotes/options?page=1")
+      .then((r) => {
+        if (!live) return;
+        const rows = r.opportunities ?? [];
+        setOpportunityList(rows);
+        setOpportunity((cur) => cur || rows[0] || null);
+      })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [quoteId]);
   const [oppContact, setOppContact] = useState<string | null>(null);
   useEffect(() => {
     const id = saved?.opportunityId;
@@ -307,16 +322,16 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
     );
   }
   function build(): EstimateInput {
-    if (!opportunity) throw new Error("Choose an opportunity.");
-    if (!profile) throw new Error("Choose a reviewed billing profile.");
-    if (!lines.length) throw new Error("Add at least one estimate line.");
+    if (!opportunity) throw new Error("Choose an opportunity before saving.");
+    if (!profile) throw new Error("Choose a reviewed billing profile in Settings → Billing Profiles before saving.");
+    const effectiveLines = lines.length ? lines : [freshLine()];
     return {
       opportunityId: opportunity.id,
       expectedOpportunityVersion: opportunity.version,
       profileId: profile.id,
       expectedProfileVersion: profile.version,
       pricingDate,
-      lines: lines.map(lineInput),
+      lines: effectiveLines.map(lineInput),
     };
   }
   async function refreshSources() {
@@ -385,13 +400,11 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
     const recovering = uncertain && pending.current !== null;
     setError("");
     let command: QuoteCommand;
+    setBusy(true);
     try {
-      if (uncertain && pending.current) command = pending.current;
-      else {
-        if (!preview || preview.persisted)
-          throw new Error(
-            "Calculate and review prices before saving this draft.",
-          );
+      if (uncertain && pending.current) {
+        command = pending.current;
+      } else {
         if (!document.title.trim() || !document.scope.trim())
           throw new Error("Enter a quote title and scope before saving.");
         if (!document.validUntil || document.validUntil < pricingDate)
@@ -399,10 +412,26 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
             "Choose a validity date on or after the pricing date.",
           );
         const input = build();
-        if (JSON.stringify(input) !== JSON.stringify(previewInput.current))
-          throw new Error(
-            "Estimate inputs changed. Calculate and review prices again.",
+        // Automatically calculate prices if not yet calculated or inputs changed
+        if (
+          !preview ||
+          preview.persisted ||
+          JSON.stringify(input) !== JSON.stringify(previewInput.current)
+        ) {
+          const calc = await accountRequest<EstimateResult>(
+            "/api/sales/estimates/preview",
+            "POST",
+            input,
           );
+          if (!alive.current) return;
+          previewInput.current = input;
+          setPreview(calc);
+          setMaterials(
+            Object.fromEntries(
+              calc.materialSnapshots.map((item) => [item.id, item]),
+            ),
+          );
+        }
         command = {
           id: saved?.id ?? crypto.randomUUID(),
           requestKey: crypto.randomUUID(),
@@ -413,12 +442,6 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
         };
         pending.current = command;
       }
-    } catch (e) {
-      setError((e as Error).message);
-      return;
-    }
-    setBusy(true);
-    try {
       const result = await accountRequest<{ quote: Quote }>(
         "/api/sales/quotes",
         "POST",
@@ -439,9 +462,9 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
       } else await load();
     } catch (e) {
       if (!alive.current) return;
-      const definite = commandFailureIsDefinite(
-        e instanceof AccountRequestError ? e.status : undefined, recovering,
-      );
+      const definite =
+        !(e instanceof AccountRequestError) ||
+        commandFailureIsDefinite(e.status, recovering);
       setUncertain(!definite);
       if (definite) pending.current = null;
       setError((e as Error).message);
@@ -504,7 +527,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           <Button disabled={disabled || !opportunity || !profile} onClick={() => void calculate()}>Calculate prices</Button>
           <Button
             variant="primary"
-            disabled={busy || resourceBusy || loading || readOnly || historical || lockedQuote || ((!preview || preview.persisted) && !uncertain)}
+            disabled={busy || resourceBusy || loading || readOnly || historical || lockedQuote || (!dirty && !uncertain && quoteId !== "new")}
             onClick={() => void save()}
           >
             {uncertain ? "Retry exact save" : busy ? "Working…" : "Save draft"}
@@ -544,119 +567,137 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
             </Notice>
           )}
           
-          <div class="quote-layout">
-            <div class="quote-col">
-              <QuoteSection title="Scope & terms">
-                
-                <TextField
-                  label="Quote title"
-                  value={document.title}
+          <div class="quote-scope-full">
+            <QuoteSection title="Scope & terms">
+              {quoteId === "new" && opportunityList.length > 0 && (
+                <Select
+                  label="Opportunity / Account"
+                  value={opportunity?.id || ""}
+                  disabled={disabled}
+                  options={opportunityList.map((o) => ({
+                    value: o.id,
+                    label: `${o.title} — ${o.customerName || "Prospect"} (${o.segment})`,
+                  }))}
+                  onValueChange={(id) => {
+                    const found = opportunityList.find((o) => o.id === id) || null;
+                    setOpportunity(found);
+                    setProfile(null);
+                    changed();
+                  }}
+                />
+              )}
+              <TextField
+                label="Quote title"
+                value={document.title}
+                required
+                maxLength={200}
+                disabled={disabled}
+                onInput={(e) =>
+                  patchDocument({ title: e.currentTarget.value })
+                }
+              />
+              <label class="ui-field quote-scope-field">
+                Scope
+                <Textarea
+                  class="quote-scope-textarea"
+                  rows={8}
+                  value={document.scope}
                   required
-                  maxLength={200}
+                  maxLength={12000}
                   disabled={disabled}
                   onInput={(e) =>
-                    patchDocument({ title: e.currentTarget.value })
+                    patchDocument({ scope: e.currentTarget.value })
                   }
                 />
-                <label class="ui-field">
-                  Scope
-                  <Textarea
-                    value={document.scope}
-                    required
-                    maxLength={12000}
-                    disabled={disabled}
-                    onInput={(e) =>
-                      patchDocument({ scope: e.currentTarget.value })
-                    }
-                  />
-                </label>
-                <label class="ui-field">
-                  Exclusions
-                  <Textarea
-                    value={document.exclusions}
-                    maxLength={10000}
-                    disabled={disabled}
-                    onInput={(e) =>
-                      patchDocument({ exclusions: e.currentTarget.value })
-                    }
-                  />
-                </label>
-              </QuoteSection>
-            </div>
-
-            <aside class="quote-summary" aria-label="Quote pricing summary">
-              <Card>
-                <h2>
-                  {savedEvidence ? "Saved revision prices" : "Price review"}
-                </h2>
-                {preview ? (
-                  <>
-                    <Badge tone={preview.pricingComplete === false ? "warning" : "info"}>
-                      {preview.pricingComplete === false ? "Supplier pricing pending" : savedEvidence
-                        ? "Frozen saved evidence"
-                        : "Server preview"}
-                    </Badge>
-                    {preview.pricingComplete === false && <Notice tone="warning">Internal working draft: {preview.pendingLineIds?.length} material line(s) await supplier pricing or catalog links. Totals with missing inputs stay pending. Known line amounts are not a final bid.</Notice>}
-                    <dl>
-                      {[
-                        ["Estimated cost", preview.costCents],
-                        ["Selling price before discount", preview.grossCents],
-                        ["Discount", preview.discountCents],
-                        ["Net before tax", preview.netCents],
-                        ["Tax", preview.taxCents],
-                        ["Total", preview.totalCents],
-                        ["Gross profit", preview.profitCents],
-                      ].map(([label, value]) => (
-                        <div key={String(label)}>
-                          <dt>{label}</dt>
-                          <dd>{salesMoney(value as number | null)}</dd>
-                        </div>
-                      ))}
-                      <div>
-                        <dt>Gross margin</dt>
-                        <dd>
-                          {preview.marginBasisPoints === null
-                            ? "—"
-                            : (preview.marginBasisPoints / 100).toFixed(2) +
-                              "%"}
-                        </dd>
-                      </div>
-                    </dl>
-                    {preview.pricingComplete === false && preview.knownTotals && <details><summary>Known line amounts only — not final totals</summary><dl>{[["Known costs",preview.knownTotals.costCents],["Known selling value before tax",preview.knownTotals.netCents],["Known line totals",preview.knownTotals.totalCents]].map(([label,value])=><div key={String(label)}><dt>{label}</dt><dd>{salesMoney(value as number)}</dd></div>)}</dl></details>}
-                    <p class="workspace-help">
-                      Profile v{preview.profileVersion} ·{" "}
-                      {preview.profile.state} · {preview.profile.segment}. Costs
-                      and margins are internal.
-                    </p>
-                    <details>
-                      <summary>Line totals and tax</summary>
-                      {preview.lines.map((line, index) => (
-                        <div class="quote-summary-line" key={line.id}>
-                          <strong>
-                            {index + 1}. {line.description}
-                          </strong>
-                          <span>
-                            {salesMoney(line.totalCents)} · Tax{" "}
-                            {salesMoney(line.taxCents)}
-                          </span>
-                        </div>
-                      ))}
-                    </details>
-                  </>
-                ) : (
-                  <p class="workspace-help">
-                    Calculate prices after edits to review current costs, tax,
-                    and margin.
-                  </p>
-                )}
-              </Card>
-              
-            </aside>
+              </label>
+              <label class="ui-field quote-scope-field">
+                Exclusions
+                <Textarea
+                  class="quote-exclusions-textarea"
+                  rows={6}
+                  value={document.exclusions}
+                  maxLength={10000}
+                  disabled={disabled}
+                  onInput={(e) =>
+                    patchDocument({ exclusions: e.currentTarget.value })
+                  }
+                />
+              </label>
+            </QuoteSection>
           </div>
+
           <QuoteSection title="Job costing">
-                <CostingSheet lines={lines} preview={preview} disabled={disabled} replace={next=>{changed();setLines(next);}} details={setLineDetails} onSave={() => void save()} saving={busy} canSave={!disabled}/>
-                {lineDetails&&lines.some(l=>l.id===lineDetails)&&<Dialog class="bid-review-dialog" close={()=>setLineDetails(null)}><DialogTitle>Costing row details</DialogTitle>{lines.filter(l=>l.id===lineDetails).map(line=><QuoteLineEditor key={line.id} line={line} index={lines.findIndex(l=>l.id===line.id)} opportunityId={opportunity?.id??""} material={line.materialId?materials[line.materialId]:undefined} disabled={disabled} onRefreshing={active=>setRefreshingLines(current=>active?[...new Set([...current,line.id])]:current.filter(id=>id!==line.id))} rememberMaterial={row=>{changed();setMaterials(current=>({...current,[row.id]:row}));}} patch={patch=>patchLine(line.id,patch)} remove={()=>{changed();setLines(current=>current.filter(l=>l.id!==line.id));setLineDetails(null);}}/>)}<Button disabled={resourceBusy} onClick={()=>setLineDetails(null)}>Done</Button></Dialog>}
-              </QuoteSection>
+            <CostingSheet lines={lines} preview={preview} disabled={disabled} replace={next=>{changed();setLines(next);}} details={setLineDetails} onSave={() => void save()} saving={busy} canSave={!disabled}/>
+            {lineDetails&&lines.some(l=>l.id===lineDetails)&&<Dialog class="bid-review-dialog" close={()=>setLineDetails(null)}><DialogTitle>Costing row details</DialogTitle>{lines.filter(l=>l.id===lineDetails).map(line=><QuoteLineEditor key={line.id} line={line} index={lines.findIndex(l=>l.id===line.id)} opportunityId={opportunity?.id??""} material={line.materialId?materials[line.materialId]:undefined} disabled={disabled} onRefreshing={active=>setRefreshingLines(current=>active?[...new Set([...current,line.id])]:current.filter(id=>id!==line.id))} rememberMaterial={row=>{changed();setMaterials(current=>({...current,[row.id]:row}));}} patch={patch=>patchLine(line.id,patch)} remove={()=>{changed();setLines(current=>current.filter(l=>l.id!==line.id));setLineDetails(null);}}/>)}<Button disabled={resourceBusy} onClick={()=>setLineDetails(null)}>Done</Button></Dialog>}
+          </QuoteSection>
+
+          <aside class="quote-summary quote-price-review-bottom" aria-label="Quote pricing summary">
+            <Card>
+              <h2>
+                {savedEvidence ? "Saved revision prices" : "Price review"}
+              </h2>
+              {preview ? (
+                <>
+                  <Badge tone={preview.pricingComplete === false ? "warning" : "info"}>
+                    {preview.pricingComplete === false ? "Supplier pricing pending" : savedEvidence
+                      ? "Frozen saved evidence"
+                      : "Server preview"}
+                  </Badge>
+                  {preview.pricingComplete === false && <Notice tone="warning">Internal working draft: {preview.pendingLineIds?.length} material line(s) await supplier pricing or catalog links. Totals with missing inputs stay pending. Known line amounts are not a final bid.</Notice>}
+                  <dl>
+                    {[
+                      ["Estimated cost", preview.costCents],
+                      ["Selling price before discount", preview.grossCents],
+                      ["Discount", preview.discountCents],
+                      ["Net before tax", preview.netCents],
+                      ["Tax", preview.taxCents],
+                      ["Total", preview.totalCents],
+                      ["Gross profit", preview.profitCents],
+                    ].map(([label, value]) => (
+                      <div key={String(label)}>
+                        <dt>{label}</dt>
+                        <dd>{salesMoney(value as number | null)}</dd>
+                      </div>
+                    ))}
+                    <div>
+                      <dt>Gross margin</dt>
+                      <dd>
+                        {preview.marginBasisPoints === null
+                          ? "—"
+                          : (preview.marginBasisPoints / 100).toFixed(2) +
+                            "%"}
+                      </dd>
+                    </div>
+                  </dl>
+                  {preview.pricingComplete === false && preview.knownTotals && <details><summary>Known line amounts only — not final totals</summary><dl>{[["Known costs",preview.knownTotals.costCents],["Known selling value before tax",preview.knownTotals.netCents],["Known line totals",preview.knownTotals.totalCents]].map(([label,value])=><div key={String(label)}><dt>{label}</dt><dd>{salesMoney(value as number)}</dd></div>)}</dl></details>}
+                  <p class="workspace-help">
+                    Profile v{preview.profileVersion} ·{" "}
+                    {preview.profile.state} · {preview.profile.segment}. Costs
+                    and margins are internal.
+                  </p>
+                  <details>
+                    <summary>Line totals and tax</summary>
+                    {preview.lines.map((line, index) => (
+                      <div class="quote-summary-line" key={line.id}>
+                        <strong>
+                          {index + 1}. {line.description}
+                        </strong>
+                        <span>
+                          {salesMoney(line.totalCents)} · Tax{" "}
+                          {salesMoney(line.taxCents)}
+                        </span>
+                      </div>
+                    ))}
+                  </details>
+                </>
+              ) : (
+                <p class="workspace-help">
+                  Calculate prices after edits to review current costs, tax,
+                  and margin.
+                </p>
+              )}
+            </Card>
+          </aside>
 
           <div class="quote-extras">
               {saved && <QuoteConversionPanel key={`conversion:${saved.id}:${saved.revision}`} refreshKey={`${saved.status}:${saved.updatedAt}`} id={saved.id} revision={saved.revision} disabled={dirty||busy||resourceBusy||loading||uncertain} reloaded={()=>void load()}/>}

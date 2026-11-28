@@ -31,6 +31,10 @@ export interface Opportunity {
   contact_phone: string;
   segment: "commercial" | "residential";
   source: string;
+  campaign_id?: string | null;
+  campaign_name?: string | null;
+  campaign_channel?: string | null;
+  referred_by_name?: string;
   expected_value: number;
   probability: number;
   expected_close_date: string;

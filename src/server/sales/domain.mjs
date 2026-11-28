@@ -110,6 +110,8 @@ export const opportunityInput = z
     contactPhone: text(80),
     segment: z.enum(["commercial", "residential"]),
     source: text(100),
+    campaignId: reference.optional().default(null),
+    referredByName: text(200).optional().default(""),
     expectedValue: z.number().int().min(0).max(1_000_000_000),
     probability: z.number().int().min(0).max(100),
     expectedCloseDate: date,

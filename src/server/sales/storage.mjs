@@ -1,5 +1,6 @@
 import { activitySchema } from "./activity-schema.mjs";
 import { outcomeSchema } from "./outcome-schema.mjs";
+import { campaignSchema } from "./campaigns.mjs";
 import { migrate } from "../platform/sqlite.mjs";
 const sql = `
 CREATE TABLE _sales_settings(id INTEGER PRIMARY KEY CHECK(id=1),currency TEXT NOT NULL DEFAULT 'USD');
@@ -19,9 +20,10 @@ export function installSales(db) {
     { version: 1, sql },
     { version: 2, sql: activitySchema },
     { version: 3, sql: outcomeSchema },
+    { version: 4, sql: campaignSchema },
   ]);
 }
-export const projection = `SELECT o.*,c.name AS customer_name,s.name AS stage_name,s.kind AS stage_kind,p.name AS pipeline_name FROM _sales_opportunities o JOIN _sales_stages s ON s.id=o.stage_id JOIN _sales_pipelines p ON p.id=o.pipeline_id LEFT JOIN customers c ON c.id=o.customer_id`;
+export const projection = `SELECT o.*,c.name AS customer_name,s.name AS stage_name,s.kind AS stage_kind,p.name AS pipeline_name,camp.name AS campaign_name,camp.channel AS campaign_channel FROM _sales_opportunities o JOIN _sales_stages s ON s.id=o.stage_id JOIN _sales_pipelines p ON p.id=o.pipeline_id LEFT JOIN customers c ON c.id=o.customer_id LEFT JOIN _sales_campaigns camp ON camp.id=o.campaign_id`;
 export function audit(db, user, type, id, action, before, after, reason = "") {
   db.prepare(
     "INSERT INTO _sales_audit(entity_type,entity_id,actor_id,action,before_json,after_json,reason) VALUES(?,?,?,?,?,?,?)",

@@ -18,11 +18,15 @@ identical retry acknowledges the original saved version, altered retry409, diffe
 actor403. Stale edits409. Head, attributed immutable revision and immutable replay
 acknowledgement commit atomically. Failed acknowledgement rolls everything back.
 
-Config schemaVersion=4: name, uppercase two-letter state, jurisdiction, segment
+Config schemaVersion=4: name, uppercase two-letter state, segment
 (residential/commercial), effectiveFrom real ISO date, effectiveTo date/null, active,
-reviewNote (10–2000 characters), and exactly one reviewed rule for each category:
-`labor`, `material`. Each rule has kind, treatment
-(exclusive/inclusive/exempt/outside_scope), rateBasisPoints0–10000 and note10–500.
+and exactly one rule for each category: `labor`, `material`. Jurisdiction (up to
+200 characters), reviewNote (up to 2000 characters) and each rule's note (up to 500
+characters) are optional trimmed text, defaulting to an empty string. Short/blank
+annotations are valid; tax justification text is not required. Each rule still
+requires kind, treatment (exclusive/inclusive/exempt/outside_scope) and
+rateBasisPoints0–10000. Owner/Admin authorization, version checks and immutable
+attributed revisions still apply when annotations are omitted.
 Exempt/outside_scope requires zero rate. Profiles are explicitly selected; no legal
 rates, state-wide taxability, automatic address lookup or compound tax engine supplied.
 

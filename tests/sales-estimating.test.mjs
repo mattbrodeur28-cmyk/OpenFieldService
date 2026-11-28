@@ -178,7 +178,7 @@ test("Estimator calculates labor headcount, discounts and mixed inclusive/exclus
   assert.equal(zero.markupBasisPoints, null);
 });
 
-test("Estimator rejects duplicate fuel, malformed categories and quantities, missing review and overflow", () => {
+test("Estimator rejects duplicate fuel, malformed categories and quantities, incomplete rules and overflow", () => {
   const distance = line({
     kind: "distance",
     quantityMilli: 10000,
@@ -215,7 +215,7 @@ test("Estimator rejects duplicate fuel, malformed categories and quantities, mis
     calculateEstimate([line()], profile({ rules: profile().rules.slice(1) })),
   );
   assert.throws(() =>
-    calculateEstimate([line()], profile({ reviewNote: "bad" })),
+    calculateEstimate([line()], profile({ reviewNote: 42 })),
   );
   assert.throws(
     () =>
@@ -225,6 +225,36 @@ test("Estimator rejects duplicate fuel, malformed categories and quantities, mis
       ),
     /limit/,
   );
+});
+
+test("Estimator accepts optional tax annotations without changing financial validation", () => {
+  const input = line();
+  const baseline = calculateEstimate([input], profile());
+  for (const annotation of [undefined, "", "ok"]) {
+    const config = profile();
+    config.rules = config.rules.map(rule => ({ ...rule }));
+    if (annotation === undefined) {
+      delete config.reviewNote;
+      delete config.jurisdiction;
+      for (const rule of config.rules) delete rule.note;
+    } else {
+      config.reviewNote = annotation;
+      config.jurisdiction = annotation;
+      for (const rule of config.rules) rule.note = annotation;
+    }
+    const result = calculateEstimate([input], config);
+    assert.equal(result.profile.reviewNote, annotation ?? "");
+    assert.equal(result.profile.jurisdiction, annotation ?? "");
+    assert.ok(result.profile.rules.every(rule => rule.note === (annotation ?? "")));
+    for (const key of ["costCents", "netCents", "taxCents", "totalCents"])
+      assert.equal(result[key], baseline[key], key);
+  }
+  for (const patch of [
+    { reviewNote: "x".repeat(2001) },
+    { jurisdiction: "x".repeat(201) },
+    { rules: profile().rules.map(rule => ({ ...rule, note: "x".repeat(501) })) },
+    { rules: profile().rules.map(rule => ({ ...rule, treatment: "exempt", rateBasisPoints: 725 })) },
+  ]) assert.throws(() => calculateEstimate([input], profile(patch)));
 });
 
 test("Billing profiles are admin reviewed, version guarded, immutable and actor-bound idempotent", (t) => {

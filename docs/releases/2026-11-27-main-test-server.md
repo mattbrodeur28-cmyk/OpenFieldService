@@ -58,3 +58,20 @@ Debian Node 24 test server before restarting; the prior fail-fast updater leaves
 the service stopped when tests fail. The logged `Workspace request failed: Error`
 comes from the workspace negative-path test and is distinct from the failed UUID
 assertion. LXC/browser/provider qualification is not inferred from local checks.
+
+
+## Optional tax annotations test correction
+
+The later quote-settings change intentionally made tax jurisdiction/review/rule
+notes optional. The estimator's old negative-path test still expected a short
+reviewNote to throw, which reproduced the reported LXC failure at line 217. This
+correction leaves application behavior intact, replaces that stale assertion with
+an invalid-type check, and adds a regression case for omitted/empty/short notes,
+unchanged financial totals, maximum lengths and exempt-rate consistency. The
+pricing API guide now documents the actual optional text contract. Category,
+permission, version, immutable revision and exact arithmetic protections remain.
+
+Full local suite: 319/319 pass, zero failures/skips/cancellations/TODOs. Production
+build and TypeScript pass; the existing bundle-size warning remains. Actual LXC
+readback remains an operator check. Reinstall the corrected updater from the pulled
+checkout before retrying: failed updates cannot refresh their installed command.

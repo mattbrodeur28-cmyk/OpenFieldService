@@ -1,6 +1,6 @@
 import "./billing-profile-settings.css";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { accountRequest } from "../auth";
+import { accountRequest, AccountRequestError } from "../auth";
 import { useConnectivity } from "../hooks/use-connectivity";
 import { taxCategories, taxLabels } from "../estimating-types";
 import type {
@@ -104,15 +104,9 @@ export function BillingProfileSettings() {
     <section class="settings-card billing-profile-settings">
       <h3>Billing profiles</h3>
       <p class="workspace-help">
-        Review tax treatment by state, local jurisdiction and Residential or
-        Commercial work. Rates are company configuration; no legal rate is
-        supplied. Every category needs a review note, including zero-rated or
-        exempt categories.
-      </p>
-      <p class="workspace-help">
-        One Labor rule covers technician, apprentice and after-hours labor.
-        Service, permits, licensing, subcontractors, fuel and travel distance
-        are not taxed.
+        Set your state tax rates for Commercial and Residential quotes. One Labor
+        rule covers technician, apprentice and after-hours labor. Service,
+        permits, licensing, subcontractors, fuel and travel distance are not taxed.
       </p>
       {edit !== null && edit !== "new" && edit.requiresReview && (
         <Notice tone="warning">
@@ -209,129 +203,119 @@ export function BillingProfileSettings() {
               await load();
             } catch (err) {
               setError((err as Error).message);
-              if (!acknowledged) setUncertain(true);
+              const isClientErr = err instanceof AccountRequestError && typeof err.status === "number" && err.status >= 400 && err.status < 500;
+              if (isClientErr) {
+                pending.current = null;
+                setUncertain(false);
+              } else if (!acknowledged) {
+                setUncertain(true);
+              }
             } finally {
               setBusy(false);
             }
           }}
         >
-          <TextField
-            label="Profile name"
-            value={config.name}
-            required
-            maxLength={120}
-            disabled={disabled}
-            onInput={(e) => patch({ name: e.currentTarget.value })}
-          />
-          <TextField
-            label="State code"
-            value={config.state}
-            required
-            pattern="[A-Z]{2}"
-            maxLength={2}
-            placeholder="MA"
-            disabled={disabled}
-            onInput={(e) =>
-              patch({ state: e.currentTarget.value.toUpperCase() })
-            }
-          />
-          <TextField
-            label="Jurisdiction / place of supply"
-            value={config.jurisdiction}
-            required
-            maxLength={200}
-            disabled={disabled}
-            onInput={(e) => patch({ jurisdiction: e.currentTarget.value })}
-          />
-          <Select
-            label="Work segment"
-            value={config.segment}
-            disabled={disabled}
-            options={[
-              { value: "commercial", label: "Commercial" },
-              { value: "residential", label: "Residential" },
-            ]}
-            onValueChange={(v) =>
-              patch({ segment: v as BillingProfileConfig["segment"] })
-            }
-          />
-          <TextField
-            label="Effective from"
-            type="date"
-            required
-            value={config.effectiveFrom}
-            disabled={disabled}
-            onInput={(e) => patch({ effectiveFrom: e.currentTarget.value })}
-          />
-          <TextField
-            label="Effective through (optional)"
-            type="date"
-            value={config.effectiveTo || ""}
-            disabled={disabled}
-            onInput={(e) =>
-              patch({ effectiveTo: e.currentTarget.value || null })
-            }
-          />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
+            <TextField
+              label="Profile name"
+              value={config.name}
+              required
+              maxLength={120}
+              placeholder="e.g. CT Commercial Tax"
+              disabled={disabled}
+              onInput={(e) => patch({ name: e.currentTarget.value })}
+            />
+            <TextField
+              label="State code"
+              value={config.state}
+              required
+              pattern="[A-Z]{2}"
+              maxLength={2}
+              placeholder="CT"
+              disabled={disabled}
+              onInput={(e) =>
+                patch({ state: e.currentTarget.value.toUpperCase() })
+              }
+            />
+            <Select
+              label="Work segment"
+              value={config.segment}
+              disabled={disabled}
+              options={[
+                { value: "commercial", label: "Commercial" },
+                { value: "residential", label: "Residential" },
+              ]}
+              onValueChange={(v) =>
+                patch({ segment: v as BillingProfileConfig["segment"] })
+              }
+            />
+            <TextField
+              label="Jurisdiction (optional)"
+              value={config.jurisdiction}
+              maxLength={200}
+              placeholder="e.g. Statewide"
+              disabled={disabled}
+              onInput={(e) => patch({ jurisdiction: e.currentTarget.value })}
+            />
+            <TextField
+              label="Effective from"
+              type="date"
+              required
+              value={config.effectiveFrom}
+              disabled={disabled}
+              onInput={(e) => patch({ effectiveFrom: e.currentTarget.value })}
+            />
+            <TextField
+              label="Effective through (optional)"
+              type="date"
+              value={config.effectiveTo || ""}
+              disabled={disabled}
+              onInput={(e) =>
+                patch({ effectiveTo: e.currentTarget.value || null })
+              }
+            />
+          </div>
           <Checkbox
             label="Active for estimates"
             checked={config.active}
             disabled={disabled}
             onChange={(e) => patch({ active: e.currentTarget.checked })}
           />
-          <TextField
-            label="Review / source notes"
-            required
-            minLength={10}
-            maxLength={2000}
-            value={config.reviewNote}
-            disabled={disabled}
-            onInput={(e) => patch({ reviewNote: e.currentTarget.value })}
-          />
-          {config.rules.map((r) => (
-            <fieldset class="billing-tax-rule" key={r.kind} disabled={disabled}>
-              <legend>{taxLabels[r.kind]}</legend>
-              <Select
-                label={taxLabels[r.kind] + " tax treatment"}
-                value={r.treatment}
-                disabled={disabled}
-                options={[
-                  { value: "exclusive", label: "Tax added to price" },
-                  { value: "inclusive", label: "Tax included in price" },
-                  { value: "exempt", label: "Exempt (review required)" },
-                  {
-                    value: "outside_scope",
-                    label: "Outside tax scope (review required)",
-                  },
-                ]}
-                onValueChange={(v) =>
-                  rule(r.kind, {
-                    treatment: v as TaxRule["treatment"],
-                    rateBasisPoints: ["exempt", "outside_scope"].includes(v)
-                      ? 0
-                      : r.rateBasisPoints,
-                  })
-                }
-              />
-              <RateField
-                key={(edit === "new" ? "new" : edit.id) + r.kind + r.treatment}
-                kind={taxLabels[r.kind]}
-                value={r.rateBasisPoints}
-                disabled={
-                  disabled || ["exempt", "outside_scope"].includes(r.treatment)
-                }
-                change={(v) => rule(r.kind, { rateBasisPoints: v })}
-              />
-              <TextField
-                label={taxLabels[r.kind] + " review / exemption reason"}
-                required
-                minLength={10}
-                maxLength={500}
-                value={r.note}
-                disabled={disabled}
-                onInput={(e) => rule(r.kind, { note: e.currentTarget.value })}
-              />
-            </fieldset>
-          ))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px" }}>
+            {config.rules.map((r) => (
+              <fieldset class="billing-tax-rule" key={r.kind} disabled={disabled}>
+                <legend>{taxLabels[r.kind]}</legend>
+                <Select
+                  label={taxLabels[r.kind] + " tax treatment"}
+                  value={r.treatment}
+                  disabled={disabled}
+                  options={[
+                    { value: "exclusive", label: "Tax added to price" },
+                    { value: "inclusive", label: "Tax included in price" },
+                    { value: "exempt", label: "Tax exempt (0%)" },
+                    { value: "outside_scope", label: "Not taxed (0%)" },
+                  ]}
+                  onValueChange={(v) =>
+                    rule(r.kind, {
+                      treatment: v as TaxRule["treatment"],
+                      rateBasisPoints: ["exempt", "outside_scope"].includes(v)
+                        ? 0
+                        : r.rateBasisPoints,
+                    })
+                  }
+                />
+                <RateField
+                  key={(edit === "new" ? "new" : edit.id) + r.kind + r.treatment}
+                  kind={taxLabels[r.kind]}
+                  value={r.rateBasisPoints}
+                  disabled={
+                    disabled || ["exempt", "outside_scope"].includes(r.treatment)
+                  }
+                  change={(v) => rule(r.kind, { rateBasisPoints: v })}
+                />
+              </fieldset>
+            ))}
+          </div>
           {uncertain && (
             <Notice tone="warning">
               The save could not be confirmed. Retry the same request or reload

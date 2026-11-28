@@ -60,7 +60,7 @@ export const taxRule = z
     kind: z.enum(taxCategories),
     treatment: z.enum(["exclusive", "inclusive", "exempt", "outside_scope"]),
     rateBasisPoints: z.number().int().min(0).max(10000),
-    note: text(500).min(10),
+    note: text(500).optional().default(""),
   })
   .strict()
   .refine(
@@ -74,12 +74,12 @@ export const profileConfig = z
     schemaVersion: z.literal(4),
     name: text(120).min(1),
     state: z.string().regex(/^[A-Z]{2}$/),
-    jurisdiction: text(200).min(1),
+    jurisdiction: text(200).optional().default(""),
     segment: z.enum(["residential", "commercial"]),
     effectiveFrom: date.refine(Boolean),
     effectiveTo: date.refine(Boolean).nullable(),
     active: z.boolean(),
-    reviewNote: text(2000).min(10),
+    reviewNote: text(2000).optional().default(""),
     rules: z.array(taxRule).length(taxCategories.length),
   })
   .strict()

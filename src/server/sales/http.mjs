@@ -47,7 +47,7 @@ export function createSales({
     "*",
     (c, next) =>
       bodyLimit({
-        maxSize: c.req.path.endsWith("/quote-issuer") ? 600000 : 50000,
+        maxSize: c.req.path.endsWith("/quote-issuer") ? 1200000 : 50000,
         onError: (ctx) => ctx.json({ error: "Request too large." }, 413),
       })(c, next),
   );

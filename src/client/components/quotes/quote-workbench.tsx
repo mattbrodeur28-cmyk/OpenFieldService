@@ -403,12 +403,27 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
     }
     return { opp, prof };
   }
+  function normalizeMoney(raw: string | undefined, allowBlank = false): string {
+    const cleaned = String(raw ?? "").trim().replace(/^\$/, "").replace(/,/g, "");
+    if (!cleaned) return allowBlank ? "" : "0.00";
+    return cleaned;
+  }
   function build(overrideOpp?: QuoteOpportunity, overrideProf?: BillingProfile): EstimateInput {
     const opp = overrideOpp || opportunity;
     const prof = overrideProf || profile;
     if (!opp) throw new Error("Choose a customer or opportunity before saving.");
     if (!prof) throw new Error("Choose a reviewed billing profile in Settings → Billing Profiles before saving.");
-    const effectiveLines = lines.length ? lines : [freshLine()];
+    const effectiveLines = (lines.length ? lines : [freshLine()]).map((l) => ({
+      ...l,
+      description: l.description.trim() || document.title.trim() || "Line item",
+      quantity: String(l.quantity ?? "").trim().replace(/,/g, "") || "1.000",
+      headcount: String(l.headcount ?? "").trim() || "1",
+      unitCost: normalizeMoney(l.unitCost, Boolean(l.pricingPending)),
+      unitSell: normalizeMoney(l.unitSell, Boolean(l.pricingPending)),
+      discount: normalizeMoney(l.discount, false),
+      ...(l.materialMultiplier !== undefined ? { materialMultiplier: normalizeMoney(l.materialMultiplier, false) } : {}),
+      ...(l.materialMisc !== undefined ? { materialMisc: normalizeMoney(l.materialMisc, false) } : {}),
+    }));
     return {
       opportunityId: opp.id,
       expectedOpportunityVersion: opp.version,

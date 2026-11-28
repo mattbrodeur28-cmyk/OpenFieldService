@@ -31,3 +31,33 @@ network failures and custom installation environments remain operator qualificat
 A successful local health check does not prove public HTTPS, login or provider
 workflows; verify representative saved records after each deployment. This does
 not close the entire deployment/scale milestone.
+
+
+## LXC incident: non-root service denied source-file access
+
+The user supplied Node 24/systemd startup logs showing EACCES opening
+`src/server/sales/http.mjs` after the first update. The updater's global umask 077
+made root-created Git/dependency/build files owner-only, while systemd runs the app
+as `openfieldservice`. The fixture suite had simulated process startup but had not
+asserted service-readable modes. Passing tests as root did not catch this gap.
+
+The correction uses umask 022 for public runtime artifacts and explicitly protects
+backup directories. Before checks/restart it repairs read/traverse modes on public
+source, dependency and build trees plus root package/TypeScript config files. It
+does not change state/env permissions, make code writable to the service, or chmod
+the entire checkout. Executable dependencies retain executable modes. A failed
+command substitution now produces one parent error report/cleanup, not duplicate
+reports from inherited subshell traps. Failed updates still leave the service
+stopped with retained backups.
+
+Seven updater cases now include owner-only source/dependency/build fixtures,
+assertions of restored public runtime access and unchanged 0600 database/env plus
+0700 backup permissions, and a connection-refused failure with exactly one error
+report. Full local suite passes 318/318; production build and shell syntax pass.
+Existing bundle-size warning remains. These are local orchestration/source results;
+actual LXC recovery/readback remains to be confirmed by the operator.
+
+Because failed runs do not refresh the installed updater, pull the correction and
+reinstall `deploy/update.sh` to `/usr/local/sbin/ofs-update` before retrying. Existing
+stopped-service backups remain intact; do not restore or reset data for this file-
+permission repair.

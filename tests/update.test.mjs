@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, cpSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, cpSync, rmSync, chmodSync, statSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -13,13 +13,21 @@ function fixture(t) {
   const git=(cwd,...args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
   git(dir,'init','--bare',remote);git(app,'init','-b','main');git(app,'config','user.email','updater@example.test');git(app,'config','user.name','Updater fixture');
   mkdirSync(join(app,'deploy'));cpSync(updater,join(app,'deploy/update.sh'));
+  mkdirSync(join(app,'src'));writeFileSync(join(app,'src','runtime.mjs'),'export const ready=true;');
+  mkdirSync(join(app,'node_modules'));mkdirSync(join(app,'dist'));
+  writeFileSync(join(app,'.gitignore'),'node_modules/\ndist/\n');
   writeFileSync(join(app,'package.json'),'{}');writeFileSync(join(app,'pnpm-lock.yaml'),'fixture');
   git(app,'add','.');git(app,'commit','-m','old');git(app,'remote','add','origin',remote);git(app,'push','-u','origin','main');
   const previous=git(app,'rev-parse','HEAD');
   writeFileSync(join(app,'release.txt'),'new release');git(app,'add','.');git(app,'commit','-m','release');git(app,'push','origin','main');
   const target=git(app,'rev-parse','HEAD');git(app,'reset','--hard',previous);
+  // Reproduce the owner-only modes left by the original updater.
+  chmodSync(join(app,'src'),0o700);chmodSync(join(app,'src','runtime.mjs'),0o600);
+  writeFileSync(join(app,'node_modules','binary'),'fixture binary',{mode:0o700});
+  writeFileSync(join(app,'dist','index.html'),'fixture page',{mode:0o600});
   writeFileSync(join(state,'service.sqlite'),'original native data');writeFileSync(join(state,'workspace.sqlite'),'original account data');writeFileSync(join(state,'service.sqlite-wal'),'retained WAL');
-  const envfile=join(dir,'private.env');writeFileSync(envfile,'PRIVATE_FIXTURE=do-not-log-this\n');
+  const envfile=join(dir,'private.env');writeFileSync(envfile,'PRIVATE_FIXTURE=do-not-log-this\n',{mode:0o600});
+  chmodSync(join(state,'service.sqlite'),0o600);chmodSync(join(state,'workspace.sqlite'),0o600);
   function shim(name,body) { writeFileSync(join(bin,name),`#!${process.execPath}\n${body}`,{mode:0o755}); }
   shim('id',`console.log('0');`);
   shim('flock',`if(process.env.FAIL_LOCK==='1')process.exit(1);`);
@@ -40,6 +48,7 @@ function fixture(t) {
   `);
   shim('curl',`
     const fs=require('node:fs'),url=process.argv.at(-1);fs.appendFileSync(process.env.EVENT_LOG,'curl '+url+'\\n');
+    if(process.env.FAIL_CONNECT==='1')process.exit(7);
     if(process.env.FAIL_HEALTH==='1') {console.log('<html>proxy error</html>');process.exit(0)}
     console.log(url.endsWith('/healthz')?' {"status":"ok"}':'{"user":null,"setupRequired":false}');
   `);
@@ -60,6 +69,13 @@ test('updater backs up stopped state/config, fast-forwards, checks and restarts 
   assert.ok(existsSync(f.env.OFS_INSTALL_PATH));assert.ok(existsSync(f.env.RUNNING_FILE));
   const events=f.events();assert.ok(events.indexOf('systemctl stop')<events.indexOf('pnpm install'));assert.ok(events.indexOf('pnpm test')<events.indexOf('systemctl start'));assert.match(events,/curl .*\/api\/auth\/session/);
   assert.doesNotMatch(r.stdout+r.stderr,/do-not-log-this/);
+  assert.equal(statSync(join(f.app,'src','runtime.mjs')).mode&0o444,0o444);
+  assert.equal(statSync(join(f.app,'src')).mode&0o111,0o111);
+  assert.equal(statSync(join(f.app,'node_modules','binary')).mode&0o111,0o111);
+  assert.equal(statSync(join(f.app,'dist','index.html')).mode&0o444,0o444);
+  assert.equal(statSync(join(f.state,'service.sqlite')).mode&0o777,0o600);
+  assert.equal(statSync(f.env.OFS_ENV_FILE).mode&0o777,0o600);
+  assert.equal(statSync(backup).mode&0o777,0o700);
 });
 
 test('updater preflight and dirty checkout rejection do not stop the service or alter commits',t=>{
@@ -84,4 +100,12 @@ test('updater rejects a diverged main before stopping the service',t=>{
 
 test('updater rejects invalid health JSON after restart and leaves the new service stopped for recovery',t=>{
   const f=fixture(t),r=f.run({FAIL_HEALTH:'1'});assert.notEqual(r.status,0);assert.match(r.stderr,/restart and local health/);assert.match(f.events(),/systemctl start/);assert.ok(!existsSync(f.env.RUNNING_FILE));assert.ok(!existsSync(f.env.OFS_INSTALL_PATH));
+});
+
+
+test('updater connection failure reports once and retains private backup permissions',t=>{
+  const f=fixture(t),r=f.run({FAIL_CONNECT:'1'});assert.notEqual(r.status,0);
+  assert.equal((r.stderr.match(/Update failed during:/g)||[]).length,1,r.stderr);
+  assert.equal((r.stderr.match(/Service remains stopped/g)||[]).length,1,r.stderr);
+  assert.ok(!existsSync(f.env.RUNNING_FILE));
 });

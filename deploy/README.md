@@ -148,6 +148,15 @@ build, typecheck and full tests, then starts the service and validates local hea
 and session JSON. It atomically refreshes the installed updater after success.
 A successful update does not require a second manual command installation.
 
+Runtime source, dependency and build files use public read/traverse permissions
+for the non-root service account. The updater repairs owner-only modes left by
+older updater versions on `src`, `node_modules`, `dist`, the checkout root,
+`package.json` and `tsconfig.json`; it does not recursively chmod the entire
+checkout or modify the state directory/private env file. Backups remain behind a
+mode-700 parent directory. After a failed update, reinstall a corrected updater
+from the checkout before rerunning; a failed run cannot refresh its installed copy.
+
+
 On failure after stopping the service, it leaves the service stopped and prints
 the failed stage and backup location. It never resets local changes, deletes old
 backups, blindly restores migrated data, or reinstalls the systemd unit. Follow

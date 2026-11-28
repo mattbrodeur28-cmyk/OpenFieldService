@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Debian/systemd single-instance updater. Run as root; custom paths use OFS_*.
 set -Eeuo pipefail
-umask 077
+# Git, pnpm and Vite create public runtime files read by a non-root service.
+# Restrict backups explicitly instead of imposing owner-only modes on the checkout.
+umask 022
 
 usage() {
   cat <<'HELP'
@@ -38,11 +40,9 @@ stage=preflight
 fail() { printf 'Update stopped: %s\n' "$*" >&2; exit 1; }
 error() {
   local status=$?
+  # ERR is inherited by command substitutions; only the parent reports/stops.
+  if (( BASH_SUBSHELL > 0 )); then exit "$status"; fi
   trap - ERR INT TERM
-  if (( stopped )); then
-    systemctl stop "$service" >/dev/null 2>&1 || true
-    printf 'Service left stopped. Do not restart until the failed step is resolved.\n' >&2
-  fi
   printf 'Update failed during: %s\n' "$stage" >&2
   [[ -z "$previous_commit" ]] || printf 'Previous commit: %s\n' "$previous_commit" >&2
   [[ -z "$backup_dir" ]] || printf 'Recovery files: %s\n' "$backup_dir" >&2
@@ -55,6 +55,7 @@ trap 'exit 143' TERM
 # EXIT also covers explicit failures and signals after the service has stopped.
 cleanup() {
   local status=$?
+  if (( BASH_SUBSHELL > 0 )); then return; fi
   if (( status != 0 && stopped )); then
     systemctl stop "$service" >/dev/null 2>&1 || true
     printf 'Service remains stopped; backup: %s\n' "${backup_dir:-not completed}" >&2
@@ -67,7 +68,7 @@ trap cleanup EXIT
 for path in "$app_dir" "$state_dir" "$env_file" "$backup_root" "$lock_file" "$install_path"; do
   [[ "$path" == /* && "$path" != / ]] || fail 'All configured paths must be absolute and must not be /.'
 done
-for command in git node pnpm systemctl curl flock cp mktemp install; do
+for command in git node pnpm systemctl curl flock cp mktemp install find chmod mv; do
   command -v "$command" >/dev/null || fail "Missing command: $command"
 done
 [[ $(node -p 'process.versions.node.split(".")[0]') == 24 ]] || fail 'Install system-wide Node.js 24 before updating.'
@@ -139,6 +140,18 @@ stage='install dependencies'
 pnpm install --frozen-lockfile
 stage='production build'
 pnpm build
+stage='runtime file permissions'
+# Only public source/dependency/build paths: never touch mutable state or env files.
+chmod a+rx "$app_dir"
+for public_dir in src node_modules dist; do
+  [[ -d "$public_dir" ]] || fail "Missing runtime directory: $public_dir"
+  find "$public_dir" -type d -exec chmod a+rx {} +
+  find "$public_dir" -type f -exec chmod a+r {} +
+  find "$public_dir" -type f -perm -100 -exec chmod a+x {} +
+done
+for public_file in package.json tsconfig.json; do
+  [[ ! -f "$public_file" ]] || chmod a+r "$public_file"
+done
 stage='TypeScript check'
 pnpm exec tsc --noEmit
 stage='automated tests'

@@ -1,6 +1,6 @@
 import {createSalesCustomerOverview} from "./customer-overview.mjs";
 import {createProspectConversion} from "./prospect-conversion.mjs";
-import { renderCustomerQuoteHtml } from "./quote-document.mjs";
+import { renderCustomerQuoteHtml, renderCustomerProposalHtml } from "./quote-document.mjs";
 import { createQuotes } from "./quotes.mjs";
 import { createBillingProfiles } from "./billing-profiles.mjs";
 import { createActivities } from "./activities.mjs";
@@ -45,10 +45,11 @@ export function createSales({
   storage.salesCustomerOverviewInTransaction=createSalesCustomerOverview({storage,clock});
   app.use(
     "*",
-    bodyLimit({
-      maxSize: 50000,
-      onError: (c) => c.json({ error: "Request too large." }, 413),
-    }),
+    (c, next) =>
+      bodyLimit({
+        maxSize: c.req.path.endsWith("/quote-issuer") ? 600000 : 50000,
+        onError: (ctx) => ctx.json({ error: "Request too large." }, 413),
+      })(c, next),
   );
   const actor = (c) => currentUser(c);
   const check = (c) => {
@@ -164,6 +165,28 @@ export function createSales({
     const { document } = quotes.document(check(c), c.req.param("id"), c.req.query());
     c.header("Content-Disposition", `attachment; filename="${document.identifier}-r${document.revision}-draft.html"`);
     return c.html(renderCustomerQuoteHtml(document));
+  });
+  app.get("/quotes/:id/customer-proposal.html", (c) => {
+    const actorUser = check(c);
+    c.header("Cache-Control", "private, no-store");
+    c.header("X-Content-Type-Options", "nosniff");
+    const quoteId = c.req.param("id");
+    const { document } = quotes.document(actorUser, quoteId, c.req.query());
+    const detailRow = quotes.detail(actorUser, quoteId, c.req.query());
+    const opp = detailRow?.quote?.opportunityId
+      ? storage.database.prepare("SELECT customer_id, contact_name, contact_email, contact_phone FROM _sales_opportunities WHERE id=?").get(detailRow.quote.opportunityId)
+      : null;
+    const cust = opp?.customer_id
+      ? storage.database.prepare("SELECT phone, email FROM customers WHERE id=?").get(opp.customer_id)
+      : null;
+    const contact = {
+      name: opp?.contact_name || "",
+      phone: opp?.contact_phone || cust?.phone || "",
+      email: opp?.contact_email || cust?.email || "",
+    };
+    const issuer = quotes.lifecycle.issuer.publicFields();
+    const autoPrint = c.req.query("print") === "1";
+    return c.html(renderCustomerProposalHtml(document, { issuer, contact, autoPrint }));
   });
   app.get("/quotes/:id", (c) =>
     c.json(quotes.detail(check(c), c.req.param("id"), c.req.query())),

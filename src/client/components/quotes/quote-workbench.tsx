@@ -43,6 +43,7 @@ import {
 } from "../ui/surfaces";
 import { SearchPicker } from "./search-picker";
 import { QuoteLineEditor } from "./line-editor";
+import { MarkdownField } from "./markdown-field";
 
 function freshLine(): DraftLine {
   return {
@@ -99,28 +100,43 @@ function QuoteStage({ status, reviewStatus }: { status?: string; reviewStatus?: 
 
 export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
   const { user } = useAccount();
-  const { navigate } = useApp(),
+  const { navigate, customers } = useApp(),
     { readOnly } = useConnectivity(),
     company = useCompanyTimeZone();
   const [saved, setSaved] = useState<Quote | null>(null),
     [detail, setDetail] = useState<QuoteDetail | null>(null);
   const [opportunity, setOpportunity] = useState<QuoteOpportunity | null>(null),
     [opportunityList, setOpportunityList] = useState<QuoteOpportunity[]>([]),
+    [selectedCustomerId, setSelectedCustomerId] = useState<string>(""),
     [profile, setProfile] = useState<BillingProfile | null>(null),
     [latestProfile, setLatestProfile] = useState<BillingProfile | null>(null);
   useEffect(() => {
     if (quoteId !== "new") return;
     let live = true;
-    accountRequest<{ opportunities?: QuoteOpportunity[] }>("/api/sales/quotes/options?page=1")
+    accountRequest<{ rows?: QuoteOpportunity[] }>("/api/sales/quotes/options?kind=opportunities&page=1")
       .then((r) => {
         if (!live) return;
-        const rows = r.opportunities ?? [];
+        const rows = r.rows ?? [];
         setOpportunityList(rows);
-        setOpportunity((cur) => cur || rows[0] || null);
+        if (rows[0]) setOpportunity((cur) => cur || rows[0]);
       })
       .catch(() => {});
     return () => { live = false; };
   }, [quoteId]);
+  // If no opportunity yet but a customer is selected, load an active billing profile for that customer's segment
+  useEffect(() => {
+    if (profile || opportunity || !selectedCustomerId) return;
+    const cust = customers.find((c) => c.id === selectedCustomerId);
+    const seg = (cust as any)?.customer_type === "commercial" ? "commercial" : "residential";
+    let live = true;
+    accountRequest<{ profiles: BillingProfile[] }>(`/api/sales/billing-profiles?segment=${seg}`)
+      .then((r) => {
+        const p = (r.profiles ?? []).find((x) => x.config.active && !x.requiresReview);
+        if (live && p) { setProfile(p); setLatestProfile(p); }
+      })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [selectedCustomerId, opportunity, profile, customers]);
   const [oppContact, setOppContact] = useState<string | null>(null);
   useEffect(() => {
     const id = saved?.opportunityId;
@@ -321,15 +337,83 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
       current.map((line) => (line.id === id ? { ...line, ...patch } : line)),
     );
   }
-  function build(): EstimateInput {
-    if (!opportunity) throw new Error("Choose an opportunity before saving.");
-    if (!profile) throw new Error("Choose a reviewed billing profile in Settings → Billing Profiles before saving.");
+  async function ensureOpportunityAndProfile(): Promise<{ opp: QuoteOpportunity; prof: BillingProfile }> {
+    let opp = opportunity;
+    if (!opp) {
+      if (!selectedCustomerId) {
+        throw new Error("Select a customer (or an existing opportunity) before saving.");
+      }
+      const cust = customers.find((c) => c.id === selectedCustomerId);
+      const seg: "commercial" | "residential" =
+        (cust as any)?.customer_type === "commercial" ? "commercial" : "residential";
+      const pipes = await accountRequest<{ pipelines: { id: string; stages: { id: string; kind: string; probability: number }[] }[] }>("/api/sales/pipelines");
+      const pipe = pipes.pipelines?.[0];
+      const openStage = pipe?.stages?.find((s) => s.kind === "open");
+      if (!pipe || !openStage) {
+        throw new Error("Configure a Sales pipeline with an open stage before creating a quote.");
+      }
+      const created = await accountRequest<{ opportunity: { id: string; title: string; version: number; segment: "commercial" | "residential"; customer_name?: string; prospect_name?: string } }>(
+        "/api/sales/opportunities",
+        "POST",
+        {
+          title: document.title.trim() || `${cust?.name || "Customer"} Quote`,
+          pipelineId: pipe.id,
+          stageId: openStage.id,
+          ownerId: user.id,
+          prospectName: cust?.name || "",
+          contactName: "",
+          contactEmail: cust?.email || "",
+          contactPhone: cust?.phone || "",
+          segment: seg,
+          source: "Direct Quote",
+          expectedValue: 0,
+          probability: openStage.probability ?? 10,
+          expectedCloseDate: "",
+          nextAction: "",
+          nextActionDate: "",
+          customerId: selectedCustomerId,
+          siteId: null,
+          assetId: null,
+          notes: "",
+        },
+      );
+      opp = {
+        id: created.opportunity.id,
+        title: created.opportunity.title,
+        version: created.opportunity.version,
+        segment: created.opportunity.segment,
+        customerName: created.opportunity.customer_name || cust?.name || "",
+      };
+      setOpportunity(opp);
+    }
+
+    let prof = profile;
+    if (!prof) {
+      const r = await accountRequest<{ profiles: BillingProfile[] }>(`/api/sales/billing-profiles?segment=${opp.segment}`);
+      prof = (r.profiles ?? []).find((x) => x.config.active && !x.requiresReview) || null;
+      if (!prof) {
+        const all = await accountRequest<{ profiles: BillingProfile[] }>("/api/sales/billing-profiles?page=1");
+        prof = (all.profiles ?? []).find((x) => x.config.active && !x.requiresReview) || null;
+      }
+      if (!prof) {
+        throw new Error("Configure an active Billing Profile in Settings → Billing Profiles before saving.");
+      }
+      setProfile(prof);
+      setLatestProfile(prof);
+    }
+    return { opp, prof };
+  }
+  function build(overrideOpp?: QuoteOpportunity, overrideProf?: BillingProfile): EstimateInput {
+    const opp = overrideOpp || opportunity;
+    const prof = overrideProf || profile;
+    if (!opp) throw new Error("Choose a customer or opportunity before saving.");
+    if (!prof) throw new Error("Choose a reviewed billing profile in Settings → Billing Profiles before saving.");
     const effectiveLines = lines.length ? lines : [freshLine()];
     return {
-      opportunityId: opportunity.id,
-      expectedOpportunityVersion: opportunity.version,
-      profileId: profile.id,
-      expectedProfileVersion: profile.version,
+      opportunityId: opp.id,
+      expectedOpportunityVersion: opp.version,
+      profileId: prof.id,
+      expectedProfileVersion: prof.version,
       pricingDate,
       lines: effectiveLines.map(lineInput),
     };
@@ -372,7 +456,8 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
     setError("");
     setBusy(true);
     try {
-      const input = build();
+      const { opp, prof } = await ensureOpportunityAndProfile();
+      const input = build(opp, prof);
       const epoch = editEpoch.current;
       const result = await accountRequest<EstimateResult>(
         "/api/sales/estimates/preview",
@@ -411,7 +496,8 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           throw new Error(
             "Choose a validity date on or after the pricing date.",
           );
-        const input = build();
+        const { opp, prof } = await ensureOpportunityAndProfile();
+        const input = build(opp, prof);
         // Automatically calculate prices if not yet calculated or inputs changed
         if (
           !preview ||
@@ -524,7 +610,15 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           )}
           {saved && isAdministrator(user) && <Button disabled={busy||resourceBusy||loading||dirty||uncertain||readOnly||saved.estimate.pricingComplete===false} onClick={()=>setPublishingTemplate(true)}>Save as template</Button>}
           {saved && <Button disabled={busy || resourceBusy || loading || dirty || uncertain || readOnly || saved.estimate.pricingComplete===false} onClick={() => setDocumentOpen(true)}>Draft document review</Button>}
-          <Button disabled={disabled || !opportunity || !profile} onClick={() => void calculate()}>Calculate prices</Button>
+          {saved && (
+            <Button
+              disabled={busy || resourceBusy || loading || dirty || uncertain || saved.estimate.pricingComplete === false}
+              onClick={() => window.open(`/api/sales/quotes/${saved.id}/customer-proposal.html?revision=${saved.revision}&print=1`, "_blank", "noopener,noreferrer")}
+            >
+              Customer PDF
+            </Button>
+          )}
+          <Button disabled={disabled || (!opportunity && !selectedCustomerId)} onClick={() => void calculate()}>Calculate prices</Button>
           <Button
             variant="primary"
             disabled={busy || resourceBusy || loading || readOnly || historical || lockedQuote || (!dirty && !uncertain && quoteId !== "new")}
@@ -569,22 +663,54 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
           
           <div class="quote-scope-full">
             <QuoteSection title="Scope & terms">
-              {quoteId === "new" && opportunityList.length > 0 && (
-                <Select
-                  label="Opportunity / Account"
-                  value={opportunity?.id || ""}
-                  disabled={disabled}
-                  options={opportunityList.map((o) => ({
-                    value: o.id,
-                    label: `${o.title} — ${o.customerName || "Prospect"} (${o.segment})`,
-                  }))}
-                  onValueChange={(id) => {
-                    const found = opportunityList.find((o) => o.id === id) || null;
-                    setOpportunity(found);
-                    setProfile(null);
-                    changed();
-                  }}
-                />
+              {quoteId === "new" && (
+                <div class="sales-form-grid">
+                  <Select
+                    label="Customer"
+                    value={selectedCustomerId || (opportunity ? "__opp__" : "")}
+                    disabled={disabled}
+                    options={[
+                      { value: "", label: "Select a customer…" },
+                      ...(opportunity ? [{ value: "__opp__", label: `From opportunity: ${opportunity.customerName || opportunity.title}` }] : []),
+                      ...customers.map((c) => ({
+                        value: c.id,
+                        label: `${c.name} (${(c as any).customer_type === "commercial" ? "Commercial" : "Residential"})`,
+                      })),
+                    ]}
+                    onValueChange={(id) => {
+                      if (id === "__opp__") return;
+                      setSelectedCustomerId(id);
+                      setOpportunity(null);
+                      setProfile(null);
+                      changed();
+                    }}
+                  />
+                  {opportunityList.length > 0 && (
+                    <Select
+                      label="Or link existing opportunity"
+                      value={opportunity?.id || "none"}
+                      disabled={disabled}
+                      options={[
+                        { value: "none", label: "Auto-create opportunity for selected customer" },
+                        ...opportunityList.map((o) => ({
+                          value: o.id,
+                          label: `${o.title} — ${o.customerName || "Prospect"} (${o.segment})`,
+                        })),
+                      ]}
+                      onValueChange={(id) => {
+                        if (id === "none") {
+                          setOpportunity(null);
+                        } else {
+                          const found = opportunityList.find((o) => o.id === id) || null;
+                          setOpportunity(found);
+                          setSelectedCustomerId("");
+                        }
+                        setProfile(null);
+                        changed();
+                      }}
+                    />
+                  )}
+                </div>
               )}
               <TextField
                 label="Quote title"
@@ -596,33 +722,27 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
                   patchDocument({ title: e.currentTarget.value })
                 }
               />
-              <label class="ui-field quote-scope-field">
-                Scope
-                <Textarea
-                  class="quote-scope-textarea"
-                  rows={8}
-                  value={document.scope}
-                  required
-                  maxLength={12000}
-                  disabled={disabled}
-                  onInput={(e) =>
-                    patchDocument({ scope: e.currentTarget.value })
-                  }
-                />
-              </label>
-              <label class="ui-field quote-scope-field">
-                Exclusions
-                <Textarea
-                  class="quote-exclusions-textarea"
-                  rows={6}
-                  value={document.exclusions}
-                  maxLength={10000}
-                  disabled={disabled}
-                  onInput={(e) =>
-                    patchDocument({ exclusions: e.currentTarget.value })
-                  }
-                />
-              </label>
+              <MarkdownField
+                label="Scope"
+                className="quote-scope-textarea"
+                rows={8}
+                value={document.scope}
+                required
+                maxLength={12000}
+                disabled={disabled}
+                placeholder="Describe the work scope using headings, bullets, checkboxes, or callout boxes…"
+                onChange={(scope) => patchDocument({ scope })}
+              />
+              <MarkdownField
+                label="Exclusions"
+                className="quote-exclusions-textarea"
+                rows={6}
+                value={document.exclusions}
+                maxLength={10000}
+                disabled={disabled}
+                placeholder="List exclusions, owner responsibilities, or special notes…"
+                onChange={(exclusions) => patchDocument({ exclusions })}
+              />
             </QuoteSection>
           </div>
 

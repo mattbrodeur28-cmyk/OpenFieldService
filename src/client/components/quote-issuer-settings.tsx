@@ -14,9 +14,24 @@ function IssuerDialog({issuer,close,saved}:{issuer:Issuer|null;close():void;save
  const disabled=command.busy||command.uncertain||readOnly;
  const patch=(value:Partial<IssuerConfig>)=>{command.changed();setConfig(current=>({...current,...value}));};
  const attemptClose=()=>{if(command.canClose())close();};
+ const [logoError,setLogoError]=useState('');
+ function onLogoPick(e: Event){
+  setLogoError('');
+  const file=(e.currentTarget as HTMLInputElement).files?.[0];
+  if(!file)return;
+  if(file.size>300*1024){setLogoError('Please choose a logo image under 300 KB (PNG, JPG, WebP, or SVG).');return;}
+  const reader=new FileReader();
+  reader.onload=()=>{patch({logoDataUrl:String(reader.result||'')});};
+  reader.readAsDataURL(file);
+ }
  return <Dialog class="bid-review-dialog" close={attemptClose}>
-  <DialogTitle>Quote issuer and terms</DialogTitle><p class="workspace-help">Review the business identity and terms that will be frozen into future offers. Earlier offers retain their own version.</p>
-  {command.error&&<Notice tone="danger">{command.error}</Notice>}{command.uncertain&&<Notice tone="warning">Save outcome uncertain. Retry the exact command before closing.</Notice>}
+  <DialogTitle>Quote issuer and terms</DialogTitle><p class="workspace-help">Review the business identity, company logo, and terms used in customer quotes and frozen offers.</p>
+  {command.error&&<Notice tone="danger">{command.error}</Notice>}{logoError&&<Notice tone="danger">{logoError}</Notice>}{command.uncertain&&<Notice tone="warning">Save outcome uncertain. Retry the exact command before closing.</Notice>}
+  <div class="ui-field">
+   <label style={{display:'block',fontWeight:600,marginBottom:'6px'}}>Company logo (shown on Customer PDF quotes)</label>
+   {config.logoDataUrl&&<div style={{marginBottom:'8px',display:'flex',alignItems:'center',gap:'12px'}}><img src={config.logoDataUrl} alt="Company logo preview" style={{maxHeight:'54px',maxWidth:'200px',objectFit:'contain',border:'1px solid var(--border)',borderRadius:'6px',padding:'4px',background:'#fff'}}/><Button disabled={disabled} onClick={()=>patch({logoDataUrl:''})}>Remove logo</Button></div>}
+   <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" disabled={disabled} onChange={onLogoPick}/>
+  </div>
   <TextField label="Legal business name" value={config.legalName} maxLength={200} disabled={disabled} onInput={e=>patch({legalName:e.currentTarget.value})}/>
   <label class="ui-field">Business address<Textarea value={config.address} maxLength={1000} disabled={disabled} onInput={e=>patch({address:e.currentTarget.value})}/></label>
   <TextField label="Business email" type="email" value={config.email} maxLength={254} disabled={disabled} onInput={e=>patch({email:e.currentTarget.value})}/>

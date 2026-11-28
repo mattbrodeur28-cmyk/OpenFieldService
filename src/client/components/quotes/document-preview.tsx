@@ -6,6 +6,7 @@ import { estimateLabels } from "../../estimating-types";
 import { Dialog, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Badge, LoadingState, Notice, Table } from "../ui/surfaces";
+import { renderQuoteMarkdown } from "../../../shared/quote-markdown.mjs";
 
 export function QuoteDocumentPreview({ id, revision, close, offered=false }: { id: string; revision: number; close(): void; offered?:boolean }) {
   const [data, setData] = useState<CustomerQuoteDocument | null>(null),
@@ -24,6 +25,16 @@ export function QuoteDocumentPreview({ id, revision, close, offered=false }: { i
     <header class="quote-header">
       <div><DialogTitle>Quote document preview</DialogTitle><p class="workspace-help">Saved revision {revision} · {offered?"Frozen offer":"Internal review"}</p></div>
       <div class="quote-actions">
+        {data && (
+          <a
+            class="btn btn-primary"
+            href={`/api/sales/quotes/${id}/customer-proposal.html?revision=${revision}&print=1`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Customer PDF (Total Only)
+          </a>
+        )}
         {data && <a class="btn" href={`/api/sales/quotes/${id}/${offered?"offer-document":"document"}.html?revision=${revision}`} download>Download {offered?"offer":"draft"} HTML</a>}
         <Button onClick={close}>Close</Button>
       </div>
@@ -42,8 +53,9 @@ export function QuoteDocumentPreview({ id, revision, close, offered=false }: { i
           {data.equipment && <><h3>Equipment</h3><p>{data.equipment.name}</p><p>{[data.equipment.manufacturer,data.equipment.model].filter(Boolean).join(" ")}</p><p>Serial: {data.equipment.serialNumber}</p></>}</section>
       </div>
       <Notice>{offered?"Business identity, recipient, customer, location and equipment were frozen when this revision was offered.":"Customer, location and equipment details reflect current linked records. Prices and terms come from this saved revision; no offered identity has been frozen."}</Notice>
-      <h3>Scope</h3><p class="quote-document-text">{data.scope}</p>
-      {data.exclusions && <><h3>Exclusions</h3><p class="quote-document-text">{data.exclusions}</p></>}
+      <h3>Scope</h3>
+      <div class="quote-document-md" dangerouslySetInnerHTML={{ __html: renderQuoteMarkdown(data.scope) }} />
+      {data.exclusions && <><h3>Exclusions</h3><div class="quote-document-md" dangerouslySetInnerHTML={{ __html: renderQuoteMarkdown(data.exclusions) }} /></>}
       <h3>Pricing</h3><p class="workspace-help">Labor quantities are per person. Unit rates follow the shown tax treatment; net excludes tax. Inclusive rates already contain tax.</p>
       <Table label={offered?"Offered quote prices":"Customer quote draft prices"}><thead><tr><th>Description</th><th>Quantity</th><th>Unit rate</th><th>Discount</th><th>Net</th><th>Tax</th><th>Total</th></tr></thead>
         <tbody>{data.lines.map((line,index) => <tr key={index}>

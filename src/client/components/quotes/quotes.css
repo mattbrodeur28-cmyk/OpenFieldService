@@ -336,3 +336,30 @@
 .quote-exclusions-textarea { width: 100%; min-height: 130px; resize: vertical; }
 .quote-price-review-bottom { margin-top: 16px; width: 100%; }
 .quote-workbench .quote-layout { grid-template-columns: minmax(0, 1fr); }
+
+/* Quote Markdown editor toolbar & rendered preview */
+.qmd-editor { display: grid; gap: 6px; width: 100%; }
+.qmd-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.qmd-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.qmd-toolbar { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; padding: 4px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-sunken); }
+.qmd-tool { border: 1px solid transparent; background: transparent; color: var(--text); font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 5px; cursor: pointer; line-height: 1.2; }
+.qmd-tool:hover:not(:disabled) { background: var(--card-bg); border-color: var(--border); }
+.qmd-tool:disabled { opacity: 0.45; cursor: not-allowed; }
+.qmd-tool.qmd-preview-toggle { font-weight: 600; color: var(--primary); }
+.qmd-tool.qmd-preview-toggle.is-active { background: var(--primary); color: #fff; }
+.qmd-sep { width: 1px; height: 16px; background: var(--border); margin: 0 2px; }
+.qmd-preview-pane { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card-bg); padding: 14px 16px; overflow-y: auto; }
+.qmd { font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.qmd p { margin: 6px 0; }
+.qmd .qmd-h1 { font-size: 17px; font-weight: 700; margin: 12px 0 6px; border-bottom: 1px solid var(--border); padding-bottom: 3px; }
+.qmd .qmd-h2 { font-size: 15px; font-weight: 600; margin: 10px 0 5px; }
+.qmd .qmd-h3 { font-size: 14px; font-weight: 600; margin: 8px 0 4px; color: var(--text-muted); }
+.qmd ul, .qmd ol { margin: 6px 0; padding-left: 22px; }
+.qmd ul.qmd-dots { list-style-type: circle; }
+.qmd ul.qmd-checklist { list-style: none; padding-left: 4px; }
+.qmd li.qmd-check { display: flex; align-items: flex-start; gap: 8px; margin: 4px 0; }
+.qmd .qmd-box-mark { font-size: 15px; line-height: 1.3; }
+.qmd .qmd-box { margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 6px; background: var(--surface-sunken); }
+.qmd .qmd-box p { margin: 4px 0; }
+.qmd hr { border: 0; border-top: 1px solid var(--border); margin: 12px 0; }
+.qmd code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 4px; font-size: 12px; }

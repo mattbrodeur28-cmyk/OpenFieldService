@@ -1,8 +1,8 @@
 import type {CustomerQuoteDocument} from './quote-types';
-export interface IssuerConfig {schemaVersion:1;legalName:string;address:string;email:string;phone:string;terms:string;reviewNote:string}
+export interface IssuerConfig {schemaVersion:1;legalName:string;address:string;email:string;phone:string;terms:string;reviewNote:string;logoDataUrl?:string}
 export interface Issuer {version:number;actorId:string;config:IssuerConfig;savedAt:string}
 export interface IssuerPage {issuer:Issuer|null;history:Issuer[];page:number;hasMore:boolean}
-export interface PublicIssuer {version:number;legalName:string;address:string;email:string;phone:string;terms:string}
+export interface PublicIssuer {version:number;legalName:string;address:string;email:string;phone:string;terms:string;logoDataUrl?:string}
 export interface Recipient {name:string;email:string}
 export type LifecycleAction='offer'|'delivered'|'accepted'|'declined'|'expire'|'withdraw'|'revise';
 export interface QuoteLifecycle {

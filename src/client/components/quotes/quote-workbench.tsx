@@ -556,6 +556,7 @@ export function QuoteWorkbench({ quoteId }: { quoteId: string }) {
       setDirty(false);
       setSaved(result.quote);
       setPreview(result.quote.estimate);
+      setLines(result.quote.estimate.lines.map(editLine));
       setNotice(
         `Saved ${result.quote.identifier} revision ${result.quote.revision}.`,
       );

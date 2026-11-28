@@ -19,9 +19,9 @@ const cellValue = (line: DraftLine, key: Field) => key === 'ot' ? line.laborRate
 const range = (a: [number, number], b: [number, number]) => ({ top: Math.min(a[0], b[0]), bottom: Math.max(a[0], b[0]), left: Math.min(a[1], b[1]), right: Math.max(a[1], b[1]) });
 function fresh(kind: EstimateKind): DraftLine { return { id: crypto.randomUUID(), kind, description: estimateLabels[kind], quantity: '1.000', headcount: '1', unitCost: kind === 'material' ? '' : '0.00', unitSell: kind === 'material' ? '' : '0.00', discount: '0.00', materialId: null, costOverrideReason: '', travelGroup: ['distance', 'fuel'].includes(kind) ? 'visit-1' : '', includesFuel: false, ...(kind === 'material' ? { materialMultiplier: '0.00', materialMisc: '0.00', pricingPending: true as const, pendingPricingNote: 'Awaiting supplier identification and pricing.' } : {}) }; }
 
-function CostingGrid({ title, section, rows, columns, preview, disabled, change, commit, patch, details, addKinds, add, emptyText }: {
+function CostingGrid({ title, section, rows, columns, preview, disabled, change, commitSection, removeRow, patch, details, addKinds, add, emptyText }: {
     title: string; section: string; rows: DraftLine[]; columns: Column[]; preview: EstimateResult | null; disabled: boolean;
-    change(line: DraftLine, key: Field, value: string): void; commit(next: DraftLine[]): void; patch(line: DraftLine, key: Field, value: string): DraftLine;
+    change(line: DraftLine, key: Field, value: string): void; commitSection(next: DraftLine[]): void; removeRow(id: string): void; patch(line: DraftLine, key: Field, value: string): DraftLine;
     details(id: string): void; addKinds: EstimateKind[]; add(kind: EstimateKind): void; emptyText: string;
 }) {
     const [anchor, setAnchor] = useState<[number, number]>([0, 0]);
@@ -72,7 +72,7 @@ function CostingGrid({ title, section, rows, columns, preview, disabled, change,
                 values.forEach((value, ci) => { next = patch(next, columns[active[1] + ci].key, value); });
                 changed.set(row.id, next);
             });
-            commit(rows.map((row) => changed.get(row.id) ?? row));
+            commitSection(rows.map((row) => changed.get(row.id) ?? row));
         } catch { /* ignore malformed paste */ }
     }
     return (
@@ -99,7 +99,7 @@ function CostingGrid({ title, section, rows, columns, preview, disabled, change,
                                             </td>
                                         );
                                     })}
-                                    <td class="costing-remove-cell"><Button variant="ghost" disabled={disabled} aria-label={`Remove row ${ri + 1}`} onClick={() => commit(rows.filter((l) => l.id !== line.id))}><Trash2 size={13} /></Button></td>
+                                    <td class="costing-remove-cell"><Button variant="ghost" disabled={disabled} aria-label={`Remove row ${ri + 1}`} onClick={() => removeRow(line.id)}><Trash2 size={13} /></Button></td>
                                 </tr>
                             );
                         })}
@@ -158,6 +158,11 @@ export function CostingSheet({ lines, preview, disabled, replace, details, onSav
         catch (e) { setError((e as Error).message); }
     }
     function add(kind: EstimateKind) { if (lines.length < 100) commit([...lines, fresh(kind)]); }
+    function removeRow(id: string) { commit(lines.filter((l) => l.id !== id)); }
+    function commitSection(updatedRows: DraftLine[]) {
+        const byId = new Map(updatedRows.map((r) => [r.id, r]));
+        commit(lines.map((l) => byId.get(l.id) ?? l));
+    }
     const totalCost = preview?.lines.reduce((n, l) => n + (l.costCents ?? 0), 0) ?? 0;
     const totalBillable = preview?.lines.reduce((n, l) => n + (l.totalCents ?? 0), 0) ?? 0;
     const profit = totalBillable - totalCost;
@@ -186,9 +191,9 @@ export function CostingSheet({ lines, preview, disabled, replace, details, onSav
             </header>
             <p class="costing-help">Edit cells directly · Enter / ↑ / ↓ move rows · ← / → move cells · Shift-click selects a range · Paste tab-separated cells from Excel or Sheets. Tax uses the billing profile tax rate (Settings → Billing profile).</p>
             {error && <Notice tone="danger">{error}</Notice>}
-            <CostingGrid title="Materials" section="materials" rows={lines.filter((l) => l.kind === 'material')} columns={unifiedColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['material']} add={add} emptyText="No material rows. Add a material below to start." />
-            <CostingGrid title="Labor" section="labor" rows={lines.filter((l) => laborKinds.includes(l.kind))} columns={unifiedColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['technician', 'apprentice', 'after_hours']} add={add} emptyText="No labor rows. Add a labor role below to start." />
-            <CostingGrid title="Other job costs" section="other" rows={lines.filter((l) => l.kind !== 'material' && !laborKinds.includes(l.kind))} columns={unifiedColumns} preview={preview} disabled={disabled} change={change} commit={commit} patch={patch} details={details} addKinds={['service', 'permit', 'license', 'distance', 'fuel', 'subcontractor']} add={add} emptyText="No other cost rows. Add a category below to start." />
+            <CostingGrid title="Materials" section="materials" rows={lines.filter((l) => l.kind === 'material')} columns={unifiedColumns} preview={preview} disabled={disabled} change={change} commitSection={commitSection} removeRow={removeRow} patch={patch} details={details} addKinds={['material']} add={add} emptyText="No material rows. Add a material below to start." />
+            <CostingGrid title="Labor" section="labor" rows={lines.filter((l) => laborKinds.includes(l.kind))} columns={unifiedColumns} preview={preview} disabled={disabled} change={change} commitSection={commitSection} removeRow={removeRow} patch={patch} details={details} addKinds={['technician', 'apprentice', 'after_hours']} add={add} emptyText="No labor rows. Add a labor role below to start." />
+            <CostingGrid title="Other job costs" section="other" rows={lines.filter((l) => l.kind !== 'material' && !laborKinds.includes(l.kind))} columns={unifiedColumns} preview={preview} disabled={disabled} change={change} commitSection={commitSection} removeRow={removeRow} patch={patch} details={details} addKinds={['service', 'permit', 'license', 'distance', 'fuel', 'subcontractor']} add={add} emptyText="No other cost rows. Add a category below to start." />
                         <table class="costing-totals">
                 <thead><tr><th>Category</th><th>Total gross</th><th>Total tax</th><th>Total cost</th><th>Total profit</th><th>Margin</th></tr></thead>
                 <tbody>

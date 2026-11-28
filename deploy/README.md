@@ -120,6 +120,58 @@ service and verify customers, equipment and jobs in the browser.
 
 ## Updates
 
+### One-command LXC updater
+
+Install the root-only command once from this fork:
+
+```sh
+cd /opt/openfieldservice
+git switch main
+git pull --ff-only origin main
+install -m 755 deploy/update.sh /usr/local/sbin/ofs-update
+ofs-update --check
+```
+
+For future releases, run:
+
+```sh
+ofs-update
+```
+
+The updater requires Debian/systemd, Node 24, pnpm 11.20.0, Git, curl and `flock`
+(from util-linux). It locks against concurrent runs, refuses local checkout changes
+or divergent main history, fetches `origin/main`, stops the service, and backs up
+its entire state directory (both SQLite databases and WAL sidecars), private env
+file and systemd unit configuration in a mode-700 backup directory. It records
+previous/target commits, fast-forwards main, performs a frozen install, production
+build, typecheck and full tests, then starts the service and validates local health
+and session JSON. It atomically refreshes the installed updater after success.
+A successful update does not require a second manual command installation.
+
+On failure after stopping the service, it leaves the service stopped and prints
+the failed stage and backup location. It never resets local changes, deletes old
+backups, blindly restores migrated data, or reinstalls the systemd unit. Follow
+[recovery instructions](../docs/operations/runbook.md#rollback--restore) before
+attempting a database rollback. Review backups periodically; retention is manual.
+`--check` performs local preflight only, without fetching or stopping the service.
+
+Defaults match the unit shipped here. For a custom installation, export overrides
+before invoking the command: `OFS_APP_DIR`, `OFS_STATE_DIR`, `OFS_ENV_FILE`,
+`OFS_SERVICE`, `OFS_BACKUP_ROOT` and `OFS_BASE_URL`. `OFS_STATE_DIR` must contain
+all service/workspace database files and any other mutable app state; configure it
+even when the service is stopped. When the service is running, preflight rejects
+an effective DATABASE_PATH outside that state directory. A custom service port
+requires the matching local HTTP `OFS_BASE_URL`. Configuration outside the chosen
+env file/state directory must be backed up separately. Advanced installations can
+override `OFS_LOCK_FILE` and `OFS_INSTALL_PATH` too.
+
+The default health checks use `http://127.0.0.1:3000`. HTTPS certificates, NetBird
+routes and proxy configuration are separate: this command does not change them.
+After success, verify login and representative saved records through your actual
+hostname. Local health is not browser, external-provider or production proof.
+
+### Manual update / recovery reference
+
 Back up both databases and private configuration first. Stop `openfieldservice`,
 retain a protected copy of its complete state directory (including any WAL sidecars)
 and `/etc/openfieldservice.env`, and record the current commit. Fetch `origin/main`,
